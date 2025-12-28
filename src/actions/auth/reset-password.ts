@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
+import { sendPasswordChangedEmail } from "@/lib/email";
 import {
   resetPasswordSchema,
   type ResetPasswordInput,
@@ -83,10 +84,10 @@ export async function resetPasswordAction(
       },
     });
 
-    // TODO: Send password changed confirmation email
-    // await sendPasswordChangedEmail(email);
+    // Send password changed confirmation email
+    await sendPasswordChangedEmail(email);
 
-    // TODO: Invalidate all sessions for this user
+    // TODO: Invalidate all sessions for this user (future enhancement)
     // This would require storing sessions in the database
 
     return {

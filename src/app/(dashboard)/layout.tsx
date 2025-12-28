@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { logoutAction } from "@/actions/auth";
 import { auth } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -22,9 +23,10 @@ export default async function DashboardLayout({
             <span className="text-sm text-muted-foreground">
               {session.user.email}
             </span>
-            <form action="/api/auth/signout" method="POST">
+            <form action={logoutAction}>
               <button
                 type="submit"
+                data-testid="signout-button"
                 className="text-sm text-muted-foreground hover:text-foreground"
               >
                 Sign out

@@ -3,6 +3,7 @@
 import crypto from "crypto";
 
 import { db } from "@/lib/db";
+import { sendPasswordResetEmail } from "@/lib/email";
 import {
   forgotPasswordSchema,
   type ForgotPasswordInput,
@@ -57,8 +58,8 @@ export async function forgotPasswordAction(
       },
     });
 
-    // TODO: Send password reset email
-    // await sendPasswordResetEmail(email, resetToken);
+    // Send password reset email
+    await sendPasswordResetEmail(email, resetToken);
 
     return { success: true, message: successMessage };
   } catch (error) {

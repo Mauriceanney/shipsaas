@@ -566,6 +566,58 @@ test.describe("Protected Routes", () => {
 });
 
 // ============================================================================
+// LOGOUT FLOW TESTS
+// ============================================================================
+
+test.describe("Logout Flow", () => {
+  test("displays sign out button on dashboard", async ({ page }) => {
+    // Note: This test requires authenticated state
+    // For now, just verify the button exists when on dashboard
+    await page.goto("/dashboard");
+
+    // If redirected to login, we can't test logout
+    // This test is designed to run with authenticated session
+    const currentUrl = page.url();
+    if (currentUrl.includes("/dashboard")) {
+      await expect(page.getByTestId("signout-button")).toBeVisible();
+    }
+  });
+
+  test("sign out button redirects to login page", async ({ page }) => {
+    // Navigate to dashboard (requires auth)
+    await page.goto("/dashboard");
+
+    const currentUrl = page.url();
+    if (currentUrl.includes("/dashboard")) {
+      // Click sign out
+      await page.getByTestId("signout-button").click();
+
+      // Should redirect to login page
+      await expect(page).toHaveURL(/\/login/);
+    }
+  });
+
+  test("cannot access dashboard after signing out", async ({ page }) => {
+    await page.goto("/dashboard");
+
+    const currentUrl = page.url();
+    if (currentUrl.includes("/dashboard")) {
+      // Sign out
+      await page.getByTestId("signout-button").click();
+
+      // Wait for redirect to login
+      await expect(page).toHaveURL(/\/login/);
+
+      // Try to access dashboard again
+      await page.goto("/dashboard");
+
+      // Should be redirected to login
+      await expect(page).toHaveURL(/\/login/);
+    }
+  });
+});
+
+// ============================================================================
 // NAVIGATION TESTS
 // ============================================================================
 

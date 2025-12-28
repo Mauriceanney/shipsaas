@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 import { db } from "@/lib/db";
+import { sendVerificationEmail } from "@/lib/email";
 import {
   registerSchema,
   type RegisterInput,
@@ -63,8 +64,8 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
       },
     });
 
-    // TODO: Send verification email
-    // await sendVerificationEmail(user.email, verificationToken);
+    // Send verification email
+    await sendVerificationEmail(user.email, verificationToken);
 
     return {
       success: true,
