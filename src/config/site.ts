@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "SaaS Boilerplate",
   description:
     "Production-ready SaaS boilerplate with Next.js 15, TypeScript, and Prisma",
-  url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  url: process.env["NEXT_PUBLIC_APP_URL"] ?? "http://localhost:3000",
   ogImage: "/og.png",
   links: {
     github: "https://github.com/yourusername/saas-boilerplate",
