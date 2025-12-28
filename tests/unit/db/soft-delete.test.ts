@@ -20,7 +20,7 @@ describe("Soft Delete Helpers", () => {
     });
 
     it("returns false when deletedAt is undefined", () => {
-      const record = { id: "1" };
+      const record = { id: "1", deletedAt: undefined };
       expect(isSoftDeleted(record)).toBe(false);
     });
   });

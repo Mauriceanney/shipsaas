@@ -1,0 +1,314 @@
+/**
+ * Stripe webhook event handlers
+ */
+
+import type Stripe from "stripe";
+import { db } from "@/lib/db";
+import {
+  mapStripeStatus,
+  getPlanFromPriceId,
+  extractPriceId,
+  extractCustomerId,
+  extractSubscriptionId,
+  unixToDate,
+  validateCheckoutMetadata,
+} from "./utils";
+import { stripe } from "./client";
+import type { SupportedWebhookEvent, WebhookResult } from "./types";
+
+// ============================================
+// CHECKOUT HANDLERS
+// ============================================
+
+/**
+ * Handle checkout.session.completed event
+ * Creates or updates subscription after successful checkout
+ */
+export async function handleCheckoutCompleted(
+  session: Stripe.Checkout.Session
+): Promise<void> {
+  // Only handle subscription checkouts
+  if (session.mode !== "subscription") {
+    console.log("Skipping non-subscription checkout:", session.id);
+    return;
+  }
+
+  // Validate metadata
+  const metadata = validateCheckoutMetadata(session.metadata);
+  if (!metadata) {
+    console.error("Missing userId in checkout metadata:", session.id);
+    return;
+  }
+
+  const customerId = extractCustomerId(session);
+  const subscriptionId = extractSubscriptionId(session);
+
+  if (!customerId || !subscriptionId) {
+    console.error("Missing customer or subscription ID:", session.id);
+    return;
+  }
+
+  // Fetch full subscription details from Stripe
+  const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const priceId = extractPriceId(stripeSubscription);
+  const plan = priceId ? getPlanFromPriceId(priceId) : "FREE";
+
+  // Upsert subscription in database
+  await db.subscription.upsert({
+    where: { userId: metadata.userId },
+    create: {
+      userId: metadata.userId,
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscriptionId,
+      stripePriceId: priceId,
+      stripeCurrentPeriodEnd: unixToDate(stripeSubscription.current_period_end),
+      status: mapStripeStatus(stripeSubscription.status),
+      plan,
+    },
+    update: {
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscriptionId,
+      stripePriceId: priceId,
+      stripeCurrentPeriodEnd: unixToDate(stripeSubscription.current_period_end),
+      status: mapStripeStatus(stripeSubscription.status),
+      plan,
+    },
+  });
+
+  console.log(`Subscription created/updated for user: ${metadata.userId}`);
+}
+
+// ============================================
+// SUBSCRIPTION HANDLERS
+// ============================================
+
+/**
+ * Handle customer.subscription.created event
+ */
+export async function handleSubscriptionCreated(
+  subscription: Stripe.Subscription
+): Promise<void> {
+  const metadata = subscription.metadata;
+  const userId = metadata?.["userId"];
+
+  if (!userId) {
+    console.log("No userId in subscription metadata, skipping:", subscription.id);
+    return;
+  }
+
+  const customerId = extractCustomerId(subscription);
+  const priceId = extractPriceId(subscription);
+  const plan = priceId ? getPlanFromPriceId(priceId) : "FREE";
+
+  await db.subscription.upsert({
+    where: { userId },
+    create: {
+      userId,
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscription.id,
+      stripePriceId: priceId,
+      stripeCurrentPeriodEnd: unixToDate(subscription.current_period_end),
+      status: mapStripeStatus(subscription.status),
+      plan,
+    },
+    update: {
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscription.id,
+      stripePriceId: priceId,
+      stripeCurrentPeriodEnd: unixToDate(subscription.current_period_end),
+      status: mapStripeStatus(subscription.status),
+      plan,
+    },
+  });
+
+  console.log(`Subscription created for user: ${userId}`);
+}
+
+/**
+ * Handle customer.subscription.updated event
+ */
+export async function handleSubscriptionUpdated(
+  subscription: Stripe.Subscription
+): Promise<void> {
+  // Find subscription by Stripe subscription ID
+  const existingSubscription = await db.subscription.findFirst({
+    where: { stripeSubscriptionId: subscription.id },
+  });
+
+  if (!existingSubscription) {
+    console.log("No matching subscription found for:", subscription.id);
+    return;
+  }
+
+  const priceId = extractPriceId(subscription);
+  const plan = priceId ? getPlanFromPriceId(priceId) : existingSubscription.plan;
+
+  await db.subscription.update({
+    where: { id: existingSubscription.id },
+    data: {
+      stripePriceId: priceId,
+      stripeCurrentPeriodEnd: unixToDate(subscription.current_period_end),
+      status: mapStripeStatus(subscription.status),
+      plan,
+    },
+  });
+
+  console.log(`Subscription updated: ${subscription.id}`);
+}
+
+/**
+ * Handle customer.subscription.deleted event
+ */
+export async function handleSubscriptionDeleted(
+  subscription: Stripe.Subscription
+): Promise<void> {
+  // Find subscription by Stripe subscription ID
+  const existingSubscription = await db.subscription.findFirst({
+    where: { stripeSubscriptionId: subscription.id },
+  });
+
+  if (!existingSubscription) {
+    console.log("No matching subscription found for deletion:", subscription.id);
+    return;
+  }
+
+  await db.subscription.update({
+    where: { id: existingSubscription.id },
+    data: {
+      status: "CANCELED",
+      stripeSubscriptionId: null, // Clear subscription ID
+      // Keep stripeCustomerId for potential resubscription
+    },
+  });
+
+  console.log(`Subscription deleted: ${subscription.id}`);
+}
+
+// ============================================
+// INVOICE HANDLERS
+// ============================================
+
+/**
+ * Handle invoice.paid event
+ */
+export async function handleInvoicePaid(
+  invoice: Stripe.Invoice
+): Promise<void> {
+  const subscriptionId = typeof invoice.subscription === "string"
+    ? invoice.subscription
+    : invoice.subscription?.id;
+
+  if (!subscriptionId) {
+    console.log("No subscription ID in invoice:", invoice.id);
+    return;
+  }
+
+  // Update subscription status if it was past_due
+  const existingSubscription = await db.subscription.findFirst({
+    where: {
+      stripeSubscriptionId: subscriptionId,
+      status: "PAST_DUE",
+    },
+  });
+
+  if (existingSubscription) {
+    await db.subscription.update({
+      where: { id: existingSubscription.id },
+      data: { status: "ACTIVE" },
+    });
+
+    console.log(`Subscription reactivated after payment: ${subscriptionId}`);
+  }
+}
+
+/**
+ * Handle invoice.payment_failed event
+ */
+export async function handleInvoicePaymentFailed(
+  invoice: Stripe.Invoice
+): Promise<void> {
+  const subscriptionId = typeof invoice.subscription === "string"
+    ? invoice.subscription
+    : invoice.subscription?.id;
+
+  if (!subscriptionId) {
+    console.log("No subscription ID in invoice:", invoice.id);
+    return;
+  }
+
+  // Update subscription status to past_due
+  const existingSubscription = await db.subscription.findFirst({
+    where: { stripeSubscriptionId: subscriptionId },
+  });
+
+  if (existingSubscription) {
+    await db.subscription.update({
+      where: { id: existingSubscription.id },
+      data: { status: "PAST_DUE" },
+    });
+
+    console.log(`Subscription marked as past_due: ${subscriptionId}`);
+
+    // TODO: Send notification email to user
+  }
+}
+
+// ============================================
+// MAIN WEBHOOK PROCESSOR
+// ============================================
+
+/**
+ * Process a Stripe webhook event
+ */
+export async function processWebhookEvent(
+  event: Stripe.Event
+): Promise<WebhookResult> {
+  const eventType = event.type as SupportedWebhookEvent;
+
+  console.log(`Processing webhook event: ${eventType} (${event.id})`);
+
+  try {
+    switch (eventType) {
+      case "checkout.session.completed":
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+
+      case "customer.subscription.created":
+        await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
+        break;
+
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        break;
+
+      case "customer.subscription.deleted":
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        break;
+
+      case "invoice.paid":
+        await handleInvoicePaid(event.data.object as Stripe.Invoice);
+        break;
+
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    return {
+      success: true,
+      eventId: event.id,
+      eventType: event.type,
+    };
+  } catch (error) {
+    console.error(`Error processing webhook event ${event.id}:`, error);
+    return {
+      success: false,
+      eventId: event.id,
+      eventType: event.type,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}

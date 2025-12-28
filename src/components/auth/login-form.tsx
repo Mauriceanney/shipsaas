@@ -32,7 +32,8 @@ export function LoginForm() {
       const result = await loginAction({ email, password });
 
       if (result.success) {
-        router.push(callbackUrl);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.push(callbackUrl as any);
         router.refresh();
       } else {
         setError(result.error);
