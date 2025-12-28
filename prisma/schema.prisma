@@ -27,10 +27,14 @@ model User {
   sessions     Session[]
   subscription Subscription?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([email])
+  @@index([role])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model Account {
@@ -65,6 +69,7 @@ model Session {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([expires])
 }
 
 model VerificationToken {
@@ -73,6 +78,7 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+  @@index([expires])
 }
 
 // ============================================
@@ -80,21 +86,27 @@ model VerificationToken {
 // ============================================
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeCustomerId     String?            @unique
-  stripeSubscriptionId String?            @unique
-  stripePriceId        String?
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId       String?            @unique
+  stripeSubscriptionId   String?            @unique
+  stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
-  status               SubscriptionStatus @default(INACTIVE)
-  plan                 Plan               @default(FREE)
+  status                 SubscriptionStatus @default(INACTIVE)
+  plan                   Plan               @default(FREE)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
+  @@index([status])
+  @@index([plan])
+  @@index([userId, status])
+  @@index([plan, status])
+  @@index([deletedAt])
 }
 
 // ============================================
