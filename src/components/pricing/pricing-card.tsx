@@ -23,6 +23,7 @@ interface PricingCardProps {
   currentPlan?: Plan;
   isAuthenticated: boolean;
   onSubscribe: (priceId: string) => Promise<void>;
+  onError: (error: string) => void;
 }
 
 export function PricingCard({
@@ -31,6 +32,7 @@ export function PricingCard({
   currentPlan,
   isAuthenticated,
   onSubscribe,
+  onError,
 }: PricingCardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,15 +45,24 @@ export function PricingCard({
 
   const handleSubscribe = async () => {
     if (!isAuthenticated) {
-      router.push("/login?callbackUrl=/pricing");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push("/login?callbackUrl=/pricing" as any);
       return;
     }
 
-    if (isFree || isCurrentPlan || !priceId) return;
+    if (isFree || isCurrentPlan) return;
+
+    // Check if Stripe is configured
+    if (!priceId) {
+      onError("Stripe is not configured. Please set up your Stripe Price IDs.");
+      return;
+    }
 
     setIsLoading(true);
     try {
       await onSubscribe(priceId);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }

@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { PricingCard } from "./pricing-card";
 import { PricingToggle } from "./pricing-toggle";
-import { PLAN_CONFIGS, calculateYearlySavings, PLAN_PRICING } from "@/lib/stripe/config";
+import { calculateYearlySavings, PLAN_PRICING } from "@/lib/stripe/config";
 import type { Plan } from "@prisma/client";
-import type { BillingInterval } from "@/lib/stripe/types";
+import type { BillingInterval, PlanConfig } from "@/lib/stripe/types";
 
 interface PricingTableProps {
+  planConfigs: PlanConfig[];
   currentPlan?: Plan;
   isAuthenticated: boolean;
 }
 
-export function PricingTable({ currentPlan, isAuthenticated }: PricingTableProps) {
+export function PricingTable({ planConfigs, currentPlan, isAuthenticated }: PricingTableProps) {
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +58,7 @@ export function PricingTable({ currentPlan, isAuthenticated }: PricingTableProps
       )}
 
       <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-        {PLAN_CONFIGS.map((plan) => (
+        {planConfigs.map((plan) => (
           <PricingCard
             key={plan.id}
             plan={plan}
@@ -65,6 +66,7 @@ export function PricingTable({ currentPlan, isAuthenticated }: PricingTableProps
             currentPlan={currentPlan}
             isAuthenticated={isAuthenticated}
             onSubscribe={handleSubscribe}
+            onError={setError}
           />
         ))}
       </div>

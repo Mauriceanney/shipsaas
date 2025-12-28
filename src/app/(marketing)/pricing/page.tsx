@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PricingTable } from "@/components/pricing";
+import { PLAN_CONFIGS } from "@/lib/stripe/config";
 import type { Plan } from "@prisma/client";
 
 export const metadata = {
@@ -22,8 +23,10 @@ async function PricingContent() {
     }
   }
 
+  // Pass plan configs from server (where env vars are available)
   return (
     <PricingTable
+      planConfigs={PLAN_CONFIGS}
       currentPlan={currentPlan}
       isAuthenticated={!!session?.user}
     />
