@@ -1,8 +1,10 @@
 "use client";
 
 import { format } from "date-fns";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
 import type { SubscriptionInfo } from "@/lib/stripe/types";
 
 interface SubscriptionStatusProps {

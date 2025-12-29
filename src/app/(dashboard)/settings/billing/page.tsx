@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { ManageSubscriptionButton, SubscriptionStatus } from "@/components/billing";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { SubscriptionStatus, ManageSubscriptionButton } from "@/components/billing";
+
 import type { SubscriptionInfo } from "@/lib/stripe/types";
 
 export const metadata = {

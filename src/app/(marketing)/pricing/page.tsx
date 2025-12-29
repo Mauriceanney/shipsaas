@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+
+import { PricingTable } from "@/components/pricing";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PricingTable } from "@/components/pricing";
 import { PLAN_CONFIGS } from "@/lib/stripe/config";
+
 import type { Plan } from "@prisma/client";
 
 export const metadata = {

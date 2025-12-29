@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { stripe, PORTAL_RETURN_URL } from "@/lib/stripe";
+import { PORTAL_RETURN_URL, stripe } from "@/lib/stripe";
+
 import type { PortalRequestBody, PortalResponse, StripeApiError } from "@/lib/stripe/types";
+import type { NextRequest } from "next/server";
 
 /**
  * POST /api/stripe/portal

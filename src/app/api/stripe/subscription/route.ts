@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { stripe, isActiveSubscription } from "@/lib/stripe";
-import type { SubscriptionStatusResponse, SubscriptionInfo, StripeApiError } from "@/lib/stripe/types";
+import { isActiveSubscription, stripe } from "@/lib/stripe";
+
+import type { StripeApiError, SubscriptionInfo, SubscriptionStatusResponse } from "@/lib/stripe/types";
 
 /**
  * GET /api/stripe/subscription

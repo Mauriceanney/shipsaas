@@ -1,9 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { stripe, PORTAL_RETURN_URL } from "@/lib/stripe";
+import { PORTAL_RETURN_URL, stripe } from "@/lib/stripe";
+
 import type { Result } from "@/types";
 
 export interface CreatePortalInput {

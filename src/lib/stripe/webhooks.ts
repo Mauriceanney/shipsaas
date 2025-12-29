@@ -2,19 +2,13 @@
  * Stripe webhook event handlers
  */
 
-import type Stripe from "stripe";
 import { db } from "@/lib/db";
-import {
-  mapStripeStatus,
-  getPlanFromPriceId,
-  extractPriceId,
-  extractCustomerId,
-  extractSubscriptionId,
-  unixToDate,
-  validateCheckoutMetadata,
-} from "./utils";
+
 import { stripe } from "./client";
+import { extractCustomerId, extractPriceId, extractSubscriptionId, getPlanFromPriceId, mapStripeStatus, unixToDate, validateCheckoutMetadata } from "./utils";
+
 import type { SupportedWebhookEvent, WebhookResult } from "./types";
+import type Stripe from "stripe";
 
 // ============================================
 // CHECKOUT HANDLERS

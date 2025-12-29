@@ -2,8 +2,8 @@
  * Stripe plans and pricing configuration
  */
 
+import type { BillingInterval, PlanConfig, PlanPrices } from "./types";
 import type { Plan } from "@prisma/client";
-import type { PlanConfig, PlanPrices, BillingInterval } from "./types";
 
 // ============================================
 // ENVIRONMENT VALIDATION

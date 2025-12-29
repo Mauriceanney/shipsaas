@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+
+import { calculateYearlySavings, PLAN_PRICING } from "@/lib/stripe/config";
+
 import { PricingCard } from "./pricing-card";
 import { PricingToggle } from "./pricing-toggle";
-import { calculateYearlySavings, PLAN_PRICING } from "@/lib/stripe/config";
-import type { Plan } from "@prisma/client";
+
 import type { BillingInterval, PlanConfig } from "@/lib/stripe/types";
+import type { Plan } from "@prisma/client";
 
 interface PricingTableProps {
   planConfigs: PlanConfig[];

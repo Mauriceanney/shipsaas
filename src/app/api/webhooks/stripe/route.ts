@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { stripe, processWebhookEvent } from "@/lib/stripe";
+import { NextResponse } from "next/server";
+
+import { processWebhookEvent, stripe } from "@/lib/stripe";
+
+import type { NextRequest } from "next/server";
 
 /**
  * POST /api/webhooks/stripe

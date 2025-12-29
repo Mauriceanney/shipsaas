@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { CheckCircle } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Checkout Success",

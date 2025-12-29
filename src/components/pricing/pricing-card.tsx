@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,10 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import type { Plan } from "@prisma/client";
-import type { BillingInterval, PlanConfig } from "@/lib/stripe/types";
 import { PLAN_PRICING } from "@/lib/stripe/config";
+import { cn } from "@/lib/utils";
+
+import type { BillingInterval, PlanConfig } from "@/lib/stripe/types";
+import type { Plan } from "@prisma/client";
 
 interface PricingCardProps {
   plan: PlanConfig;

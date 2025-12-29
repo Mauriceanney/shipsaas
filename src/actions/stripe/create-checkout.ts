@@ -1,9 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { stripe, isValidPriceId, CHECKOUT_URLS } from "@/lib/stripe";
+import { CHECKOUT_URLS, isValidPriceId, stripe } from "@/lib/stripe";
+
 import type { Result } from "@/types";
 
 export interface CreateCheckoutInput {

@@ -2,9 +2,10 @@
  * Stripe utility functions
  */
 
+import { STRIPE_PRICE_IDS } from "./config";
+
 import type { Plan, SubscriptionStatus } from "@prisma/client";
 import type Stripe from "stripe";
-import { STRIPE_PRICE_IDS } from "./config";
 
 // ============================================
 // STATUS MAPPING

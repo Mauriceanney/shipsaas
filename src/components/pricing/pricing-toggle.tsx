@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+
 import type { BillingInterval } from "@/lib/stripe/types";
 
 interface PricingToggleProps {

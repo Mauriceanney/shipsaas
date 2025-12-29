@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { stripe, isValidPriceId, CHECKOUT_URLS } from "@/lib/stripe";
+import { CHECKOUT_URLS, isValidPriceId, stripe } from "@/lib/stripe";
+
 import type { CheckoutRequestBody, CheckoutResponse, StripeApiError } from "@/lib/stripe/types";
+import type { NextRequest } from "next/server";
 
 /**
  * POST /api/stripe/checkout
