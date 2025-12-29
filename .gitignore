@@ -1,89 +1,85 @@
+# ===========================================
 # Dependencies
-node_modules
+# ===========================================
+node_modules/
 .pnp
 .pnp.js
 
+# ===========================================
+# Build outputs
+# ===========================================
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# ===========================================
 # Testing
-coverage
-playwright-report
-test-results
+# ===========================================
+coverage/
+playwright-report/
+test-results/
 
-# Next.js
-.next
-out
-build
+# ===========================================
+# Environment
+# ===========================================
+.env
+.env.local
+.env.*.local
+!.env.example
 
-# Production
-dist
+# ===========================================
+# IDE & Editors
+# ===========================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
 
-# Misc
+# ===========================================
+# OS Files
+# ===========================================
 .DS_Store
-*.pem
+.AppleDouble
+.LSOverride
 Thumbs.db
 
-# Debug
+# ===========================================
+# Logs
+# ===========================================
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Local env files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
+# ===========================================
+# Docker local volumes
+# ===========================================
+postgres_data/
+redis_data/
+minio_data/
 
-# Vercel
+# ===========================================
+# Misc
+# ===========================================
+*.pem
+backups/
+.npm
+.eslintcache
+.turbo
 .vercel
 
-# Typescript
-*.tsbuildinfo
+# ===========================================
+# Generated files
+# ===========================================
 next-env.d.ts
+.velite/
 
-# IDE
-.idea
-.vscode
-*.swp
-*.swo
-
-# Prisma
-prisma/migrations/*_migration.sql
-
-# Turbo
-.turbo
-
-# Docker volumes (if running locally)
-postgres_data
-redis_data
-minio_data
-
-# Backup files
-backups/
-
-# Logs
-logs
-*.log
-
-# OS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Editor directories
-.idea/
-.vscode/
-*.sublime-workspace
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Claude Code local settings
+# ===========================================
+# Claude Code
+# ===========================================
 .claude/settings.local.json
-
-# Velite generated
-.velite

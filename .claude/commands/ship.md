@@ -7,9 +7,38 @@ Execute the full development lifecycle for a feature with multi-agent orchestrat
 ```
 /ship <feature-description>
 ```
+---
+### EXECUTION WORKFLOW LOOP (MANDATORY AND STRICT)
 
-## Workflow
+1. **Select Issue**
+2. **Create Feature Branch**
+3. **Review Acceptance Criteria**
+4. **TDD**
+   - Red → Green → Refactor
+5. **Test & Validate**
+   - Validate functionality against Acceptance Criteria
+6. **Open PR**
+   - Only after validation
+7. **STOP & WAIT**
+   - Manual user validation required
+8. **PR Closure**
+   - Review **Definition of Done**
+   - Check all **Acceptance Criteria**
+   - Check all **Definition of Done**
+   - Merge & close Issue only after confirmation
 
+---
+### AGENT ENFORCEMENT
+
+> **Important Rules**
+
+- Every task must be implemented following Agentic Orchestration
+- All tasks **must** be executed using the **corresponding agents** and skills
+- Multiple agents may run in parallel **only if coordinated** (Parallel execution must remain coherent)
+- Work must be **clean, optimized, secure, and robust**
+- Any deviation is a workflow violation
+
+---
 ### Phase 1: Planning (Product Manager + Architect)
 
 1. **Product Manager Agent**

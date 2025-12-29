@@ -21,11 +21,13 @@ services:
     image: redis:7-alpine
     container_name: ${PROJECT_NAME:-saas}-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_dev_password}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_dev_password}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_dev_password}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
