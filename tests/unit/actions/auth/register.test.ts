@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted for mock functions that need to be hoisted
-const { mockFindUnique, mockCreate, mockTokenCreate, mockSendVerificationEmail } = vi.hoisted(() => ({
+const { mockFindUnique, mockCreate, mockTokenCreate, mockSendVerificationEmail, mockRateLimitAuth, mockGetClientIpFromHeaders } = vi.hoisted(() => ({
   mockFindUnique: vi.fn(),
   mockCreate: vi.fn(),
   mockTokenCreate: vi.fn(),
   mockSendVerificationEmail: vi.fn(),
+  mockRateLimitAuth: vi.fn(),
+  mockGetClientIpFromHeaders: vi.fn(),
 }));
 
 // Mock the database module
@@ -42,6 +44,14 @@ vi.mock("@/lib/email", () => ({
   sendVerificationEmail: mockSendVerificationEmail,
 }));
 
+// Mock rate limiting
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimiters: {
+    auth: mockRateLimitAuth,
+  },
+  getClientIpFromHeaders: mockGetClientIpFromHeaders,
+}));
+
 import { registerAction } from "@/actions/auth/register";
 import bcrypt from "bcryptjs";
 
@@ -49,6 +59,14 @@ describe("registerAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSendVerificationEmail.mockResolvedValue({ success: true });
+    // Default: rate limiting allows request
+    mockGetClientIpFromHeaders.mockReturnValue("192.168.1.1");
+    mockRateLimitAuth.mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Math.ceil(Date.now() / 1000) + 60,
+    });
   });
 
   describe("input validation", () => {
@@ -451,6 +469,71 @@ describe("registerAction", () => {
       });
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("rate limiting", () => {
+    it("returns rate limit error when limit exceeded", async () => {
+      mockRateLimitAuth.mockResolvedValue({
+        success: false,
+        limit: 5,
+        remaining: 0,
+        reset: Math.ceil(Date.now() / 1000) + 60,
+      });
+
+      const result = await registerAction({
+        name: "Test User",
+        email: "user@example.com",
+        password: "SecurePass123!",
+        confirmPassword: "SecurePass123!",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Too many");
+      }
+      expect(mockFindUnique).not.toHaveBeenCalled();
+    });
+
+    it("calls rate limiter with client IP", async () => {
+      mockGetClientIpFromHeaders.mockReturnValue("10.0.0.1");
+      mockFindUnique.mockResolvedValue(null);
+      mockCreate.mockResolvedValue({
+        id: "user-123",
+        name: "Test User",
+        email: "user@example.com",
+      });
+      mockTokenCreate.mockResolvedValue({});
+
+      await registerAction({
+        name: "Test User",
+        email: "user@example.com",
+        password: "SecurePass123!",
+        confirmPassword: "SecurePass123!",
+      });
+
+      expect(mockGetClientIpFromHeaders).toHaveBeenCalled();
+      expect(mockRateLimitAuth).toHaveBeenCalledWith("10.0.0.1");
+    });
+
+    it("allows request when under rate limit", async () => {
+      mockFindUnique.mockResolvedValue(null);
+      mockCreate.mockResolvedValue({
+        id: "user-123",
+        name: "Test User",
+        email: "user@example.com",
+      });
+      mockTokenCreate.mockResolvedValue({});
+
+      const result = await registerAction({
+        name: "Test User",
+        email: "user@example.com",
+        password: "SecurePass123!",
+        confirmPassword: "SecurePass123!",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockRateLimitAuth).toHaveBeenCalled();
     });
   });
 });

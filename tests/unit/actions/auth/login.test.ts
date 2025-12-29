@@ -1,8 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted to properly hoist the mock function
-const { mockSignIn } = vi.hoisted(() => ({
+const { mockSignIn, mockRateLimitAuth, mockGetClientIpFromHeaders } = vi.hoisted(() => ({
   mockSignIn: vi.fn(),
+  mockRateLimitAuth: vi.fn(),
+  mockGetClientIpFromHeaders: vi.fn(),
 }));
 
 // Mock next-auth to avoid import issues
@@ -25,12 +27,28 @@ vi.mock("@/lib/auth", () => ({
   signIn: mockSignIn,
 }));
 
+// Mock rate limiting
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimiters: {
+    auth: mockRateLimitAuth,
+  },
+  getClientIpFromHeaders: mockGetClientIpFromHeaders,
+}));
+
 import { loginAction } from "@/actions/auth/login";
 import { AuthError } from "next-auth";
 
 describe("loginAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: rate limiting allows request
+    mockGetClientIpFromHeaders.mockReturnValue("192.168.1.1");
+    mockRateLimitAuth.mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Math.ceil(Date.now() / 1000) + 60,
+    });
   });
 
   describe("input validation", () => {
@@ -220,6 +238,72 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("rate limiting", () => {
+    it("returns rate limit error when limit exceeded", async () => {
+      mockRateLimitAuth.mockResolvedValue({
+        success: false,
+        limit: 5,
+        remaining: 0,
+        reset: Math.ceil(Date.now() / 1000) + 60,
+      });
+
+      const result = await loginAction({
+        email: "user@example.com",
+        password: "SecurePass123!",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Too many");
+      }
+      expect(mockSignIn).not.toHaveBeenCalled();
+    });
+
+    it("calls rate limiter with client IP", async () => {
+      mockGetClientIpFromHeaders.mockReturnValue("10.0.0.1");
+      mockSignIn.mockResolvedValue(undefined);
+
+      await loginAction({
+        email: "user@example.com",
+        password: "SecurePass123!",
+      });
+
+      expect(mockGetClientIpFromHeaders).toHaveBeenCalled();
+      expect(mockRateLimitAuth).toHaveBeenCalledWith("10.0.0.1");
+    });
+
+    it("allows request when under rate limit", async () => {
+      mockSignIn.mockResolvedValue(undefined);
+
+      const result = await loginAction({
+        email: "user@example.com",
+        password: "SecurePass123!",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockRateLimitAuth).toHaveBeenCalled();
+    });
+  });
+
+  describe("disabled account handling", () => {
+    it("returns error for disabled account", async () => {
+      const authError = new AuthError("AccountDisabled");
+      authError.type = "AccessDenied";
+      authError.message = "AccountDisabled";
+      mockSignIn.mockRejectedValue(authError);
+
+      const result = await loginAction({
+        email: "user@example.com",
+        password: "SecurePass123!",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Your account has been disabled");
+      }
     });
   });
 });
