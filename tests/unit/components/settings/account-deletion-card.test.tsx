@@ -94,7 +94,7 @@ describe("AccountDeletionCard", () => {
         name: /delete account/i,
       });
       // The dialog action button is the second one (first is the trigger)
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
 
       expect(confirmButton).toBeDisabled();
     });
@@ -116,7 +116,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
 
       expect(confirmButton).not.toBeDisabled();
     });
@@ -138,7 +138,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
 
       expect(confirmButton).toBeDisabled();
     });
@@ -214,7 +214,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       fireEvent.click(confirmButton);
 
       // Should show loading state - the button should be disabled
@@ -250,7 +250,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       fireEvent.click(confirmButton);
 
       await waitFor(() => {
@@ -284,7 +284,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       // Wait for success message
@@ -313,7 +313,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       // Wait for dialog to close (confirmation input should not be visible)
@@ -342,7 +342,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -369,7 +369,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -400,7 +400,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       // Wait for error message
@@ -428,7 +428,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -453,7 +453,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -481,7 +481,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -510,7 +510,7 @@ describe("AccountDeletionCard", () => {
       const dialogButtons = screen.getAllByRole("button", {
         name: /delete account/i,
       });
-      const confirmButton = dialogButtons[dialogButtons.length - 1];
+      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
       await waitFor(() => {

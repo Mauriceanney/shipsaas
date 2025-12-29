@@ -180,7 +180,7 @@ describe("Textarea", () => {
       fireEvent.change(textarea, { target: { value: "Test input" } });
 
       expect(handleChange).toHaveBeenCalled();
-      const event = handleChange.mock.calls[0][0];
+      const event = handleChange.mock.calls[0]![0] as React.ChangeEvent<HTMLTextAreaElement>;
       expect(event.target.value).toBe("Test input");
     });
 
