@@ -57,3 +57,48 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Code syntax highlighting (rehype-pretty-code) */
+[data-rehype-pretty-code-figure] {
+  @apply my-6 overflow-hidden rounded-lg;
+}
+
+[data-rehype-pretty-code-figure] pre {
+  @apply m-0 overflow-x-auto py-4;
+}
+
+[data-rehype-pretty-code-figure] code {
+  @apply grid text-sm;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+[data-line] {
+  @apply border-l-2 border-transparent px-4;
+}
+
+[data-highlighted-line] {
+  @apply border-l-blue-500 bg-blue-500/10;
+}
+
+[data-highlighted-chars] {
+  @apply rounded bg-blue-500/20 px-1;
+}
+
+code[data-line-numbers] {
+  counter-reset: line;
+}
+
+code[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  @apply mr-6 inline-block w-4 text-right text-muted-foreground;
+}
+
+[data-rehype-pretty-code-title] {
+  @apply rounded-t-lg border-b bg-muted px-4 py-2 text-sm font-medium;
+}
+
+/* Inline code */
+:not(pre) > code {
+  @apply rounded bg-muted px-1.5 py-0.5 text-sm;
+}

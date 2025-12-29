@@ -1,0 +1,79 @@
+---
+title: "Complete Authentication Guide"
+slug: "authentication-guide"
+description: "Set up secure authentication with OAuth providers and magic links"
+date: 2025-01-10
+published: true
+author: "ShipSaaS Team"
+tags: ["authentication", "security", "oauth"]
+---
+
+Authentication is a critical part of any SaaS application. ShipSaaS comes with a complete authentication system built on Auth.js.
+
+## Supported Providers
+
+Out of the box, we support:
+
+- **GitHub OAuth** - Perfect for developer-focused SaaS
+- **Google OAuth** - Widely used, trusted by users
+- **Magic Links** - Passwordless email authentication
+
+## Setting Up GitHub OAuth
+
+1. Go to GitHub Developer Settings
+2. Create a new OAuth App
+3. Set the callback URL to `http://localhost:3000/api/auth/callback/github`
+
+```typescript title="src/lib/auth.ts" {4-7}
+import GitHub from "next-auth/providers/github";
+
+export const authConfig = {
+  providers: [
+    GitHub({
+      clientId: process.env.AUTH_GITHUB_ID,
+      clientSecret: process.env.AUTH_GITHUB_SECRET,
+    }),
+  ],
+};
+```
+
+## Protecting Routes
+
+Use middleware to protect your routes:
+
+```typescript title="src/middleware.ts"
+export { auth as middleware } from "@/lib/auth";
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/settings/:path*"],
+};
+```
+
+## Session Management
+
+Access the session in Server Components:
+
+```tsx
+import { auth } from "@/lib/auth";
+
+export default async function DashboardPage() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  return <div>Welcome, {session.user.name}!</div>;
+}
+```
+
+## Security Best Practices
+
+1. Always use HTTPS in production
+2. Set secure cookie options
+3. Implement rate limiting on auth endpoints
+4. Use CSRF protection (built into Auth.js)
+
+## Conclusion
+
+With these configurations, you have a secure, production-ready authentication system. Next, learn about setting up payments with Stripe.
