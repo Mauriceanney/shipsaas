@@ -7,23 +7,35 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type Stripe from "stripe";
 
 // Hoist mocks for vitest
-const { mockDbSubscription, mockStripeSubscriptions } = vi.hoisted(() => ({
+const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockRevalidatePath } = vi.hoisted(() => ({
   mockDbSubscription: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
     upsert: vi.fn(),
     update: vi.fn(),
   },
+  mockDbUser: {
+    findUnique: vi.fn(),
+  },
   mockStripeSubscriptions: {
     retrieve: vi.fn(),
   },
+  mockSendSubscriptionCancelledEmail: vi.fn(),
+  mockRevalidatePath: vi.fn(),
 }));
 
 // Mock database
 vi.mock("@/lib/db", () => ({
   db: {
     subscription: mockDbSubscription,
+    user: mockDbUser,
   },
+}));
+
+// Mock email service
+vi.mock("@/lib/email", () => ({
+  sendSubscriptionConfirmationEmail: vi.fn(),
+  sendSubscriptionCancelledEmail: mockSendSubscriptionCancelledEmail,
 }));
 
 // Mock Stripe client
@@ -45,6 +57,11 @@ vi.mock("@/lib/stripe/config", () => ({
       yearly: "price_enterprise_yearly",
     },
   },
+}));
+
+// Mock next/cache for revalidatePath
+vi.mock("next/cache", () => ({
+  revalidatePath: mockRevalidatePath,
 }));
 
 import {
@@ -136,6 +153,30 @@ describe("Stripe Webhooks", () => {
           }),
         })
       );
+    });
+
+    it("calls revalidatePath for relevant pages after creating subscription", async () => {
+      const session = {
+        id: "cs_test",
+        mode: "subscription",
+        metadata: { userId: "user_123" },
+        customer: "cus_456",
+        subscription: "sub_789",
+      } as unknown as Stripe.Checkout.Session;
+
+      mockStripeSubscriptions.retrieve.mockResolvedValue({
+        id: "sub_789",
+        status: "active",
+        current_period_end: 1704067200,
+        items: {
+          data: [{ price: { id: "price_pro_monthly" } }],
+        },
+      });
+
+      await handleCheckoutCompleted(session);
+
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/pricing");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/settings/billing");
     });
   });
 
@@ -247,6 +288,371 @@ describe("Stripe Webhooks", () => {
         })
       );
     });
+
+    it("calls revalidatePath for relevant pages after updating subscription", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({ id: "sub_db_123" });
+
+      const subscription = {
+        id: "sub_stripe_123",
+        status: "active",
+        current_period_end: 1704067200,
+        items: {
+          data: [{ price: { id: "price_pro_monthly" } }],
+        },
+      } as unknown as Stripe.Subscription;
+
+      await handleSubscriptionUpdated(subscription);
+
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/pricing");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/settings/billing");
+    });
+
+    it("logs debug info when subscription lookup fails", async () => {
+      const consoleSpy = vi.spyOn(console, "log");
+      mockDbSubscription.findFirst.mockResolvedValue(null);
+
+      const subscription = {
+        id: "sub_unknown_123",
+        status: "active",
+        current_period_end: 1704067200,
+        items: { data: [] },
+      } as unknown as Stripe.Subscription;
+
+      await handleSubscriptionUpdated(subscription);
+
+      // Verify improved debug logging with stripeSubscriptionId in the message
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[handleSubscriptionUpdated]")
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("sub_unknown_123")
+      );
+    });
+
+    // Customer Portal cancellation tests (cancel_at_period_end)
+    describe("cancel_at_period_end handling (Customer Portal cancellation)", () => {
+      it("sends cancellation email when cancel_at_period_end is true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200, // January 1, 2024
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockDbUser.findUnique).toHaveBeenCalledWith({
+          where: { id: "user_123" },
+          select: { email: true, name: true },
+        });
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            name: "Test User",
+            planName: "PRO",
+          })
+        );
+      });
+
+      it("includes the period end date in the cancellation email", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        // Use a specific timestamp: January 15, 2024 00:00:00 UTC
+        const periodEndTimestamp = 1705276800;
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: periodEndTimestamp,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            endDate: expect.any(String),
+          })
+        );
+
+        // Verify the endDate is properly formatted
+        const emailCall = mockSendSubscriptionCancelledEmail.mock.calls[0];
+        expect(emailCall).toBeDefined();
+        const emailData = emailCall?.[1] as { endDate?: string };
+        expect(emailData?.endDate).toBeTruthy();
+      });
+
+      it("does NOT send cancellation email when cancel_at_period_end is false", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: false,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("does NOT reset plan to FREE when cancel_at_period_end is true (user keeps access)", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        // Verify the plan is NOT reset to FREE - it should remain PRO
+        expect(mockDbSubscription.update).toHaveBeenCalledWith({
+          where: { id: "sub_db_123" },
+          data: expect.objectContaining({
+            plan: "PRO", // Plan should stay PRO, not be reset to FREE
+            status: "ACTIVE", // Status should remain ACTIVE
+          }),
+        });
+      });
+
+      it("does not send email when user not found and cancel_at_period_end is true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue(null);
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("handles email sending failure gracefully when cancel_at_period_end is true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockSendSubscriptionCancelledEmail.mockRejectedValue(new Error("Email service error"));
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // Should not throw - graceful degradation
+        await expect(handleSubscriptionUpdated(subscription)).resolves.not.toThrow();
+
+        // Database update should still have been called
+        expect(mockDbSubscription.update).toHaveBeenCalled();
+      });
+    });
+
+    // Tests for previous_attributes-based deduplication (Stripe recommended approach)
+    describe("previous_attributes deduplication", () => {
+      it("sends cancellation email ONLY when previous_attributes shows cancel_at_period_end changed from false to true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: false,
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // Pass previous_attributes indicating cancel_at_period_end changed from false
+        const previousAttributes = { cancel_at_period_end: false };
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledTimes(1);
+      });
+
+      it("does NOT send email when previous_attributes is empty (nothing changed related to cancellation)", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: true, // Already set in DB
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // Empty previous_attributes - cancel_at_period_end was not in the change set
+        const previousAttributes = {};
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("does NOT send email when previous_attributes shows cancel_at_period_end was already true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: true,
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // previous_attributes shows it was already true (re-cancellation scenario)
+        const previousAttributes = { cancel_at_period_end: true };
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("does NOT send email when subscription is being un-cancelled (cancel_at_period_end: true -> false)", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: true,
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: false, // User un-cancelled
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // previous_attributes shows it changed from true
+        const previousAttributes = { cancel_at_period_end: true };
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("falls back to database comparison when previous_attributes is undefined", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: false, // DB shows not cancelled
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // No previous_attributes passed (backward compatibility)
+        await handleSubscriptionUpdated(subscription, undefined);
+
+        // Should still send email based on DB comparison
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe("handleSubscriptionDeleted", () => {
@@ -262,11 +668,20 @@ describe("Stripe Webhooks", () => {
       expect(mockDbSubscription.update).not.toHaveBeenCalled();
     });
 
-    it("sets status to CANCELED and clears subscription ID", async () => {
-      mockDbSubscription.findFirst.mockResolvedValue({ id: "sub_db_123" });
+    it("sets status to CANCELED, resets plan to FREE, and clears subscription ID", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+      });
+      mockDbUser.findUnique.mockResolvedValue({
+        email: "user@example.com",
+        name: "Test User",
+      });
 
       const subscription = {
         id: "sub_stripe_123",
+        current_period_end: 1704067200,
       } as Stripe.Subscription;
 
       await handleSubscriptionDeleted(subscription);
@@ -275,9 +690,68 @@ describe("Stripe Webhooks", () => {
         where: { id: "sub_db_123" },
         data: {
           status: "CANCELED",
+          plan: "FREE",
           stripeSubscriptionId: null,
+          cancelAtPeriodEnd: false, // Reset for potential resubscription
         },
       });
+    });
+
+    it("does not send cancellation email (email is sent in handleSubscriptionUpdated)", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+      });
+
+      const subscription = {
+        id: "sub_stripe_123",
+        current_period_end: 1704067200,
+      } as Stripe.Subscription;
+
+      await handleSubscriptionDeleted(subscription);
+
+      // Email should NOT be sent from handleSubscriptionDeleted
+      // It's sent from handleSubscriptionUpdated when cancel_at_period_end is set
+      expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+    });
+
+    it("calls revalidatePath for relevant pages after deleting subscription", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+      });
+
+      const subscription = {
+        id: "sub_stripe_123",
+        current_period_end: 1704067200,
+      } as Stripe.Subscription;
+
+      await handleSubscriptionDeleted(subscription);
+
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/pricing");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/settings/billing");
+    });
+
+    it("logs debug info when subscription lookup fails for deletion", async () => {
+      const consoleSpy = vi.spyOn(console, "log");
+      mockDbSubscription.findFirst.mockResolvedValue(null);
+
+      const subscription = {
+        id: "sub_unknown_456",
+        current_period_end: 1704067200,
+      } as Stripe.Subscription;
+
+      await handleSubscriptionDeleted(subscription);
+
+      // Verify improved debug logging with stripeSubscriptionId in the message
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[handleSubscriptionDeleted]")
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("sub_unknown_456")
+      );
     });
   });
 
@@ -407,6 +881,75 @@ describe("Stripe Webhooks", () => {
 
       expect(result.success).toBe(true);
       expect(result.eventType).toBe("customer.subscription.updated");
+    });
+
+    it("passes previous_attributes to handleSubscriptionUpdated for cancellation deduplication", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+        cancelAtPeriodEnd: false,
+      });
+      mockDbUser.findUnique.mockResolvedValue({
+        email: "user@example.com",
+        name: "Test User",
+      });
+
+      const event = {
+        id: "evt_test",
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            id: "sub_stripe_123",
+            status: "active",
+            cancel_at_period_end: true,
+            current_period_end: 1704067200,
+            items: { data: [{ price: { id: "price_pro_monthly" } }] },
+          },
+          previous_attributes: {
+            cancel_at_period_end: false,
+          },
+        },
+      } as unknown as Stripe.Event;
+
+      const result = await processWebhookEvent(event);
+
+      expect(result.success).toBe(true);
+      // Email should be sent because previous_attributes shows cancel_at_period_end changed from false to true
+      expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it("does NOT send duplicate email when previous_attributes shows no cancellation change", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+        cancelAtPeriodEnd: true, // Already cancelled in DB
+      });
+
+      const event = {
+        id: "evt_test",
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            id: "sub_stripe_123",
+            status: "active",
+            cancel_at_period_end: true,
+            current_period_end: 1704067200,
+            items: { data: [{ price: { id: "price_pro_monthly" } }] },
+          },
+          // previous_attributes doesn't include cancel_at_period_end - it wasn't changed
+          previous_attributes: {
+            current_period_end: 1703000000, // Some other field changed
+          },
+        },
+      } as unknown as Stripe.Event;
+
+      const result = await processWebhookEvent(event);
+
+      expect(result.success).toBe(true);
+      // Email should NOT be sent because cancel_at_period_end was not in previous_attributes
+      expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
     });
 
     it("handles unhandled event types gracefully", async () => {

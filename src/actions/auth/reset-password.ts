@@ -65,6 +65,12 @@ export async function resetPasswordAction(
     // Extract email from identifier
     const email = verificationToken.identifier.replace("password-reset:", "");
 
+    // Fetch user to get their name for email
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { name: true },
+    });
+
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -84,8 +90,13 @@ export async function resetPasswordAction(
       },
     });
 
-    // Send password changed confirmation email
-    await sendPasswordChangedEmail(email);
+    // Send password changed confirmation email (graceful degradation)
+    try {
+      await sendPasswordChangedEmail(email, user?.name ?? undefined);
+    } catch (emailError) {
+      console.error("Failed to send password changed email:", emailError);
+      // Don't throw - password was changed successfully
+    }
 
     // TODO: Invalidate all sessions for this user (future enhancement)
     // This would require storing sessions in the database

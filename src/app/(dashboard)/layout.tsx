@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/actions/auth";
+import { checkAndSendWelcomeEmail } from "@/actions/auth/send-welcome-email";
 import { auth } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -13,6 +14,11 @@ export default async function DashboardLayout({
   if (!session?.user) {
     redirect("/login");
   }
+
+  // Send welcome email for OAuth users on first visit (non-blocking)
+  checkAndSendWelcomeEmail().catch(() => {
+    // Silently ignore errors - non-critical operation
+  });
 
   return (
     <div className="flex min-h-screen flex-col">

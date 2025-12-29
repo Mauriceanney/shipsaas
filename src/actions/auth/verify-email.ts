@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { sendWelcomeEmail } from "@/lib/email";
 import {
   verifyEmailSchema,
   type VerifyEmailInput,
@@ -90,10 +91,13 @@ export async function verifyEmailAction(
       };
     }
 
-    // Mark email as verified
+    // Mark email as verified and welcome email as sent
     await db.user.update({
       where: { email },
-      data: { emailVerified: new Date() },
+      data: {
+        emailVerified: new Date(),
+        welcomeEmailSent: true,
+      },
     });
 
     // Delete the used token
@@ -105,6 +109,14 @@ export async function verifyEmailAction(
         },
       },
     });
+
+    // Send welcome email (graceful degradation)
+    try {
+      await sendWelcomeEmail(email, user.name ?? "there");
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+      // Don't throw - email verification was successful
+    }
 
     return {
       success: true,
