@@ -142,8 +142,12 @@ jobs:
         env:
           # Skip runtime env validation during build
           SKIP_ENV_VALIDATION: true
-          # Mock Stripe key for build (not a real key)
+          # Mock Stripe values for build (not real keys)
           STRIPE_SECRET_KEY: sk_test_mock
+          STRIPE_PRICE_ID_PRO_MONTHLY: price_mock_pro_monthly
+          STRIPE_PRICE_ID_PRO_YEARLY: price_mock_pro_yearly
+          STRIPE_PRICE_ID_ENTERPRISE_MONTHLY: price_mock_enterprise_monthly
+          STRIPE_PRICE_ID_ENTERPRISE_YEARLY: price_mock_enterprise_yearly
 
   # ===========================================================================
   # End-to-End Tests
