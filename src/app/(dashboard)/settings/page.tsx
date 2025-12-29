@@ -1,4 +1,4 @@
-import { CreditCard, Shield, User } from "lucide-react";
+import { CreditCard, FileText, Shield, User } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -38,6 +38,12 @@ const settingsItems: SettingsItem[] = [
     description: "Manage your subscription and payment methods",
     href: "/settings/billing" as Route,
     icon: CreditCard,
+  },
+  {
+    title: "Privacy",
+    description: "Export your data and manage privacy settings",
+    href: "/settings/privacy" as Route,
+    icon: FileText,
   },
 ];
 
