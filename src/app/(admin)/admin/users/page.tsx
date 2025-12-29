@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 import { getUsers } from "@/actions/admin/users";
-import { UserTable } from "@/components/admin";
+import { UserFilters, UserTable } from "@/components/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface UsersPageProps {
@@ -9,6 +9,7 @@ interface UsersPageProps {
     page?: string;
     search?: string;
     role?: string;
+    status?: string;
   }>;
 }
 
@@ -21,8 +22,16 @@ async function UsersTableContent({
   const page = params.page ? parseInt(params.page) : 1;
   const search = params.search;
   const role = params.role as "USER" | "ADMIN" | undefined;
+  const status = params.status as "all" | "active" | "disabled" | undefined;
 
-  const { users, pagination } = await getUsers({ page, search, role });
+  const { users, pagination } = await getUsers({ page, search, role, status });
+
+  // Build query string for pagination links
+  const queryParts: string[] = [];
+  if (search) queryParts.push(`search=${encodeURIComponent(search)}`);
+  if (role) queryParts.push(`role=${role}`);
+  if (status) queryParts.push(`status=${status}`);
+  const queryString = queryParts.length > 0 ? `&${queryParts.join("&")}` : "";
 
   return (
     <>
@@ -37,7 +46,7 @@ async function UsersTableContent({
           <div className="flex gap-2">
             {pagination.page > 1 && (
               <a
-                href={`/admin/users?page=${pagination.page - 1}${search ? `&search=${search}` : ""}`}
+                href={`/admin/users?page=${pagination.page - 1}${queryString}`}
                 className="rounded border px-3 py-1 hover:bg-muted"
               >
                 Previous
@@ -45,7 +54,7 @@ async function UsersTableContent({
             )}
             {pagination.page < pagination.totalPages && (
               <a
-                href={`/admin/users?page=${pagination.page + 1}${search ? `&search=${search}` : ""}`}
+                href={`/admin/users?page=${pagination.page + 1}${queryString}`}
                 className="rounded border px-3 py-1 hover:bg-muted"
               >
                 Next
@@ -72,7 +81,8 @@ export default async function UsersPage(props: UsersPageProps) {
         <CardHeader>
           <CardTitle>All Users</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <UserFilters />
           <Suspense
             fallback={<div className="py-8 text-center">Loading users...</div>}
           >

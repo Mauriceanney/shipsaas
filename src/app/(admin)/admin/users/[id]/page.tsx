@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { AccountStatusForm } from "./account-status-form";
 import { RoleChangeForm } from "./role-change-form";
 
 interface UserDetailPageProps {
@@ -39,9 +40,14 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
           </h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
-        <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
-          {user.role}
-        </Badge>
+        <div className="flex gap-2">
+          {user.disabled && (
+            <Badge variant="destructive">Disabled</Badge>
+          )}
+          <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
+            {user.role}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -130,6 +136,15 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
           </CardHeader>
           <CardContent>
             <RoleChangeForm userId={user.id} currentRole={user.role} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AccountStatusForm userId={user.id} isDisabled={user.disabled} />
           </CardContent>
         </Card>
 

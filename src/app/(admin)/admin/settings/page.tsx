@@ -1,4 +1,57 @@
+import { Suspense } from "react";
+
+import {
+  getAppConfigs,
+  getAuditLogs,
+  getFeatureFlags,
+} from "@/actions/admin/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { AppConfigForm } from "./app-config-form";
+import { AuditLogTable } from "./audit-log-table";
+import { FeatureFlagsForm } from "./feature-flags-form";
+
+async function SettingsContent() {
+  const [configs, flags, auditLogs] = await Promise.all([
+    getAppConfigs(),
+    getFeatureFlags(),
+    getAuditLogs(20),
+  ]);
+
+  // Filter out feature flags from general configs
+  const generalConfigs = configs.filter((c) => c.category !== "features");
+
+  return (
+    <div className="grid gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Feature Flags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FeatureFlagsForm flags={flags} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>App Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AppConfigForm configs={generalConfigs} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Configuration Changes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AuditLogTable logs={auditLogs} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   return (
@@ -10,40 +63,11 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>General Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              General application settings will be available here.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Feature Flags</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Feature flags configuration will be available here.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Email Configuration</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Email service configuration will be available here.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Suspense
+        fallback={<div className="py-8 text-center">Loading settings...</div>}
+      >
+        <SettingsContent />
+      </Suspense>
     </div>
   );
 }

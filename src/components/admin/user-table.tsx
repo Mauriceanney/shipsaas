@@ -16,6 +16,7 @@ interface UserTableProps {
     name: string | null;
     email: string;
     role: "USER" | "ADMIN";
+    disabled?: boolean;
     createdAt: Date;
     subscription: {
       plan: "FREE" | "PRO" | "ENTERPRISE";
@@ -40,6 +41,7 @@ export function UserTable({ users }: UserTableProps) {
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead>Plan</TableHead>
           <TableHead>Joined</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -55,6 +57,11 @@ export function UserTable({ users }: UserTableProps) {
             <TableCell>
               <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
                 {user.role}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              <Badge variant={user.disabled ? "destructive" : "outline"}>
+                {user.disabled ? "Disabled" : "Active"}
               </Badge>
             </TableCell>
             <TableCell>

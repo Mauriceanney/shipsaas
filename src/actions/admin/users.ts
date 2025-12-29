@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/admin";
+import { createAuditLog } from "@/lib/audit";
 import { db } from "@/lib/db";
 
 interface GetUsersParams {
@@ -10,6 +11,7 @@ interface GetUsersParams {
   limit?: number;
   search?: string;
   role?: "USER" | "ADMIN";
+  status?: "all" | "active" | "disabled";
 }
 
 export async function getUsers({
@@ -17,6 +19,7 @@ export async function getUsers({
   limit = 10,
   search,
   role,
+  status = "all",
 }: GetUsersParams = {}) {
   await requireAdmin();
 
@@ -30,6 +33,8 @@ export async function getUsers({
       ],
     }),
     ...(role && { role }),
+    ...(status === "active" && { disabled: false }),
+    ...(status === "disabled" && { disabled: true }),
   };
 
   const [users, total] = await Promise.all([
@@ -43,6 +48,7 @@ export async function getUsers({
         name: true,
         email: true,
         role: true,
+        disabled: true,
         createdAt: true,
         subscription: {
           select: {
@@ -86,15 +92,58 @@ export async function getUserById(id: string) {
 }
 
 export async function updateUserRole(id: string, role: "USER" | "ADMIN") {
-  await requireAdmin();
+  const session = await requireAdmin();
 
+  const oldUser = await db.user.findUnique({ where: { id } });
   const user = await db.user.update({
     where: { id },
     data: { role },
+  });
+
+  // Audit log
+  await createAuditLog({
+    entityType: "User",
+    entityId: id,
+    action: "UPDATE",
+    changes: { role: { old: oldUser?.role, new: role } },
+    userId: session.user.id,
+    userEmail: session.user.email || "unknown",
   });
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${id}`);
 
   return user;
+}
+
+export async function toggleUserStatus(id: string) {
+  const session = await requireAdmin();
+
+  const user = await db.user.findUnique({ where: { id } });
+  if (!user) throw new Error("User not found");
+
+  // Prevent disabling yourself
+  if (user.id === session.user.id) {
+    throw new Error("Cannot disable your own account");
+  }
+
+  const updatedUser = await db.user.update({
+    where: { id },
+    data: { disabled: !user.disabled },
+  });
+
+  // Audit log
+  await createAuditLog({
+    entityType: "User",
+    entityId: id,
+    action: "UPDATE",
+    changes: { disabled: { old: user.disabled, new: updatedUser.disabled } },
+    userId: session.user.id,
+    userEmail: session.user.email || "unknown",
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${id}`);
+
+  return updatedUser;
 }
