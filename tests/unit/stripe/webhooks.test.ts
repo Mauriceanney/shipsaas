@@ -328,6 +328,190 @@ describe("Stripe Webhooks", () => {
         expect.stringContaining("sub_unknown_123")
       );
     });
+
+    // Customer Portal cancellation tests (cancel_at_period_end)
+    describe("cancel_at_period_end handling (Customer Portal cancellation)", () => {
+      it("sends cancellation email when cancel_at_period_end is true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200, // January 1, 2024
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockDbUser.findUnique).toHaveBeenCalledWith({
+          where: { id: "user_123" },
+          select: { email: true, name: true },
+        });
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            name: "Test User",
+            planName: "PRO",
+          })
+        );
+      });
+
+      it("includes the period end date in the cancellation email", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        // Use a specific timestamp: January 15, 2024 00:00:00 UTC
+        const periodEndTimestamp = 1705276800;
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: periodEndTimestamp,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            endDate: expect.any(String),
+          })
+        );
+
+        // Verify the endDate is properly formatted
+        const emailCall = mockSendSubscriptionCancelledEmail.mock.calls[0];
+        const emailData = emailCall[1];
+        expect(emailData.endDate).toBeTruthy();
+      });
+
+      it("does NOT send cancellation email when cancel_at_period_end is false", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: false,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("does NOT reset plan to FREE when cancel_at_period_end is true (user keeps access)", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        // Verify the plan is NOT reset to FREE - it should remain PRO
+        expect(mockDbSubscription.update).toHaveBeenCalledWith({
+          where: { id: "sub_db_123" },
+          data: expect.objectContaining({
+            plan: "PRO", // Plan should stay PRO, not be reset to FREE
+            status: "ACTIVE", // Status should remain ACTIVE
+          }),
+        });
+      });
+
+      it("does not send email when user not found and cancel_at_period_end is true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue(null);
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        await handleSubscriptionUpdated(subscription);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("handles email sending failure gracefully when cancel_at_period_end is true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockSendSubscriptionCancelledEmail.mockRejectedValue(new Error("Email service error"));
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // Should not throw - graceful degradation
+        await expect(handleSubscriptionUpdated(subscription)).resolves.not.toThrow();
+
+        // Database update should still have been called
+        expect(mockDbSubscription.update).toHaveBeenCalled();
+      });
+    });
   });
 
   describe("handleSubscriptionDeleted", () => {

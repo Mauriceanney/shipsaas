@@ -200,6 +200,41 @@ export async function handleSubscriptionUpdated(
   revalidatePath("/settings/billing");
 
   console.log(`Subscription updated: ${subscription.id}`);
+
+  // Handle Customer Portal cancellation (cancel_at_period_end)
+  // When user cancels via Customer Portal, Stripe sets cancel_at_period_end = true
+  // The subscription remains active until the period ends, but we should notify the user
+  if (subscription.cancel_at_period_end) {
+    console.log(`[handleSubscriptionUpdated] Subscription ${subscription.id} is set to cancel at period end`);
+
+    try {
+      // Fetch user details for email
+      const user = await db.user.findUnique({
+        where: { id: existingSubscription.userId },
+        select: { email: true, name: true },
+      });
+
+      if (user?.email) {
+        // Format end date from subscription (when access will end)
+        const endDate = unixToDate(subscription.current_period_end).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+
+        await sendSubscriptionCancelledEmail(user.email, {
+          name: user.name ?? undefined,
+          planName: plan,
+          endDate,
+        });
+
+        console.log(`[handleSubscriptionUpdated] Cancellation email sent for subscription ${subscription.id}`);
+      }
+    } catch (emailError) {
+      console.error("Failed to send subscription cancellation email:", emailError);
+      // Don't throw - subscription update was completed successfully
+    }
+  }
 }
 
 /**
