@@ -48,9 +48,8 @@ describe("AppSidebar", () => {
     localStorageMock.getItem.mockReturnValue("false");
     render(<AppSidebar user={user} />);
 
+    // Only Dashboard in main nav, Settings/Billing are in user menu
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Settings")).toBeInTheDocument();
-    expect(screen.getByText("Billing")).toBeInTheDocument();
   });
 
   it("renders user info at bottom when expanded", () => {
@@ -106,9 +105,8 @@ describe("AppSidebar", () => {
     localStorageMock.getItem.mockReturnValue("false");
     render(<AppSidebar user={user} />);
 
+    // Only Dashboard in main nav
     expect(screen.getByRole("link", { name: /dashboard/i })).toHaveAttribute("href", "/dashboard");
-    expect(screen.getByRole("link", { name: /settings/i })).toHaveAttribute("href", "/settings");
-    expect(screen.getByRole("link", { name: /billing/i })).toHaveAttribute("href", "/settings/billing");
   });
 
   it("highlights active navigation item", () => {

@@ -26,8 +26,6 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard" as Route, icon: Home },
-  { title: "Settings", href: "/settings" as Route, icon: Settings },
-  { title: "Billing", href: "/settings/billing" as Route, icon: CreditCard },
 ];
 
 interface AppSidebarProps {
