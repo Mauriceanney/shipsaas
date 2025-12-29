@@ -184,7 +184,7 @@ export async function sendSubscriptionConfirmationEmail(
   const config = getEmailConfig();
   const provider = getEmailProvider();
 
-  const manageUrl = `${config.appUrl}/dashboard/billing`;
+  const manageUrl = `${config.appUrl}/settings/billing`;
 
   const { html, text } = await renderSubscriptionConfirmEmail({
     name: subscriptionData.name,

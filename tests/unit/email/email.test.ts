@@ -301,7 +301,7 @@ describe("Email Service", () => {
 
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          html: expect.stringContaining("/dashboard/billing"),
+          html: expect.stringContaining("/settings/billing"),
         })
       );
     });
