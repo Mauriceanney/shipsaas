@@ -39,33 +39,14 @@ export const authConfig: NextAuthConfig = {
 
       return true;
     },
-    async jwt({ token, user, trigger }) {
+    jwt({ token, user }) {
       if (user) {
         token["id"] = user.id;
         token["role"] = user.role;
       }
-
-      // Validate user still exists on session refresh (not on sign in)
-      if (trigger !== "signIn" && trigger !== "signUp" && token["id"]) {
-        const existingUser = await db.user.findUnique({
-          where: { id: token["id"] as string },
-          select: { id: true },
-        });
-
-        if (!existingUser) {
-          // User no longer exists - invalidate token
-          return { ...token, id: null, role: null };
-        }
-      }
-
       return token;
     },
     session({ session, token }) {
-      // If token was invalidated (user deleted), return empty session
-      if (!token["id"]) {
-        return { ...session, user: undefined };
-      }
-
       if (session.user) {
         session.user.id = token["id"] as string;
         session.user.role = token["role"] as Role;
