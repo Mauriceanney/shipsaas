@@ -255,10 +255,11 @@ export async function handleSubscriptionDeleted(
     return;
   }
 
-  console.log(`[handleSubscriptionDeleted] Found existing subscription with id: ${existingSubscription.id}, userId: ${existingSubscription.userId}, plan: ${existingSubscription.plan}`);
+  console.log(`[handleSubscriptionDeleted] Found existing subscription with id: ${existingSubscription.id}, userId: ${existingSubscription.userId}, plan: ${existingSubscription.plan}, status: ${existingSubscription.status}`);
 
-  // Store the previous plan before updating
+  // Store the previous plan and status before updating
   const previousPlan = existingSubscription.plan;
+  const previousStatus = existingSubscription.status;
 
   await db.subscription.update({
     where: { id: existingSubscription.id },
@@ -276,7 +277,17 @@ export async function handleSubscriptionDeleted(
 
   console.log(`Subscription deleted: ${subscription.id}`);
 
-  // Send cancellation email (graceful degradation)
+  // Only send cancellation email if we haven't already sent one
+  // (i.e., if the subscription wasn't already in a canceling state from handleSubscriptionUpdated)
+  // When cancel_at_period_end is set via Customer Portal, handleSubscriptionUpdated already sends the email
+  const alreadySentEmail = subscription.cancel_at_period_end || previousStatus === "CANCELED";
+
+  if (alreadySentEmail) {
+    console.log(`[handleSubscriptionDeleted] Skipping email - already sent during cancel_at_period_end update`);
+    return;
+  }
+
+  // Send cancellation email for immediate cancellations (e.g., from Stripe Dashboard)
   try {
     // Fetch user details for email
     const user = await db.user.findUnique({
@@ -297,6 +308,8 @@ export async function handleSubscriptionDeleted(
         planName: previousPlan,
         endDate,
       });
+
+      console.log(`[handleSubscriptionDeleted] Cancellation email sent for immediate cancellation`);
     }
   } catch (emailError) {
     console.error("Failed to send subscription cancellation email:", emailError);
