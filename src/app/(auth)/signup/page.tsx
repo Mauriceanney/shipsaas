@@ -1,8 +1,9 @@
 import { Suspense } from "react";
-import { type Metadata } from "next";
 
 import { AuthCard, RegisterForm } from "@/components/auth";
 import { Skeleton } from "@/components/ui/skeleton";
+
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Sign Up",

@@ -1,13 +1,13 @@
 import bcrypt from "bcryptjs";
-import { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
-import { type Role } from "@prisma/client";
-
 import { db } from "@/lib/db";
 import { loginSchema } from "@/lib/validations/auth";
+
+import type { Role } from "@prisma/client";
+import type { NextAuthConfig } from "next-auth";
 
 export const authConfig: NextAuthConfig = {
   pages: {

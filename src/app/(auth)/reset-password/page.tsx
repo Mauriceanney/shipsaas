@@ -1,8 +1,9 @@
 import { Suspense } from "react";
-import { type Metadata } from "next";
 
 import { AuthCard, ResetPasswordForm } from "@/components/auth";
 import { Skeleton } from "@/components/ui/skeleton";
+
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Reset Password",

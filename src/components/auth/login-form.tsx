@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition } from "react";
 
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,8 @@ export function LoginForm() {
       const result = await loginAction({ email, password });
 
       if (result.success) {
-        router.push(callbackUrl);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.push(callbackUrl as any);
         router.refresh();
       } else {
         setError(result.error);
