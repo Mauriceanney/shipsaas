@@ -25,9 +25,11 @@ model User {
   welcomeEmailSent Boolean   @default(false)
   disabled         Boolean   @default(false)
 
-  accounts     Account[]
-  sessions     Session[]
-  subscription Subscription?
+  accounts               Account[]
+  sessions               Session[]
+  subscription           Subscription?
+  dataExportRequests     DataExportRequest[]
+  accountDeletionRequest AccountDeletionRequest?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -188,4 +190,45 @@ model ConfigAuditLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ============================================
+// GDPR COMPLIANCE MODELS
+// ============================================
+
+model DataExportRequest {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      DataExportStatus @default(PENDING)
+  downloadUrl String? // Temporary signed URL for download
+  expiresAt   DateTime?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model AccountDeletionRequest {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason       String?
+  scheduledFor DateTime // When the account will be permanently deleted
+  canceledAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([scheduledFor])
+}
+
+enum DataExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
 }
