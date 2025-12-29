@@ -1,0 +1,77 @@
+---
+title: "Getting Started with ShipSaaS"
+slug: "getting-started"
+description: "Learn how to build your SaaS application quickly with our modern boilerplate"
+date: 2025-01-15
+published: true
+author: "ShipSaaS Team"
+tags: ["tutorial", "getting-started", "nextjs"]
+---
+
+Welcome to ShipSaaS! This guide will help you get up and running with your new SaaS application.
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- Node.js 18 or later
+- pnpm package manager
+- A GitHub account
+- A Stripe account (for payments)
+
+## Quick Start
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/yourusername/shipsaas.git
+cd shipsaas
+pnpm install
+```
+
+## Configuration
+
+Create a `.env.local` file with your environment variables:
+
+```typescript title=".env.local"
+# Database
+DATABASE_URL="postgresql://..."
+
+# Authentication
+AUTH_SECRET="your-secret-key"
+AUTH_GITHUB_ID="your-github-id"
+AUTH_GITHUB_SECRET="your-github-secret"
+
+# Stripe
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+```
+
+## Running the Development Server
+
+Start the development server:
+
+```bash
+pnpm dev
+```
+
+Your app will be available at `http://localhost:3000`.
+
+## Project Structure
+
+```plaintext
+src/
+├── app/              # Next.js App Router pages
+├── components/       # React components
+├── lib/             # Utility functions
+└── actions/         # Server actions
+```
+
+## Next Steps
+
+- Set up your database with Prisma
+- Configure authentication providers
+- Set up Stripe for payments
+- Customize the landing page
+
+Happy building!
