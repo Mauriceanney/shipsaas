@@ -15,8 +15,9 @@ test.describe("Home Page", () => {
 
   test("has navigation links", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("link", { name: /Login/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Get Started/i })).toBeVisible();
+    // Use header navigation for Login link (footer also has one)
+    await expect(page.getByRole("banner").getByRole("link", { name: /Login/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Get Started/i }).first()).toBeVisible();
   });
 
   test("displays features section", async ({ page }) => {
