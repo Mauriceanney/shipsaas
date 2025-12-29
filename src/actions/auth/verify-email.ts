@@ -91,10 +91,13 @@ export async function verifyEmailAction(
       };
     }
 
-    // Mark email as verified
+    // Mark email as verified and welcome email as sent
     await db.user.update({
       where: { email },
-      data: { emailVerified: new Date() },
+      data: {
+        emailVerified: new Date(),
+        welcomeEmailSent: true,
+      },
     });
 
     // Delete the used token
