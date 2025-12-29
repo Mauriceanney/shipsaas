@@ -4,6 +4,7 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 import { db } from "@/lib/db";
+import { sendWelcomeEmail } from "@/lib/email";
 import { loginSchema } from "@/lib/validations/auth";
 
 import type { Role } from "@prisma/client";
@@ -16,6 +17,26 @@ export const authConfig: NextAuthConfig = {
     error: "/login",
     verifyRequest: "/verify-email",
     newUser: "/dashboard",
+  },
+  events: {
+    /**
+     * Send welcome email when a new user is created via OAuth
+     * This handles Google/GitHub OAuth users who don't go through email verification
+     */
+    async createUser({ user }) {
+      // Only send if user has an email
+      if (!user.email) {
+        return;
+      }
+
+      // Send welcome email (graceful degradation - don't throw on failure)
+      try {
+        await sendWelcomeEmail(user.email, user.name ?? "there");
+      } catch (error) {
+        console.error("Failed to send welcome email for OAuth user:", error);
+        // Don't throw - user creation was successful
+      }
+    },
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
