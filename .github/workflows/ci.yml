@@ -41,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
@@ -110,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
@@ -121,7 +121,7 @@ jobs:
 
       # Cache Next.js build for faster subsequent builds
       - name: Cache Next.js build
-        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        uses: actions/cache@v4
         with:
           path: .next/cache
           key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
@@ -148,7 +148,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
@@ -166,7 +166,7 @@ jobs:
         run: echo "version=$(pnpm list @playwright/test --json | jq -r '.[0].dependencies["@playwright/test"].version' 2>/dev/null || echo 'latest')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
-        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
