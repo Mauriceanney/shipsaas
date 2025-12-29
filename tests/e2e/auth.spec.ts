@@ -705,7 +705,7 @@ test.describe("Navigation Between Auth Pages", () => {
     await page.goto("/login");
 
     // Click on the logo/brand link
-    await page.getByRole("link", { name: /SaaS Boilerplate/i }).click();
+    await page.getByRole("link", { name: /ShipSaaS/i }).click();
 
     // Should be on home page
     await expect(page).toHaveURL("/");

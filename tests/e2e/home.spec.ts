@@ -3,13 +3,13 @@ import { expect, test } from "@playwright/test";
 test.describe("Home Page", () => {
   test("has correct title", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/SaaS Boilerplate/);
+    await expect(page).toHaveTitle(/ShipSaaS/);
   });
 
   test("displays hero section", async ({ page }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: /Build your SaaS faster/i })
+      page.getByRole("heading", { name: /Build Your SaaS Faster/i })
     ).toBeVisible();
   });
 
@@ -22,7 +22,7 @@ test.describe("Home Page", () => {
   test("displays features section", async ({ page }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: /Features/i })
+      page.getByRole("heading", { name: /Everything You Need to Ship Fast/i })
     ).toBeVisible();
   });
 });
