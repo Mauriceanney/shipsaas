@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 import { registerAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";

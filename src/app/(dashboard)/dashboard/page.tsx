@@ -1,7 +1,7 @@
-import { type Metadata } from "next";
-
-import { auth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { auth } from "@/lib/auth";
+
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Dashboard",

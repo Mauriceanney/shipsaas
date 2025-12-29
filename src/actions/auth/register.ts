@@ -1,14 +1,14 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import crypto from "crypto";
+
+import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/email";
-import {
-  registerSchema,
-  type RegisterInput,
-} from "@/lib/validations/auth";
+import { registerSchema } from "@/lib/validations/auth";
+
+import type { RegisterInput } from "@/lib/validations/auth";
 
 type Result =
   | { success: true; message: string }

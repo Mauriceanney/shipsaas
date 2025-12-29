@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useState, useTransition } from "react";
 
 import { forgotPasswordAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";

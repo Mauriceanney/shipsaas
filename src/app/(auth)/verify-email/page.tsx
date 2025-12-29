@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { type Metadata } from "next";
 
 import { verifyEmailAction } from "@/actions/auth";
 import { AuthCard } from "@/components/auth";
 import { Button } from "@/components/ui/button";
+
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Verify Email",
