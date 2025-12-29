@@ -551,6 +551,7 @@ describe("Stripe Webhooks", () => {
           status: "CANCELED",
           plan: "FREE",
           stripeSubscriptionId: null,
+          cancellationEmailSent: false,
         },
       });
     });
@@ -560,6 +561,7 @@ describe("Stripe Webhooks", () => {
         id: "sub_db_123",
         userId: "user_123",
         plan: "PRO",
+        cancellationEmailSent: false,
       });
       mockDbUser.findUnique.mockResolvedValue({
         email: "user@example.com",
