@@ -64,8 +64,13 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
       },
     });
 
-    // Send verification email
-    await sendVerificationEmail(user.email, verificationToken);
+    // Send verification email (graceful degradation - don't fail registration if email fails)
+    try {
+      await sendVerificationEmail(user.email, verificationToken, name);
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      // Don't throw - user is created, they can request a new verification email
+    }
 
     return {
       success: true,

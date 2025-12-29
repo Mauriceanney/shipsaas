@@ -1,40 +1,45 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // Use vi.hoisted to properly hoist the mock function
-const { mockSendMail } = vi.hoisted(() => ({
-  mockSendMail: vi.fn(),
+const { mockSend, mockResetProvider } = vi.hoisted(() => ({
+  mockSend: vi.fn(),
+  mockResetProvider: vi.fn(),
 }));
 
-// Mock nodemailer
-vi.mock("nodemailer", () => {
-  return {
-    default: {
-      createTransport: () => ({
-        sendMail: mockSendMail,
-      }),
-    },
-  };
-});
+// Mock the email client module
+vi.mock("@/lib/email/client", () => ({
+  getEmailProvider: () => ({
+    name: "mock",
+    send: mockSend,
+  }),
+  resetEmailProvider: mockResetProvider,
+}));
 
 // Import after mocking
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendPasswordChangedEmail,
+  sendWelcomeEmail,
+  sendSubscriptionConfirmationEmail,
 } from "@/lib/email";
 
 describe("Email Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSendMail.mockResolvedValue({ messageId: "test-message-id" });
+    mockSend.mockResolvedValue({ success: true, messageId: "test-message-id" });
+  });
+
+  afterEach(() => {
+    mockResetProvider();
   });
 
   describe("sendVerificationEmail", () => {
     it("sends email with correct recipient", async () => {
       await sendVerificationEmail("user@example.com", "test-token");
 
-      expect(mockSendMail).toHaveBeenCalledTimes(1);
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "user@example.com",
         })
@@ -44,7 +49,7 @@ describe("Email Service", () => {
     it("includes verification token in URL", async () => {
       await sendVerificationEmail("user@example.com", "my-verification-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining("my-verification-token"),
           text: expect.stringContaining("my-verification-token"),
@@ -55,7 +60,7 @@ describe("Email Service", () => {
     it("includes verify-email path in URL", async () => {
       await sendVerificationEmail("user@example.com", "test-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining("/verify-email?token="),
         })
@@ -65,7 +70,7 @@ describe("Email Service", () => {
     it("sets correct subject line", async () => {
       await sendVerificationEmail("user@example.com", "test-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: expect.stringContaining("Verify your email"),
         })
@@ -75,11 +80,21 @@ describe("Email Service", () => {
     it("includes from address", async () => {
       await sendVerificationEmail("user@example.com", "test-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           from: expect.stringContaining("noreply"),
         })
       );
+    });
+
+    it("returns success result", async () => {
+      const result = await sendVerificationEmail(
+        "user@example.com",
+        "test-token"
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toBe("test-message-id");
     });
   });
 
@@ -87,8 +102,8 @@ describe("Email Service", () => {
     it("sends email with correct recipient", async () => {
       await sendPasswordResetEmail("user@example.com", "reset-token");
 
-      expect(mockSendMail).toHaveBeenCalledTimes(1);
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "user@example.com",
         })
@@ -98,7 +113,7 @@ describe("Email Service", () => {
     it("includes reset token in URL", async () => {
       await sendPasswordResetEmail("user@example.com", "my-reset-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining("my-reset-token"),
           text: expect.stringContaining("my-reset-token"),
@@ -109,7 +124,7 @@ describe("Email Service", () => {
     it("includes reset-password path in URL", async () => {
       await sendPasswordResetEmail("user@example.com", "test-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining("/reset-password?token="),
         })
@@ -119,7 +134,7 @@ describe("Email Service", () => {
     it("sets correct subject line", async () => {
       await sendPasswordResetEmail("user@example.com", "test-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: expect.stringContaining("Reset your password"),
         })
@@ -129,7 +144,7 @@ describe("Email Service", () => {
     it("mentions 1 hour expiry in email", async () => {
       await sendPasswordResetEmail("user@example.com", "test-token");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining("1 hour"),
           text: expect.stringContaining("1 hour"),
@@ -142,8 +157,8 @@ describe("Email Service", () => {
     it("sends email with correct recipient", async () => {
       await sendPasswordChangedEmail("user@example.com");
 
-      expect(mockSendMail).toHaveBeenCalledTimes(1);
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "user@example.com",
         })
@@ -153,7 +168,7 @@ describe("Email Service", () => {
     it("sets correct subject line", async () => {
       await sendPasswordChangedEmail("user@example.com");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: expect.stringContaining("password has been changed"),
         })
@@ -163,7 +178,7 @@ describe("Email Service", () => {
     it("includes security warning", async () => {
       await sendPasswordChangedEmail("user@example.com");
 
-      expect(mockSendMail).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining("did not make this change"),
           text: expect.stringContaining("did not make this change"),
@@ -172,32 +187,164 @@ describe("Email Service", () => {
     });
   });
 
+  describe("sendWelcomeEmail", () => {
+    it("sends email with correct recipient", async () => {
+      await sendWelcomeEmail("user@example.com", "John Doe");
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "user@example.com",
+        })
+      );
+    });
+
+    it("includes user name in email", async () => {
+      await sendWelcomeEmail("user@example.com", "John Doe");
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          html: expect.stringContaining("John Doe"),
+          text: expect.stringContaining("John Doe"),
+        })
+      );
+    });
+
+    it("sets correct subject line", async () => {
+      await sendWelcomeEmail("user@example.com", "John Doe");
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: expect.stringContaining("Welcome"),
+        })
+      );
+    });
+
+    it("includes login URL", async () => {
+      await sendWelcomeEmail("user@example.com", "John Doe");
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          html: expect.stringContaining("/login"),
+        })
+      );
+    });
+  });
+
+  describe("sendSubscriptionConfirmationEmail", () => {
+    const subscriptionData = {
+      name: "Jane Doe",
+      planName: "Pro Plan",
+      amount: "$29.00",
+      billingCycle: "monthly" as const,
+      nextBillingDate: "January 29, 2025",
+    };
+
+    it("sends email with correct recipient", async () => {
+      await sendSubscriptionConfirmationEmail(
+        "user@example.com",
+        subscriptionData
+      );
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "user@example.com",
+        })
+      );
+    });
+
+    it("includes plan name in email", async () => {
+      await sendSubscriptionConfirmationEmail(
+        "user@example.com",
+        subscriptionData
+      );
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          html: expect.stringContaining("Pro Plan"),
+        })
+      );
+    });
+
+    it("includes amount in email", async () => {
+      await sendSubscriptionConfirmationEmail(
+        "user@example.com",
+        subscriptionData
+      );
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          html: expect.stringContaining("$29.00"),
+        })
+      );
+    });
+
+    it("sets correct subject line", async () => {
+      await sendSubscriptionConfirmationEmail(
+        "user@example.com",
+        subscriptionData
+      );
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: expect.stringContaining("Subscription Confirmed"),
+        })
+      );
+    });
+
+    it("includes manage subscription URL", async () => {
+      await sendSubscriptionConfirmationEmail(
+        "user@example.com",
+        subscriptionData
+      );
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          html: expect.stringContaining("/dashboard/billing"),
+        })
+      );
+    });
+  });
+
   describe("error handling", () => {
-    it("propagates sendMail errors for verification email", async () => {
+    it("returns error result on send failure", async () => {
+      mockSend.mockResolvedValue({
+        success: false,
+        error: "SMTP connection failed",
+      });
+
+      const result = await sendVerificationEmail("user@example.com", "token");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("SMTP connection failed");
+    });
+
+    it("propagates send errors for verification email", async () => {
       const error = new Error("SMTP connection failed");
-      mockSendMail.mockRejectedValue(error);
+      mockSend.mockRejectedValue(error);
 
       await expect(
         sendVerificationEmail("user@example.com", "token")
       ).rejects.toThrow("SMTP connection failed");
     });
 
-    it("propagates sendMail errors for password reset email", async () => {
+    it("propagates send errors for password reset email", async () => {
       const error = new Error("SMTP connection failed");
-      mockSendMail.mockRejectedValue(error);
+      mockSend.mockRejectedValue(error);
 
       await expect(
         sendPasswordResetEmail("user@example.com", "token")
       ).rejects.toThrow("SMTP connection failed");
     });
 
-    it("propagates sendMail errors for password changed email", async () => {
+    it("propagates send errors for password changed email", async () => {
       const error = new Error("SMTP connection failed");
-      mockSendMail.mockRejectedValue(error);
+      mockSend.mockRejectedValue(error);
 
-      await expect(
-        sendPasswordChangedEmail("user@example.com")
-      ).rejects.toThrow("SMTP connection failed");
+      await expect(sendPasswordChangedEmail("user@example.com")).rejects.toThrow(
+        "SMTP connection failed"
+      );
     });
   });
 });

@@ -58,8 +58,13 @@ export async function forgotPasswordAction(
       },
     });
 
-    // Send password reset email
-    await sendPasswordResetEmail(email, resetToken);
+    // Send password reset email (graceful degradation - don't fail if email fails)
+    try {
+      await sendPasswordResetEmail(email, resetToken, user.name ?? undefined);
+    } catch (emailError) {
+      console.error("Failed to send password reset email:", emailError);
+      // Don't throw - user can request again
+    }
 
     return { success: true, message: successMessage };
   } catch (error) {

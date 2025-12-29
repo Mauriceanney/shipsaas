@@ -3,6 +3,7 @@
  */
 
 import { db } from "@/lib/db";
+import { sendSubscriptionConfirmationEmail } from "@/lib/email";
 
 import { stripe } from "./client";
 import { extractCustomerId, extractPriceId, extractSubscriptionId, getPlanFromPriceId, mapStripeStatus, unixToDate, validateCheckoutMetadata } from "./utils";
@@ -70,6 +71,43 @@ export async function handleCheckoutCompleted(
   });
 
   console.log(`Subscription created/updated for user: ${metadata.userId}`);
+
+  // Send subscription confirmation email (graceful degradation)
+  try {
+    // Fetch user details for email
+    const user = await db.user.findUnique({
+      where: { id: metadata.userId },
+      select: { email: true, name: true },
+    });
+
+    if (user?.email) {
+      // Determine billing cycle from subscription interval
+      const interval = stripeSubscription.items.data[0]?.price?.recurring?.interval;
+      const billingCycle: "monthly" | "yearly" = interval === "year" ? "yearly" : "monthly";
+
+      // Get amount from subscription
+      const amount = stripeSubscription.items.data[0]?.price?.unit_amount;
+      const currency = stripeSubscription.items.data[0]?.price?.currency?.toUpperCase() ?? "USD";
+      const formattedAmount = amount
+        ? `${currency} ${(amount / 100).toFixed(2)}`
+        : "N/A";
+
+      await sendSubscriptionConfirmationEmail(user.email, {
+        name: user.name ?? undefined,
+        planName: plan,
+        amount: formattedAmount,
+        billingCycle,
+        nextBillingDate: unixToDate(stripeSubscription.current_period_end).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      });
+    }
+  } catch (emailError) {
+    console.error("Failed to send subscription confirmation email:", emailError);
+    // Don't throw - subscription was created successfully
+  }
 }
 
 // ============================================
