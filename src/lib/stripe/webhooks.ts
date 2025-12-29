@@ -163,10 +163,23 @@ export async function handleSubscriptionCreated(
 }
 
 /**
+ * Partial type for Stripe's previous_attributes in subscription update events
+ */
+interface SubscriptionPreviousAttributes {
+  cancel_at_period_end?: boolean;
+  [key: string]: unknown;
+}
+
+/**
  * Handle customer.subscription.updated event
+ *
+ * @param subscription - The current subscription state from Stripe
+ * @param previousAttributes - Optional: fields that changed in this event (from event.data.previous_attributes)
+ *                            Using this prevents race conditions when Stripe sends multiple update events
  */
 export async function handleSubscriptionUpdated(
-  subscription: Stripe.Subscription
+  subscription: Stripe.Subscription,
+  previousAttributes?: SubscriptionPreviousAttributes
 ): Promise<void> {
   // Find subscription by Stripe subscription ID
   console.log(`[handleSubscriptionUpdated] Looking up subscription with stripeSubscriptionId: ${subscription.id}`);
@@ -180,10 +193,31 @@ export async function handleSubscriptionUpdated(
     return;
   }
 
-  console.log(`[handleSubscriptionUpdated] Found existing subscription with id: ${existingSubscription.id}`);
+  console.log(`[handleSubscriptionUpdated] Found existing subscription with id: ${existingSubscription.id}, cancelAtPeriodEnd: ${existingSubscription.cancelAtPeriodEnd}`);
 
   const priceId = extractPriceId(subscription);
   const plan = priceId ? getPlanFromPriceId(priceId) : existingSubscription.plan;
+
+  // Determine if this is a NEW cancellation using Stripe's previous_attributes (preferred)
+  // This prevents race conditions and duplicate emails when Stripe sends multiple update events
+  let isNewCancellation = false;
+
+  if (previousAttributes !== undefined) {
+    // Use previous_attributes from the event (most reliable - prevents race conditions)
+    // Only send email if cancel_at_period_end is IN the previous_attributes (meaning it changed)
+    // AND it changed from false to true
+    const cancelAtPeriodEndChanged = "cancel_at_period_end" in previousAttributes;
+    const wasNotCancelled = previousAttributes.cancel_at_period_end === false;
+    const isNowCancelled = subscription.cancel_at_period_end === true;
+
+    isNewCancellation = cancelAtPeriodEndChanged && wasNotCancelled && isNowCancelled;
+
+    console.log(`[handleSubscriptionUpdated] Using previous_attributes: cancelAtPeriodEndChanged=${cancelAtPeriodEndChanged}, wasNotCancelled=${wasNotCancelled}, isNowCancelled=${isNowCancelled}, isNewCancellation=${isNewCancellation}`);
+  } else {
+    // Fallback to database comparison (less reliable due to potential race conditions)
+    isNewCancellation = subscription.cancel_at_period_end && !existingSubscription.cancelAtPeriodEnd;
+    console.log(`[handleSubscriptionUpdated] Using DB fallback: isNewCancellation=${isNewCancellation}`);
+  }
 
   await db.subscription.update({
     where: { id: existingSubscription.id },
@@ -192,6 +226,7 @@ export async function handleSubscriptionUpdated(
       stripeCurrentPeriodEnd: unixToDate(subscription.current_period_end),
       status: mapStripeStatus(subscription.status),
       plan,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
     },
   });
 
@@ -201,11 +236,10 @@ export async function handleSubscriptionUpdated(
 
   console.log(`Subscription updated: ${subscription.id}`);
 
-  // Handle Customer Portal cancellation (cancel_at_period_end)
-  // When user cancels via Customer Portal, Stripe sets cancel_at_period_end = true
-  // The subscription remains active until the period ends, but we notify the user immediately
-  if (subscription.cancel_at_period_end) {
-    console.log(`[handleSubscriptionUpdated] Subscription ${subscription.id} is set to cancel at period end`);
+  // Send cancellation email ONLY when cancel_at_period_end changes from false to true
+  // This prevents duplicate emails when Stripe sends multiple update events
+  if (isNewCancellation) {
+    console.log(`[handleSubscriptionUpdated] NEW cancellation detected for subscription ${subscription.id}`);
 
     try {
       // Fetch user details for email
@@ -234,6 +268,8 @@ export async function handleSubscriptionUpdated(
       console.error("Failed to send subscription cancellation email:", emailError);
       // Don't throw - subscription update was completed successfully
     }
+  } else if (subscription.cancel_at_period_end) {
+    console.log(`[handleSubscriptionUpdated] Skipping email - already sent for this cancellation`);
   }
 }
 
@@ -263,6 +299,7 @@ export async function handleSubscriptionDeleted(
       status: "CANCELED",
       plan: "FREE", // Reset plan to FREE on cancellation
       stripeSubscriptionId: null, // Clear subscription ID
+      cancelAtPeriodEnd: false, // Reset for potential resubscription
       // Keep stripeCustomerId for potential resubscription
     },
   });
@@ -369,7 +406,12 @@ export async function processWebhookEvent(
         break;
 
       case "customer.subscription.updated":
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        // Pass previous_attributes to enable proper deduplication of cancellation emails
+        // This prevents race conditions when Stripe sends multiple update events
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription,
+          event.data.previous_attributes as Record<string, unknown> | undefined
+        );
         break;
 
       case "customer.subscription.deleted":

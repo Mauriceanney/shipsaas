@@ -96,6 +96,7 @@ model Subscription {
   stripeCurrentPeriodEnd DateTime?
   status                 SubscriptionStatus @default(INACTIVE)
   plan                   Plan               @default(FREE)
+  cancelAtPeriodEnd      Boolean            @default(false)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

@@ -401,8 +401,9 @@ describe("Stripe Webhooks", () => {
 
         // Verify the endDate is properly formatted
         const emailCall = mockSendSubscriptionCancelledEmail.mock.calls[0];
-        const emailData = emailCall[1];
-        expect(emailData.endDate).toBeTruthy();
+        expect(emailCall).toBeDefined();
+        const emailData = emailCall?.[1] as { endDate?: string };
+        expect(emailData?.endDate).toBeTruthy();
       });
 
       it("does NOT send cancellation email when cancel_at_period_end is false", async () => {
@@ -512,6 +513,146 @@ describe("Stripe Webhooks", () => {
         expect(mockDbSubscription.update).toHaveBeenCalled();
       });
     });
+
+    // Tests for previous_attributes-based deduplication (Stripe recommended approach)
+    describe("previous_attributes deduplication", () => {
+      it("sends cancellation email ONLY when previous_attributes shows cancel_at_period_end changed from false to true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: false,
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // Pass previous_attributes indicating cancel_at_period_end changed from false
+        const previousAttributes = { cancel_at_period_end: false };
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledTimes(1);
+      });
+
+      it("does NOT send email when previous_attributes is empty (nothing changed related to cancellation)", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: true, // Already set in DB
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // Empty previous_attributes - cancel_at_period_end was not in the change set
+        const previousAttributes = {};
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("does NOT send email when previous_attributes shows cancel_at_period_end was already true", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: true,
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // previous_attributes shows it was already true (re-cancellation scenario)
+        const previousAttributes = { cancel_at_period_end: true };
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("does NOT send email when subscription is being un-cancelled (cancel_at_period_end: true -> false)", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: true,
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: false, // User un-cancelled
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // previous_attributes shows it changed from true
+        const previousAttributes = { cancel_at_period_end: true };
+
+        await handleSubscriptionUpdated(subscription, previousAttributes);
+
+        expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+      });
+
+      it("falls back to database comparison when previous_attributes is undefined", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          cancelAtPeriodEnd: false, // DB shows not cancelled
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const subscription = {
+          id: "sub_stripe_123",
+          status: "active",
+          cancel_at_period_end: true,
+          current_period_end: 1704067200,
+          items: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Subscription;
+
+        // No previous_attributes passed (backward compatibility)
+        await handleSubscriptionUpdated(subscription, undefined);
+
+        // Should still send email based on DB comparison
+        expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe("handleSubscriptionDeleted", () => {
@@ -551,6 +692,7 @@ describe("Stripe Webhooks", () => {
           status: "CANCELED",
           plan: "FREE",
           stripeSubscriptionId: null,
+          cancelAtPeriodEnd: false, // Reset for potential resubscription
         },
       });
     });
@@ -739,6 +881,75 @@ describe("Stripe Webhooks", () => {
 
       expect(result.success).toBe(true);
       expect(result.eventType).toBe("customer.subscription.updated");
+    });
+
+    it("passes previous_attributes to handleSubscriptionUpdated for cancellation deduplication", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+        cancelAtPeriodEnd: false,
+      });
+      mockDbUser.findUnique.mockResolvedValue({
+        email: "user@example.com",
+        name: "Test User",
+      });
+
+      const event = {
+        id: "evt_test",
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            id: "sub_stripe_123",
+            status: "active",
+            cancel_at_period_end: true,
+            current_period_end: 1704067200,
+            items: { data: [{ price: { id: "price_pro_monthly" } }] },
+          },
+          previous_attributes: {
+            cancel_at_period_end: false,
+          },
+        },
+      } as unknown as Stripe.Event;
+
+      const result = await processWebhookEvent(event);
+
+      expect(result.success).toBe(true);
+      // Email should be sent because previous_attributes shows cancel_at_period_end changed from false to true
+      expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it("does NOT send duplicate email when previous_attributes shows no cancellation change", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+        cancelAtPeriodEnd: true, // Already cancelled in DB
+      });
+
+      const event = {
+        id: "evt_test",
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            id: "sub_stripe_123",
+            status: "active",
+            cancel_at_period_end: true,
+            current_period_end: 1704067200,
+            items: { data: [{ price: { id: "price_pro_monthly" } }] },
+          },
+          // previous_attributes doesn't include cancel_at_period_end - it wasn't changed
+          previous_attributes: {
+            current_period_end: 1703000000, // Some other field changed
+          },
+        },
+      } as unknown as Stripe.Event;
+
+      const result = await processWebhookEvent(event);
+
+      expect(result.success).toBe(true);
+      // Email should NOT be sent because cancel_at_period_end was not in previous_attributes
+      expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
     });
 
     it("handles unhandled event types gracefully", async () => {
