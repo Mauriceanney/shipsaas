@@ -551,21 +551,15 @@ describe("Stripe Webhooks", () => {
           status: "CANCELED",
           plan: "FREE",
           stripeSubscriptionId: null,
-          cancellationEmailSent: false,
         },
       });
     });
 
-    it("sends cancellation email when subscription is deleted", async () => {
+    it("does not send cancellation email (email is sent in handleSubscriptionUpdated)", async () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
         userId: "user_123",
         plan: "PRO",
-        cancellationEmailSent: false,
-      });
-      mockDbUser.findUnique.mockResolvedValue({
-        email: "user@example.com",
-        name: "Test User",
       });
 
       const subscription = {
@@ -575,34 +569,8 @@ describe("Stripe Webhooks", () => {
 
       await handleSubscriptionDeleted(subscription);
 
-      expect(mockDbUser.findUnique).toHaveBeenCalledWith({
-        where: { id: "user_123" },
-        select: { email: true, name: true },
-      });
-      expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledWith(
-        "user@example.com",
-        expect.objectContaining({
-          name: "Test User",
-          planName: "PRO",
-        })
-      );
-    });
-
-    it("does not send email when user not found", async () => {
-      mockDbSubscription.findFirst.mockResolvedValue({
-        id: "sub_db_123",
-        userId: "user_123",
-        plan: "PRO",
-      });
-      mockDbUser.findUnique.mockResolvedValue(null);
-
-      const subscription = {
-        id: "sub_stripe_123",
-        current_period_end: 1704067200,
-      } as Stripe.Subscription;
-
-      await handleSubscriptionDeleted(subscription);
-
+      // Email should NOT be sent from handleSubscriptionDeleted
+      // It's sent from handleSubscriptionUpdated when cancel_at_period_end is set
       expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
     });
 
@@ -611,10 +579,6 @@ describe("Stripe Webhooks", () => {
         id: "sub_db_123",
         userId: "user_123",
         plan: "PRO",
-      });
-      mockDbUser.findUnique.mockResolvedValue({
-        email: "user@example.com",
-        name: "Test User",
       });
 
       const subscription = {

@@ -203,8 +203,8 @@ export async function handleSubscriptionUpdated(
 
   // Handle Customer Portal cancellation (cancel_at_period_end)
   // When user cancels via Customer Portal, Stripe sets cancel_at_period_end = true
-  // The subscription remains active until the period ends, but we should notify the user
-  if (subscription.cancel_at_period_end && !existingSubscription.cancellationEmailSent) {
+  // The subscription remains active until the period ends, but we notify the user immediately
+  if (subscription.cancel_at_period_end) {
     console.log(`[handleSubscriptionUpdated] Subscription ${subscription.id} is set to cancel at period end`);
 
     try {
@@ -226,12 +226,6 @@ export async function handleSubscriptionUpdated(
           name: user.name ?? undefined,
           planName: plan,
           endDate,
-        });
-
-        // Mark cancellation email as sent to prevent duplicates
-        await db.subscription.update({
-          where: { id: existingSubscription.id },
-          data: { cancellationEmailSent: true },
         });
 
         console.log(`[handleSubscriptionUpdated] Cancellation email sent for subscription ${subscription.id}`);
@@ -261,11 +255,7 @@ export async function handleSubscriptionDeleted(
     return;
   }
 
-  console.log(`[handleSubscriptionDeleted] Found existing subscription with id: ${existingSubscription.id}, userId: ${existingSubscription.userId}, plan: ${existingSubscription.plan}, cancellationEmailSent: ${existingSubscription.cancellationEmailSent}`);
-
-  // Store the previous plan and check if email was already sent
-  const previousPlan = existingSubscription.plan;
-  const alreadySentEmail = existingSubscription.cancellationEmailSent;
+  console.log(`[handleSubscriptionDeleted] Found existing subscription with id: ${existingSubscription.id}, userId: ${existingSubscription.userId}, plan: ${existingSubscription.plan}`);
 
   await db.subscription.update({
     where: { id: existingSubscription.id },
@@ -273,7 +263,6 @@ export async function handleSubscriptionDeleted(
       status: "CANCELED",
       plan: "FREE", // Reset plan to FREE on cancellation
       stripeSubscriptionId: null, // Clear subscription ID
-      cancellationEmailSent: false, // Reset for potential future resubscription
       // Keep stripeCustomerId for potential resubscription
     },
   });
@@ -283,41 +272,7 @@ export async function handleSubscriptionDeleted(
   revalidatePath("/settings/billing");
 
   console.log(`Subscription deleted: ${subscription.id}`);
-
-  // Skip email if already sent during cancel_at_period_end update
-  if (alreadySentEmail) {
-    console.log(`[handleSubscriptionDeleted] Skipping email - already sent during cancel_at_period_end update`);
-    return;
-  }
-
-  // Send cancellation email for immediate cancellations (e.g., from Stripe Dashboard)
-  try {
-    // Fetch user details for email
-    const user = await db.user.findUnique({
-      where: { id: existingSubscription.userId },
-      select: { email: true, name: true },
-    });
-
-    if (user?.email) {
-      // Format end date from subscription
-      const endDate = unixToDate(subscription.current_period_end).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-
-      await sendSubscriptionCancelledEmail(user.email, {
-        name: user.name ?? undefined,
-        planName: previousPlan,
-        endDate,
-      });
-
-      console.log(`[handleSubscriptionDeleted] Cancellation email sent for immediate cancellation`);
-    }
-  } catch (emailError) {
-    console.error("Failed to send subscription cancellation email:", emailError);
-    // Don't throw - subscription update was completed successfully
-  }
+  // Note: Cancellation email is sent in handleSubscriptionUpdated when cancel_at_period_end is set
 }
 
 // ============================================
