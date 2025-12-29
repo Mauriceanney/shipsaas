@@ -7,6 +7,9 @@ import { db } from "@/lib/db";
 
 import { PlanConfigForm } from "./plan-config-form";
 
+// Force dynamic rendering - this page requires database access
+export const dynamic = "force-dynamic";
+
 async function getPlanStats() {
   const stats = await db.subscription.groupBy({
     by: ["plan"],

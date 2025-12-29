@@ -7,6 +7,9 @@ import { PLAN_CONFIGS } from "@/lib/stripe/config";
 
 import type { Plan } from "@prisma/client";
 
+// Force dynamic rendering - this page requires database access
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Pricing",
   description: "Choose the plan that's right for you",

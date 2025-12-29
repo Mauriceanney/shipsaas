@@ -3,6 +3,9 @@ import { CreditCard, TrendingUp, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 
+// Force dynamic rendering - this page requires database access
+export const dynamic = "force-dynamic";
+
 async function getStats() {
   const [totalUsers, activeSubscriptions, monthlyRevenue] = await Promise.all([
     db.user.count(),

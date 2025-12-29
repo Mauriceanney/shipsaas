@@ -9,6 +9,9 @@ import { db } from "@/lib/db";
 
 import type { SubscriptionInfo } from "@/lib/stripe/types";
 
+// Force dynamic rendering - this page requires database access
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Billing",
   description: "Manage your subscription and billing",
