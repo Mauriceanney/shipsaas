@@ -59,6 +59,27 @@ jobs:
       - run: pnpm test:coverage
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
+          STRIPE_SECRET_KEY: sk_test_mock
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma generate
+      - run: pnpm build
+        env:
+          SKIP_ENV_VALIDATION: true
 
   e2e:
     runs-on: ubuntu-latest

@@ -3,13 +3,25 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - deploy
+          - rollback
 
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') }}
 
   build:
     needs: test
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,6 +51,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: production
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') }}
 
     steps:
       - uses: appleboy/ssh-action@v1
@@ -48,10 +61,74 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
             cd /opt/saas
+
+            # Save current image tag for rollback
+            PREVIOUS_TAG=$(docker compose -f docker-compose.yml -f docker-compose.prod.yml images app -q 2>/dev/null | head -1 || echo "")
+            echo "$PREVIOUS_TAG" > .previous_image_tag
+            echo "${{ github.sha }}" > .current_image_tag
+
+            # Pull and deploy new version
             export IMAGE_TAG=${{ github.sha }}
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull app
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+            # Run migrations
             docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app npx prisma migrate deploy
-            sleep 10
-            curl -f http://localhost:3000/api/health || exit 1
+
+            # Health check with retries
+            HEALTH_CHECK_RETRIES=3
+            HEALTH_CHECK_DELAY=10
+            for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
+              sleep $HEALTH_CHECK_DELAY
+              if curl -sf http://localhost:3000/api/health > /dev/null; then
+                echo "Health check passed on attempt $i"
+                break
+              fi
+              if [ $i -eq $HEALTH_CHECK_RETRIES ]; then
+                echo "Health check failed after $HEALTH_CHECK_RETRIES attempts, rolling back..."
+                if [ -n "$PREVIOUS_TAG" ]; then
+                  export IMAGE_TAG=$PREVIOUS_TAG
+                  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+                fi
+                exit 1
+              fi
+              echo "Health check failed on attempt $i, retrying..."
+            done
+
+            # Cleanup old images
             docker image prune -f
+
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.action == 'rollback' }}
+
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            cd /opt/saas
+
+            # Read previous image tag
+            if [ -f .previous_image_tag ]; then
+              PREVIOUS_TAG=$(cat .previous_image_tag)
+              if [ -n "$PREVIOUS_TAG" ]; then
+                echo "Rolling back to: $PREVIOUS_TAG"
+                export IMAGE_TAG=$PREVIOUS_TAG
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+                # Verify rollback
+                sleep 10
+                curl -f http://localhost:3000/api/health || exit 1
+                echo "Rollback successful"
+              else
+                echo "No previous image tag found"
+                exit 1
+              fi
+            else
+              echo "No rollback information available"
+              exit 1
+            fi
