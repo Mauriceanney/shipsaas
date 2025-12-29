@@ -2,6 +2,8 @@
  * Stripe webhook event handlers
  */
 
+import { revalidatePath } from "next/cache";
+
 import { db } from "@/lib/db";
 import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail } from "@/lib/email";
 
@@ -69,6 +71,10 @@ export async function handleCheckoutCompleted(
       plan,
     },
   });
+
+  // Revalidate cached pages that display subscription data
+  revalidatePath("/pricing");
+  revalidatePath("/settings/billing");
 
   console.log(`Subscription created/updated for user: ${metadata.userId}`);
 
@@ -163,14 +169,18 @@ export async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription
 ): Promise<void> {
   // Find subscription by Stripe subscription ID
+  console.log(`[handleSubscriptionUpdated] Looking up subscription with stripeSubscriptionId: ${subscription.id}`);
+
   const existingSubscription = await db.subscription.findFirst({
     where: { stripeSubscriptionId: subscription.id },
   });
 
   if (!existingSubscription) {
-    console.log("No matching subscription found for:", subscription.id);
+    console.log(`[handleSubscriptionUpdated] No matching subscription found for stripeSubscriptionId: ${subscription.id}. This may indicate the subscription was created through a different flow or the webhook arrived before checkout completed.`);
     return;
   }
+
+  console.log(`[handleSubscriptionUpdated] Found existing subscription with id: ${existingSubscription.id}`);
 
   const priceId = extractPriceId(subscription);
   const plan = priceId ? getPlanFromPriceId(priceId) : existingSubscription.plan;
@@ -185,6 +195,10 @@ export async function handleSubscriptionUpdated(
     },
   });
 
+  // Revalidate cached pages that display subscription data
+  revalidatePath("/pricing");
+  revalidatePath("/settings/billing");
+
   console.log(`Subscription updated: ${subscription.id}`);
 }
 
@@ -195,14 +209,18 @@ export async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription
 ): Promise<void> {
   // Find subscription by Stripe subscription ID
+  console.log(`[handleSubscriptionDeleted] Looking up subscription with stripeSubscriptionId: ${subscription.id}`);
+
   const existingSubscription = await db.subscription.findFirst({
     where: { stripeSubscriptionId: subscription.id },
   });
 
   if (!existingSubscription) {
-    console.log("No matching subscription found for deletion:", subscription.id);
+    console.log(`[handleSubscriptionDeleted] No matching subscription found for stripeSubscriptionId: ${subscription.id}. This may indicate the subscription was already deleted or was never created in the database.`);
     return;
   }
+
+  console.log(`[handleSubscriptionDeleted] Found existing subscription with id: ${existingSubscription.id}, userId: ${existingSubscription.userId}, plan: ${existingSubscription.plan}`);
 
   // Store the previous plan before updating
   const previousPlan = existingSubscription.plan;
@@ -216,6 +234,10 @@ export async function handleSubscriptionDeleted(
       // Keep stripeCustomerId for potential resubscription
     },
   });
+
+  // Revalidate cached pages that display subscription data
+  revalidatePath("/pricing");
+  revalidatePath("/settings/billing");
 
   console.log(`Subscription deleted: ${subscription.id}`);
 

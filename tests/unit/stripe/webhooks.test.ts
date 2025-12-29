@@ -7,7 +7,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type Stripe from "stripe";
 
 // Hoist mocks for vitest
-const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail } = vi.hoisted(() => ({
+const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockRevalidatePath } = vi.hoisted(() => ({
   mockDbSubscription: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
@@ -21,6 +21,7 @@ const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscri
     retrieve: vi.fn(),
   },
   mockSendSubscriptionCancelledEmail: vi.fn(),
+  mockRevalidatePath: vi.fn(),
 }));
 
 // Mock database
@@ -56,6 +57,11 @@ vi.mock("@/lib/stripe/config", () => ({
       yearly: "price_enterprise_yearly",
     },
   },
+}));
+
+// Mock next/cache for revalidatePath
+vi.mock("next/cache", () => ({
+  revalidatePath: mockRevalidatePath,
 }));
 
 import {
@@ -147,6 +153,30 @@ describe("Stripe Webhooks", () => {
           }),
         })
       );
+    });
+
+    it("calls revalidatePath for relevant pages after creating subscription", async () => {
+      const session = {
+        id: "cs_test",
+        mode: "subscription",
+        metadata: { userId: "user_123" },
+        customer: "cus_456",
+        subscription: "sub_789",
+      } as unknown as Stripe.Checkout.Session;
+
+      mockStripeSubscriptions.retrieve.mockResolvedValue({
+        id: "sub_789",
+        status: "active",
+        current_period_end: 1704067200,
+        items: {
+          data: [{ price: { id: "price_pro_monthly" } }],
+        },
+      });
+
+      await handleCheckoutCompleted(session);
+
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/pricing");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/settings/billing");
     });
   });
 
@@ -258,6 +288,46 @@ describe("Stripe Webhooks", () => {
         })
       );
     });
+
+    it("calls revalidatePath for relevant pages after updating subscription", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({ id: "sub_db_123" });
+
+      const subscription = {
+        id: "sub_stripe_123",
+        status: "active",
+        current_period_end: 1704067200,
+        items: {
+          data: [{ price: { id: "price_pro_monthly" } }],
+        },
+      } as unknown as Stripe.Subscription;
+
+      await handleSubscriptionUpdated(subscription);
+
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/pricing");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/settings/billing");
+    });
+
+    it("logs debug info when subscription lookup fails", async () => {
+      const consoleSpy = vi.spyOn(console, "log");
+      mockDbSubscription.findFirst.mockResolvedValue(null);
+
+      const subscription = {
+        id: "sub_unknown_123",
+        status: "active",
+        current_period_end: 1704067200,
+        items: { data: [] },
+      } as unknown as Stripe.Subscription;
+
+      await handleSubscriptionUpdated(subscription);
+
+      // Verify improved debug logging with stripeSubscriptionId in the message
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[handleSubscriptionUpdated]")
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("sub_unknown_123")
+      );
+    });
   });
 
   describe("handleSubscriptionDeleted", () => {
@@ -348,6 +418,48 @@ describe("Stripe Webhooks", () => {
       await handleSubscriptionDeleted(subscription);
 
       expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
+    });
+
+    it("calls revalidatePath for relevant pages after deleting subscription", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+      });
+      mockDbUser.findUnique.mockResolvedValue({
+        email: "user@example.com",
+        name: "Test User",
+      });
+
+      const subscription = {
+        id: "sub_stripe_123",
+        current_period_end: 1704067200,
+      } as Stripe.Subscription;
+
+      await handleSubscriptionDeleted(subscription);
+
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/pricing");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/settings/billing");
+    });
+
+    it("logs debug info when subscription lookup fails for deletion", async () => {
+      const consoleSpy = vi.spyOn(console, "log");
+      mockDbSubscription.findFirst.mockResolvedValue(null);
+
+      const subscription = {
+        id: "sub_unknown_456",
+        current_period_end: 1704067200,
+      } as Stripe.Subscription;
+
+      await handleSubscriptionDeleted(subscription);
+
+      // Verify improved debug logging with stripeSubscriptionId in the message
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[handleSubscriptionDeleted]")
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("sub_unknown_456")
+      );
     });
   });
 
