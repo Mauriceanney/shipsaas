@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { checkAndSendWelcomeEmail } from "@/actions/auth/send-welcome-email";
-import { DashboardHeader, DashboardSidebar } from "@/components/dashboard";
+import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { auth } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -27,12 +27,9 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <DashboardHeader user={user} />
-      <div className="flex flex-1">
-        <DashboardSidebar />
-        <main className="flex-1 p-6">{children}</main>
-      </div>
+    <div className="flex h-screen overflow-hidden">
+      <AppSidebar user={user} />
+      <main className="flex-1 overflow-y-auto p-6">{children}</main>
     </div>
   );
 }
