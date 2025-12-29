@@ -1,10 +1,49 @@
+# =============================================================================
+# Continuous Deployment Pipeline
+# =============================================================================
+# Environments:
+#   - preprod: Pre-production for testing (PR merge to develop)
+#   - production: Production environment (PR merge to main)
+#
+# Triggered on:
+#   - PR merged to main → Production deployment
+#   - PR merged to develop → Pre-production deployment
+#   - Manual workflow_dispatch → Choose environment
+#
+# Industry Best Practice:
+#   Deployments only trigger on PR merges, NOT direct pushes.
+#   This ensures all code goes through review before deployment.
+#
+# Required Secrets (per environment):
+#   DOCKERHUB_USERNAME  - Docker Hub username
+#   DOCKERHUB_TOKEN     - Docker Hub access token
+#   PREPROD_HOST        - Pre-production server hostname/IP
+#   PREPROD_USERNAME    - Pre-production SSH username
+#   PREPROD_SSH_KEY     - Pre-production SSH private key
+#   PROD_HOST           - Production server hostname/IP
+#   PROD_USERNAME       - Production SSH username
+#   PROD_SSH_KEY        - Production SSH private key
+# =============================================================================
+
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  # Trigger deployment only when PR is merged (not on direct push)
+  pull_request:
+    types: [closed]
+    branches:
+      - main      # PR merged to main → Production
+      - develop   # PR merged to develop → Pre-production
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'preprod'
+        type: choice
+        options:
+          - preprod
+          - production
       action:
         description: 'Action to perform'
         required: true
@@ -13,122 +52,369 @@ on:
         options:
           - deploy
           - rollback
+          - scale
+      replicas:
+        description: 'Number of app replicas (1-20, for scale action)'
+        required: false
+        default: '3'
+        type: string
+
+# Restrict permissions to minimum required
+permissions:
+  contents: read
+  packages: read
+  security-events: write
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/shipsaas
 
 jobs:
-  test:
-    uses: ./.github/workflows/ci.yml
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') }}
-
-  build:
-    needs: test
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') }}
+  # ===========================================================================
+  # Determine Target Environment
+  # ===========================================================================
+  setup:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    # Only run if PR was merged (not just closed) or manual trigger
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      stack_name: ${{ steps.set-env.outputs.stack_name }}
+      compose_file: ${{ steps.set-env.outputs.compose_file }}
+      data_path: ${{ steps.set-env.outputs.data_path }}
+      should_deploy: ${{ steps.set-env.outputs.should_deploy }}
+    steps:
+      - name: Determine environment
+        id: set-env
+        run: |
+          # Determine environment based on trigger type
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ inputs.environment }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR merged - check target branch
+            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            if [ "$TARGET_BRANCH" = "main" ]; then
+              ENV="production"
+            elif [ "$TARGET_BRANCH" = "develop" ]; then
+              ENV="preprod"
+            else
+              echo "Unknown target branch: $TARGET_BRANCH"
+              echo "should_deploy=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          else
+            echo "Unknown event: ${{ github.event_name }}"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+
+          if [ "$ENV" = "production" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "stack_name=saas" >> $GITHUB_OUTPUT
+            echo "compose_file=docker-compose.prod.yml" >> $GITHUB_OUTPUT
+            echo "data_path=/opt/saas/data" >> $GITHUB_OUTPUT
+          else
+            echo "environment=preprod" >> $GITHUB_OUTPUT
+            echo "stack_name=preprod" >> $GITHUB_OUTPUT
+            echo "compose_file=docker-compose.preprod.yml" >> $GITHUB_OUTPUT
+            echo "data_path=/opt/preprod/data" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Deploying to: $ENV (triggered by ${{ github.event_name }})"
+
+  # ===========================================================================
+  # CI Tests - Reuse existing CI workflow
+  # ===========================================================================
+  test:
+    needs: setup
+    uses: ./.github/workflows/ci.yml
+    if: |
+      needs.setup.outputs.should_deploy == 'true' &&
+      (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
+
+  # ===========================================================================
+  # Build Docker Image and Push to Registry
+  # ===========================================================================
+  build:
+    needs: [setup, test]
+    if: |
+      needs.setup.outputs.should_deploy == 'true' &&
+      (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3
 
-      - uses: docker/login-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v5
+      - name: Build and push Docker image
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v5
         with:
+          context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    needs: build
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # master
+        with:
+          image-ref: '${{ env.DOCKER_IMAGE }}:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'  # Fail build on CRITICAL/HIGH vulnerabilities
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ===========================================================================
+  # Deploy to Pre-Production
+  # ===========================================================================
+  deploy-preprod:
+    needs: [setup, build]
+    if: |
+      needs.setup.outputs.should_deploy == 'true' &&
+      needs.setup.outputs.environment == 'preprod' &&
+      (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
     runs-on: ubuntu-latest
-    environment: production
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') }}
+    environment: preprod
 
     steps:
-      - uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DO_HOST }}
-          username: ${{ secrets.DO_USERNAME }}
-          key: ${{ secrets.DO_SSH_KEY }}
-          script: |
-            cd /opt/saas
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-            # Save current image tag for rollback
-            PREVIOUS_TAG=$(docker compose -f docker-compose.yml -f docker-compose.prod.yml images app -q 2>/dev/null | head -1 || echo "")
-            echo "$PREVIOUS_TAG" > .previous_image_tag
+      - name: Copy stack files to server
+        uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94571 # v0.1.7
+        with:
+          host: ${{ secrets.PREPROD_HOST }}
+          username: ${{ secrets.PREPROD_USERNAME }}
+          key: ${{ secrets.PREPROD_SSH_KEY }}
+          source: "docker-compose.yml,docker-compose.preprod.yml"
+          target: "/opt/preprod"
+
+      - name: Deploy to Pre-Production
+        uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        with:
+          host: ${{ secrets.PREPROD_HOST }}
+          username: ${{ secrets.PREPROD_USERNAME }}
+          key: ${{ secrets.PREPROD_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/preprod
+
+            # Login to Docker Hub
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            # Save current tag for rollback
+            [ -f .current_image_tag ] && cp .current_image_tag .previous_image_tag
             echo "${{ github.sha }}" > .current_image_tag
 
-            # Pull and deploy new version
+            # Pull new image
+            docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+
+            # Deploy stack
+            export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
             export IMAGE_TAG=${{ github.sha }}
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull app
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            docker stack deploy -c docker-compose.yml -c docker-compose.preprod.yml preprod --with-registry-auth
+
+            # Wait for services
+            sleep 20
 
             # Run migrations
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app npx prisma migrate deploy
+            CONTAINER=$(docker ps -q -f "name=preprod_app" | head -1)
+            [ -n "$CONTAINER" ] && docker exec $CONTAINER npx prisma migrate deploy || true
 
-            # Health check with retries
-            HEALTH_CHECK_RETRIES=3
-            HEALTH_CHECK_DELAY=10
-            for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
-              sleep $HEALTH_CHECK_DELAY
-              if curl -sf http://localhost:3000/api/health > /dev/null; then
-                echo "Health check passed on attempt $i"
-                break
-              fi
-              if [ $i -eq $HEALTH_CHECK_RETRIES ]; then
-                echo "Health check failed after $HEALTH_CHECK_RETRIES attempts, rolling back..."
-                if [ -n "$PREVIOUS_TAG" ]; then
-                  export IMAGE_TAG=$PREVIOUS_TAG
-                  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-                fi
-                exit 1
-              fi
-              echo "Health check failed on attempt $i, retrying..."
+            # Health check
+            for i in 1 2 3 4 5; do
+              sleep 5
+              curl -sf http://localhost:3000/api/health && echo "Health OK" && break
+              [ $i -eq 5 ] && echo "Health check failed" && exit 1
             done
 
-            # Cleanup old images
             docker image prune -f
 
-  rollback:
+  # ===========================================================================
+  # Deploy to Production
+  # ===========================================================================
+  deploy-production:
+    needs: [setup, build]
+    if: |
+      needs.setup.outputs.should_deploy == 'true' &&
+      needs.setup.outputs.environment == 'production' &&
+      (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
     runs-on: ubuntu-latest
     environment: production
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Copy stack files to server
+        uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94571 # v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: "docker-compose.yml,docker-compose.prod.yml"
+          target: "/opt/saas"
+
+      - name: Deploy to Production
+        uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/saas
+
+            # Login to Docker Hub
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            # Save current tag for rollback
+            [ -f .current_image_tag ] && cp .current_image_tag .previous_image_tag
+            echo "${{ github.sha }}" > .current_image_tag
+
+            # Pull new image
+            docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+
+            # Deploy stack
+            export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
+            export IMAGE_TAG=${{ github.sha }}
+            docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml saas --with-registry-auth
+
+            # Wait for services
+            sleep 20
+
+            # Run migrations
+            CONTAINER=$(docker ps -q -f "name=saas_app" | head -1)
+            [ -n "$CONTAINER" ] && docker exec $CONTAINER npx prisma migrate deploy || true
+
+            # Health check
+            for i in 1 2 3 4 5; do
+              sleep 5
+              curl -sf http://localhost:3000/api/health && echo "Health OK" && break
+              [ $i -eq 5 ] && echo "Health check failed" && exit 1
+            done
+
+            docker image prune -f
+
+  # ===========================================================================
+  # Scale (works for both environments)
+  # ===========================================================================
+  scale:
+    needs: setup
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.action == 'scale' }}
+
+    steps:
+      - name: Validate replicas input
+        run: |
+          REPLICAS="${{ inputs.replicas }}"
+          if ! [[ "$REPLICAS" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Invalid replicas value"
+            exit 1
+          fi
+          if [ "$REPLICAS" -lt 1 ] || [ "$REPLICAS" -gt 20 ]; then
+            echo "ERROR: Replicas must be between 1 and 20"
+            exit 1
+          fi
+
+      - name: Scale Pre-Production
+        if: ${{ needs.setup.outputs.environment == 'preprod' }}
+        uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        with:
+          host: ${{ secrets.PREPROD_HOST }}
+          username: ${{ secrets.PREPROD_USERNAME }}
+          key: ${{ secrets.PREPROD_SSH_KEY }}
+          script: |
+            docker service scale preprod_app=${{ inputs.replicas }}
+            sleep 10
+            docker service ls --filter "name=preprod_app"
+
+      - name: Scale Production
+        if: ${{ needs.setup.outputs.environment == 'production' }}
+        uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            docker service scale saas_app=${{ inputs.replicas }}
+            sleep 10
+            docker service ls --filter "name=saas_app"
+
+  # ===========================================================================
+  # Rollback (works for both environments)
+  # ===========================================================================
+  rollback:
+    needs: setup
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.action == 'rollback' }}
 
     steps:
-      - uses: appleboy/ssh-action@v1
+      - name: Rollback Pre-Production
+        if: ${{ needs.setup.outputs.environment == 'preprod' }}
+        uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        env:
+          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
         with:
-          host: ${{ secrets.DO_HOST }}
-          username: ${{ secrets.DO_USERNAME }}
-          key: ${{ secrets.DO_SSH_KEY }}
+          host: ${{ secrets.PREPROD_HOST }}
+          username: ${{ secrets.PREPROD_USERNAME }}
+          key: ${{ secrets.PREPROD_SSH_KEY }}
+          envs: DOCKER_IMAGE
           script: |
-            cd /opt/saas
-
-            # Read previous image tag
-            if [ -f .previous_image_tag ]; then
-              PREVIOUS_TAG=$(cat .previous_image_tag)
-              if [ -n "$PREVIOUS_TAG" ]; then
-                echo "Rolling back to: $PREVIOUS_TAG"
-                export IMAGE_TAG=$PREVIOUS_TAG
-                docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-                # Verify rollback
-                sleep 10
-                curl -f http://localhost:3000/api/health || exit 1
-                echo "Rollback successful"
-              else
-                echo "No previous image tag found"
-                exit 1
-              fi
-            else
-              echo "No rollback information available"
+            set -e
+            cd /opt/preprod
+            if [ ! -f .previous_image_tag ]; then
+              echo "ERROR: No rollback information"
               exit 1
             fi
+            PREVIOUS_TAG=$(cat .previous_image_tag)
+            echo "Rolling back to: $PREVIOUS_TAG"
+            export IMAGE_TAG="$PREVIOUS_TAG"
+            export DOCKER_IMAGE="${DOCKER_IMAGE}"
+            docker stack deploy -c docker-compose.yml -c docker-compose.preprod.yml preprod --with-registry-auth
+            sleep 15
+            curl -f http://localhost:3000/api/health && echo "Rollback successful!"
+
+      - name: Rollback Production
+        if: ${{ needs.setup.outputs.environment == 'production' }}
+        uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        env:
+          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          envs: DOCKER_IMAGE
+          script: |
+            set -e
+            cd /opt/saas
+            if [ ! -f .previous_image_tag ]; then
+              echo "ERROR: No rollback information"
+              exit 1
+            fi
+            PREVIOUS_TAG=$(cat .previous_image_tag)
+            echo "Rolling back to: $PREVIOUS_TAG"
+            export IMAGE_TAG="$PREVIOUS_TAG"
+            export DOCKER_IMAGE="${DOCKER_IMAGE}"
+            docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml saas --with-registry-auth
+            sleep 15
+            curl -f http://localhost:3000/api/health && echo "Rollback successful!"

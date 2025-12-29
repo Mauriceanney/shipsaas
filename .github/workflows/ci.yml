@@ -1,3 +1,17 @@
+# =============================================================================
+# Continuous Integration Pipeline
+# =============================================================================
+# Runs on all PRs to main and pushes to main/develop
+#
+# Jobs (run in parallel for faster feedback):
+#   lint  - ESLint and TypeScript type checking
+#   test  - Unit tests with coverage (requires PostgreSQL)
+#   build - Production build verification
+#   e2e   - Playwright end-to-end tests
+#
+# Coverage threshold: 80% (enforced in test job)
+# =============================================================================
+
 name: CI
 
 on:
@@ -5,29 +19,53 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  # Allow reuse by deploy.yml
+  workflow_call:
+
+# Restrict permissions to minimum required
+permissions:
+  contents: read
+  pull-requests: read
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # ===========================================================================
+  # Lint & Type Check
+  # ===========================================================================
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
         with:
           node-version: 20
           cache: "pnpm"
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
+      - name: Run ESLint
+        run: pnpm lint
+
+      - name: Run TypeScript check
+        run: pnpm typecheck
+
+  # ===========================================================================
+  # Unit Tests with Coverage
+  # ===========================================================================
   test:
     runs-on: ubuntu-latest
     services:
+      # PostgreSQL service for database tests
       postgres:
         image: postgres:16-alpine
         env:
@@ -43,63 +81,110 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
         with:
           node-version: 20
           cache: "pnpm"
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm test:coverage
+      - name: Run tests with coverage
+        run: pnpm test:coverage
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
+          # Mock Stripe key for tests (not a real key)
           STRIPE_SECRET_KEY: sk_test_mock
 
+  # ===========================================================================
+  # Production Build Verification
+  # ===========================================================================
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
         with:
           node-version: 20
           cache: "pnpm"
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm prisma generate
-      - run: pnpm build
+      # Cache Next.js build for faster subsequent builds
+      - name: Cache Next.js build
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Build application
+        run: pnpm build
         env:
+          # Skip runtime env validation during build
           SKIP_ENV_VALIDATION: true
 
+  # ===========================================================================
+  # End-to-End Tests
+  # ===========================================================================
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@fe02b34f77f8bc703a5f83f0a55508c7d1e1b35b # v4
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
         with:
           node-version: 20
           cache: "pnpm"
 
-      - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps
-      - run: pnpm test:e2e
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - uses: actions/upload-artifact@v4
+      # Cache Playwright browsers for faster runs
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm list @playwright/test --json | jq -r '.[0].dependencies["@playwright/test"].version' 2>/dev/null || echo 'latest')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report on failure
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
         if: failure()
         with:
           name: playwright-report

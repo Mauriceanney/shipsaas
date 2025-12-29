@@ -16,7 +16,7 @@ Uses autonomous agentic development workflow with multi-agent orchestration.
 - **Email**: Resend + React Email
 - **UI**: TailwindCSS + shadcn/ui
 - **Testing**: Vitest + Playwright
-- **Deploy**: Docker + Digital Ocean
+- **Deploy**: Docker Swarm + Digital Ocean
 
 ## Autonomous Development Commands
 
@@ -85,60 +85,30 @@ Feature Request
     └── DevOps → PR & Deployment
 ```
 
-## Development Skills
-
-### TDD Methodology
-1. **RED**: Write failing test first
-2. **GREEN**: Implement minimum code to pass
-3. **REFACTOR**: Clean up while keeping tests green
-
-### Next.js App Router
-- Server Components by default
-- Client Components with `"use client"` only when needed
-- Route groups: `(auth)`, `(dashboard)`, `(marketing)`, `(admin)`
-- Server Actions for data mutations
-
-### Prisma Database
-- Schema in `prisma/schema.prisma`
-- Migrations: `pnpm db:migrate`
-- Push: `pnpm db:push`
-- Studio: `pnpm db:studio`
-
-### Testing
-- Unit tests: `STRIPE_SECRET_KEY="sk_test_mock" npx vitest run`
-- Coverage: `STRIPE_SECRET_KEY="sk_test_mock" npx vitest run --coverage`
-- E2E: `pnpm test:e2e`
-- Coverage threshold: 80%
-
-### Git Workflow
-- Branches: `feature/*`, `fix/*`, `hotfix/*`
-- Commits: Conventional commits (`feat:`, `fix:`, `docs:`, `test:`)
-- PRs: Link to issue, include description and test plan
-
 ## Key Commands
 
 ```bash
-# Development
-pnpm dev              # Start dev server
-./scripts/dev.sh up   # Start Docker services
-./scripts/dev.sh down # Stop Docker services
+# Local Development
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d   # Start services
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down    # Stop services
+pnpm dev                       # Start Next.js dev server
 
 # Database
-pnpm db:push          # Push Prisma schema
-pnpm db:migrate       # Create migration
-pnpm db:seed          # Seed base data
-pnpm db:seed:demo     # Seed demo data
-pnpm db:studio        # Open Prisma Studio
+pnpm db:push                   # Push Prisma schema
+pnpm db:migrate                # Create migration
+pnpm db:seed                   # Seed base data
+pnpm db:seed:demo              # Seed demo data
+pnpm db:studio                 # Open Prisma Studio
 
 # Testing
-pnpm test             # Run unit tests
-pnpm test:coverage    # Run tests with coverage
-pnpm test:e2e         # Run E2E tests
+pnpm test                      # Run unit tests
+pnpm test:coverage             # Run tests with coverage
+pnpm test:e2e                  # Run E2E tests
 
-# Build & Deploy
-pnpm build            # Build for production
-pnpm lint             # Run ESLint
-pnpm typecheck        # Run TypeScript check
+# Build
+pnpm build                     # Build for production
+pnpm lint                      # Run ESLint
+pnpm typecheck                 # Run TypeScript check
 ```
 
 ## Project Structure
@@ -169,18 +139,15 @@ src/
 │   ├── auth/         # Auth actions
 │   ├── admin/        # Admin actions
 │   └── stripe/       # Stripe actions
-├── hooks/            # Custom React hooks
 ├── types/            # TypeScript types
 └── config/           # App configuration
 
 tests/
 ├── unit/             # Unit tests (Vitest)
-│   ├── actions/      # Server action tests
-│   ├── auth/         # Auth component tests
-│   ├── billing/      # Billing component tests
-│   ├── lib/          # Lib utility tests
-│   └── pricing/      # Pricing component tests
 └── e2e/              # E2E tests (Playwright)
+
+scripts/
+└── setup-server.sh   # Server provisioning script
 ```
 
 ## Coding Standards
@@ -221,20 +188,105 @@ Copy `.env.example` to `.env` and configure:
 - `AUTH_SECRET`: Auth.js secret (generate with `openssl rand -base64 32`)
 - `STRIPE_*`: Stripe API keys
 - `RESEND_API_KEY`: Resend email API key
+- `REDIS_PASSWORD`: Redis password
 
-## CI/CD
+## CI/CD Pipeline
 
-### CI Pipeline (on PR)
+### CI (on every PR)
 - Lint check
 - Type check
 - Unit tests with coverage
-- E2E tests
 - Build verification
+- Docker vulnerability scanning (Trivy)
 
-### CD Pipeline (on merge to main)
-- Docker build
-- Push to GitHub Container Registry
-- Deploy via SSH
-- Database migrations
-- Health check
-- Automatic rollback on failure
+### CD (automatic deployment)
+- **PR merged to develop** → Pre-production deployment
+- **PR merged to main** → Production deployment
+
+Deployments only trigger on PR merges, NOT direct pushes (industry best practice).
+
+### Deployment Flow
+```
+feature/* branch
+    │
+    └── Create PR to develop
+         │
+         └── CI checks pass + Code review
+              │
+              └── Merge PR → Auto-deploy to Preprod
+                   │
+                   └── Create PR to main
+                        │
+                        └── Merge PR → Auto-deploy to Production
+```
+
+### Required GitHub Secrets
+```
+# Docker Hub
+DOCKERHUB_USERNAME    # Docker Hub username
+DOCKERHUB_TOKEN       # Docker Hub access token
+
+# Pre-Production Server
+PREPROD_HOST          # Preprod server hostname
+PREPROD_USERNAME      # SSH username (default: deploy)
+PREPROD_SSH_KEY       # SSH private key
+
+# Production Server
+PROD_HOST             # Production server hostname
+PROD_USERNAME         # SSH username (default: deploy)
+PROD_SSH_KEY          # SSH private key
+```
+
+## Docker Swarm Deployment
+
+### Environments
+
+| Environment | Branch | Stack Name | Data Path |
+|-------------|--------|------------|-----------|
+| Development | - | Local Docker | - |
+| Pre-Production | develop | preprod | /opt/preprod/data/ |
+| Production | main | saas | /opt/saas/data/ |
+
+### Server Setup
+
+Use the setup script on a fresh Ubuntu droplet:
+```bash
+# Copy and run the setup script
+scp scripts/setup-server.sh root@your-server:/tmp/
+ssh root@your-server "ENVIRONMENT=production bash /tmp/setup-server.sh"
+```
+
+The script:
+- Creates deploy user with SSH access
+- Installs Docker and initializes Swarm
+- Configures UFW firewall and fail2ban
+- Creates data directories
+
+### Manual Server Administration
+
+SSH directly into servers for administration:
+```bash
+# SSH into production
+ssh deploy@prod.example.com
+
+# View services
+docker service ls
+
+# View app logs
+docker service logs saas_app --follow
+
+# Scale app
+docker service scale saas_app=5
+
+# Rollback (from GitHub Actions or manually)
+# Uses workflow_dispatch with rollback action
+```
+
+### Docker Compose Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | Base services (postgres, redis, mailpit) |
+| `docker-compose.dev.yml` | Development overrides (exposed ports) |
+| `docker-compose.preprod.yml` | Pre-production Swarm stack |
+| `docker-compose.prod.yml` | Production Swarm stack |

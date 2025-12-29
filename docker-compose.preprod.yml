@@ -1,23 +1,21 @@
 version: "3.9"
 
 # =============================================================================
-# Docker Swarm Stack Configuration
+# Pre-Production Docker Swarm Stack Configuration
 # =============================================================================
-# Works on SINGLE or MULTIPLE nodes (droplets)
+# MIRRORS PRODUCTION - Use for testing and validation before deploying to prod
 #
-# Single Node:  All services run on one droplet with multiple app replicas
-# Multi Node:   Add worker nodes later for horizontal scaling
+# Usage: docker stack deploy -c docker-compose.yml -c docker-compose.preprod.yml preprod
 #
-# Usage: docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml saas
+# Differences from production:
+#   - Stack name: preprod (instead of saas)
+#   - Data path: /opt/preprod/data/ (instead of /opt/saas/data/)
+#   - Default replicas: 2 (instead of 3, to save resources)
+#   - Network: preprod_default
 #
-# Features:
-#   - Multiple app replicas (default: 3) with load balancing
-#   - Zero-downtime rolling updates
-#   - Automatic SSL via Let's Encrypt
-#   - Auto-restart on failure
-#   - Health checks
+# Otherwise IDENTICAL to production for accurate testing
 #
-# Data Persistence (at /opt/saas/data/):
+# Data Persistence (at /opt/preprod/data/):
 #   - postgres/      : Database files (CRITICAL)
 #   - redis/         : Cache and session data
 #   - uploads/       : User uploaded files
@@ -47,7 +45,7 @@ services:
         constraints:
           - node.role == manager
       labels:
-        # Dashboard (optional - access at traefik.yourdomain.com)
+        # Dashboard (access at traefik.preprod.yourdomain.com)
         - "traefik.enable=true"
         - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
         - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
@@ -73,7 +71,7 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=saas_default"
+      - "--providers.docker.network=preprod_default"
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
@@ -110,18 +108,16 @@ services:
     logging: *default-logging
     deploy:
       mode: replicated
-      replicas: ${APP_REPLICAS:-3}
-      # No placement constraints - runs on any node (manager or worker)
-      # This allows single-node deployment while supporting multi-node scaling
+      replicas: ${APP_REPLICAS:-2}  # Default 2 for preprod (vs 3 for prod)
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.app.rule=Host(`${DOMAIN}`)"
         - "traefik.http.routers.app.entrypoints=websecure"
         - "traefik.http.routers.app.tls.certresolver=letsencrypt"
         - "traefik.http.services.app.loadbalancer.server.port=3000"
-        # Sticky sessions (optional - keeps user on same replica)
+        # Sticky sessions (keeps user on same replica)
         - "traefik.http.services.app.loadbalancer.sticky.cookie=true"
-        - "traefik.http.services.app.loadbalancer.sticky.cookie.name=saas_affinity"
+        - "traefik.http.services.app.loadbalancer.sticky.cookie.name=preprod_affinity"
         # Health check for load balancer
         - "traefik.http.services.app.loadbalancer.healthcheck.path=/api/health"
         - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
@@ -131,11 +127,11 @@ services:
         max_attempts: 3
         window: 120s
       update_config:
-        parallelism: 1          # Update one replica at a time
-        delay: 15s              # Wait between updates
+        parallelism: 1
+        delay: 15s
         failure_action: rollback
-        monitor: 30s            # Monitor for failures after update
-        order: start-first      # Start new before stopping old (zero downtime)
+        monitor: 30s
+        order: start-first
       rollback_config:
         parallelism: 1
         delay: 10s
@@ -174,7 +170,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager  # Keep on manager for data consistency
+          - node.role == manager
       restart_policy:
         condition: any
         delay: 5s
@@ -206,7 +202,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager  # Keep on manager for data consistency
+          - node.role == manager
       restart_policy:
         condition: any
         delay: 5s
@@ -258,45 +254,40 @@ networks:
     attachable: true
 
 # =============================================================================
-# Volumes - Persistent Data Storage
+# Volumes - Persistent Data Storage (at /opt/preprod/data/)
 # =============================================================================
 volumes:
-  # PostgreSQL database - CRITICAL: Contains all application data
   postgres_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/saas/data/postgres
+      device: /opt/preprod/data/postgres
 
-  # Redis cache and sessions
   redis_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/saas/data/redis
+      device: /opt/preprod/data/redis
 
-  # User uploaded files (avatars, documents, etc.)
   app_uploads:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/saas/data/uploads
+      device: /opt/preprod/data/uploads
 
-  # Database backups
   backup_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/saas/data/backups
+      device: /opt/preprod/data/backups
 
-  # SSL certificates from Let's Encrypt
   traefik_letsencrypt:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/saas/data/letsencrypt
+      device: /opt/preprod/data/letsencrypt
