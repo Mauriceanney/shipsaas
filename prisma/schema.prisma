@@ -23,6 +23,7 @@ model User {
   password         String?
   role             Role      @default(USER)
   welcomeEmailSent Boolean   @default(false)
+  disabled         Boolean   @default(false)
 
   accounts     Account[]
   sessions     Session[]
@@ -36,6 +37,7 @@ model User {
   @@index([role])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([disabled])
 }
 
 model Account {
@@ -132,4 +134,58 @@ enum SubscriptionStatus {
   PAST_DUE
   CANCELED
   TRIALING
+}
+
+// ============================================
+// ADMIN CONFIGURATION MODELS
+// ============================================
+
+model PlanConfig {
+  id             String   @id @default(cuid())
+  plan           Plan     @unique
+  name           String
+  description    String?
+  monthlyPriceId String?  // Stripe Price ID for monthly billing
+  yearlyPriceId  String?  // Stripe Price ID for yearly billing
+  monthlyPrice   Int      @default(0) // Display price in cents
+  yearlyPrice    Int      @default(0) // Display price in cents
+  features       String[] // Feature list for display
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model AppConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  category    String   // "general", "features", "billing", "email"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([key])
+}
+
+model ConfigAuditLog {
+  id         String   @id @default(cuid())
+  entityType String   // "PlanConfig", "AppConfig", "User"
+  entityId   String
+  action     String   // "CREATE", "UPDATE", "DELETE"
+  changes    Json     // { field: { old: value, new: value } }
+  userId     String   // Admin who made the change
+  userEmail  String   // For display purposes
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
 }

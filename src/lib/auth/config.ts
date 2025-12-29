@@ -20,21 +20,51 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
-      const isOnSettings = nextUrl.pathname.startsWith("/settings");
-      const isOnAuth =
-        nextUrl.pathname.startsWith("/login") ||
-        nextUrl.pathname.startsWith("/signup") ||
-        nextUrl.pathname.startsWith("/forgot-password") ||
-        nextUrl.pathname.startsWith("/reset-password");
+      const { pathname } = nextUrl;
 
-      if (isOnDashboard || isOnSettings) {
-        if (isLoggedIn) return true;
-        return false; // Redirect to login
+      // Define public routes that don't require authentication
+      const publicRoutes = [
+        "/",
+        "/pricing",
+        "/blog",
+        "/login",
+        "/signup",
+        "/forgot-password",
+        "/reset-password",
+        "/verify-email",
+      ];
+
+      // Auth routes - redirect logged-in users to dashboard
+      const authRoutes = [
+        "/login",
+        "/signup",
+        "/forgot-password",
+        "/reset-password",
+      ];
+
+      // Check if current path is a public route
+      const isPublicRoute = publicRoutes.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+      );
+
+      // Check if current path is an auth route
+      const isAuthRoute = authRoutes.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+      );
+
+      // Skip API routes - they handle their own auth
+      if (pathname.startsWith("/api")) {
+        return true;
       }
 
-      if (isOnAuth && isLoggedIn) {
+      // Redirect logged-in users away from auth pages
+      if (isLoggedIn && isAuthRoute) {
         return Response.redirect(new URL("/dashboard", nextUrl));
+      }
+
+      // Protected routes require authentication
+      if (!isLoggedIn && !isPublicRoute) {
+        return false; // Auth.js will redirect to signIn page
       }
 
       return true;
