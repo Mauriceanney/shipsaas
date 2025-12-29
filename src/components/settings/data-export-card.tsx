@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
+import { useState } from "react";
 
+import { requestDataExport } from "@/actions/gdpr";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { requestDataExport } from "@/actions/gdpr";
 
 export function DataExportCard() {
   const [isLoading, setIsLoading] = useState(false);

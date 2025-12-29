@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 
-import { DataExportCard } from "@/components/settings/data-export-card";
 import { AccountDeletionCard } from "@/components/settings/account-deletion-card";
+import { DataExportCard } from "@/components/settings/data-export-card";
 import {
   Card,
   CardContent,
@@ -10,6 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Settings",
