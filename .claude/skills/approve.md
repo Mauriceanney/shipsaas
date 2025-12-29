@@ -1,11 +1,11 @@
 ---
 name: approve
-description: Approve and Merge Feature (project)
+description: Approve and Merge Feature (project). Review, verify quality gates, approve, and merge a feature PR.
 ---
 
 # /approve - Approve and Merge Feature
 
-Review, approve, and merge a feature PR.
+Review, verify all quality gates, approve, and merge a feature PR.
 
 ## Usage
 
@@ -17,25 +17,44 @@ Review, approve, and merge a feature PR.
 
 - `$ARGUMENTS` - PR number (optional, uses current branch PR if not provided)
 
-## Workflow
+## Approval Protocol
 
-### Step 1: Fetch PR Details
+### Step 1: Identify PR
 
 ```bash
-# Get PR info (use $ARGUMENTS or current branch)
-gh pr view [pr-number] --json title,body,commits,files,reviews,checks
+# If PR number provided
+gh pr view $ARGUMENTS --json number,title,body,state,checks,reviews,files
 
-# Get linked issues
+# If no PR number, use current branch
+gh pr view --json number,title,body,state,checks,reviews,files
+
+# Get linked issue
 gh pr view [pr-number] --json body | grep -oE '#[0-9]+'
 ```
 
-### Step 2: Quality Checks
+### Step 2: CI Verification
 
 ```bash
 # Check CI status
 gh pr checks [pr-number]
 
-# Run local tests
+# All checks must pass:
+# - lint
+# - typecheck
+# - test
+# - build
+# - security (if applicable)
+```
+
+**Gate**: All CI checks green
+
+### Step 3: Local Verification
+
+```bash
+# Checkout PR branch
+gh pr checkout [pr-number]
+
+# Run full test suite
 STRIPE_SECRET_KEY="sk_test_mock" npx vitest run
 
 # Check coverage
@@ -44,58 +63,200 @@ STRIPE_SECRET_KEY="sk_test_mock" npx vitest run --coverage
 # Type check
 pnpm typecheck
 
-# Lint
+# Lint check
 pnpm lint
+
+# Build verification
+pnpm build
 ```
 
-### Step 3: Code Review Checklist
+**Gate**: All local checks pass
 
-- [ ] All CI checks pass
-- [ ] Test coverage >= 80%
-- [ ] No type errors
-- [ ] No lint errors
-- [ ] Code follows project standards
-- [ ] Security considerations addressed
-- [ ] Acceptance criteria met
+### Step 4: Code Review Checklist
 
-### Step 4: Merge
+#### Architecture
+- [ ] Follows established patterns
+- [ ] No unnecessary complexity
+- [ ] Proper separation of concerns
+- [ ] Consistent with existing codebase
+
+#### Backend
+- [ ] Auth checked in all server actions
+- [ ] Authorization verified (ownership)
+- [ ] Input validated with Zod
+- [ ] Errors handled gracefully
+- [ ] Cache revalidated appropriately
+
+#### Frontend
+- [ ] Server Components where possible
+- [ ] Client Components only when necessary
+- [ ] Accessibility (WCAG 2.1 AA)
+- [ ] Responsive design
+- [ ] Loading/error/empty states
+
+#### Testing
+- [ ] TDD methodology followed
+- [ ] Coverage >= 80%
+- [ ] All AC have corresponding tests
+- [ ] Edge cases covered
+
+#### Security
+- [ ] No sensitive data exposed
+- [ ] OWASP Top 10 considered
+- [ ] No hardcoded secrets
+- [ ] Proper error messages (no info leakage)
+
+### Step 5: Acceptance Criteria Verification
+
+```bash
+# View the linked issue
+gh issue view [issue-number]
+
+# For each AC, verify:
+# - Implementation matches requirement
+# - Test exists that validates the AC
+```
+
+| # | Acceptance Criterion | Implementation | Test | Status |
+|---|---------------------|----------------|------|--------|
+| AC1 | [Criterion] | [File:Line] | [Test file] | Verified |
+| AC2 | [Criterion] | [File:Line] | [Test file] | Verified |
+| AC3 | [Criterion] | [File:Line] | [Test file] | Verified |
+
+### Step 6: Approval Decision
+
+#### If All Gates Pass
+
+```bash
+# Approve the PR
+gh pr review [pr-number] --approve --body "Approved.
+
+## Verification Complete
+
+### CI Status
+All checks passing.
+
+### Local Verification
+- Unit Tests: Pass
+- Coverage: XX%
+- Type Check: Pass
+- Lint: Pass
+- Build: Pass
+
+### Code Review
+All checklist items verified.
+
+### Acceptance Criteria
+All AC verified with tests.
+
+**Status: APPROVED**"
+```
+
+#### If Issues Found
+
+```bash
+# Request changes
+gh pr review [pr-number] --request-changes --body "Changes requested.
+
+## Issues Found
+
+### [Issue 1]
+- **Location**: `file.ts:line`
+- **Issue**: [Description]
+- **Suggestion**: [How to fix]
+
+### [Issue 2]
+...
+
+**Status: BLOCKED**
+
+Please address these issues and re-request review."
+```
+
+### Step 7: Merge (If Approved)
 
 ```bash
 # Squash and merge
 gh pr merge [pr-number] --squash --delete-branch
 
-# Close linked issues
+# Close linked issue
 gh issue close [issue-number]
 ```
 
 ## Approval Report
 
-### PR Summary
-- PR: #[number]
-- Title: [title]
-- Author: [author]
-- Files changed: [count]
+```markdown
+# Approval Report
 
-### Quality Checks
-| Check | Status |
-|-------|--------|
-| CI Pipeline | Pass/Fail |
-| Unit Tests | Pass/Fail |
-| Coverage (80%) | Pass/Fail |
-| Type Check | Pass/Fail |
-| Lint | Pass/Fail |
+## PR Summary
+- **PR**: #[number]
+- **Title**: [title]
+- **Author**: [author]
+- **Files Changed**: [count]
+- **Issue**: #[issue-number]
 
-### Acceptance Criteria
+## CI Status
+
+| Check | Status | Duration |
+|-------|--------|----------|
+| lint | Pass | Xs |
+| typecheck | Pass | Xs |
+| test | Pass | Xm |
+| build | Pass | Xm |
+| security | Pass | Xs |
+
+## Quality Metrics
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| Test Coverage | XX% | 80% | Pass |
+| Type Errors | 0 | 0 | Pass |
+| Lint Errors | 0 | 0 | Pass |
+
+## Code Review
+
+### Architecture
+- [x] Follows patterns
+- [x] No unnecessary complexity
+
+### Backend
+- [x] Auth checked
+- [x] Input validated
+- [x] Errors handled
+
+### Frontend
+- [x] Accessibility verified
+- [x] Responsive design
+- [x] States handled
+
+### Security
+- [x] No vulnerabilities
+- [x] No exposed secrets
+
+## Acceptance Criteria
+
 | # | Criterion | Status |
 |---|-----------|--------|
-| AC1 | [criterion] | Verified |
-| AC2 | [criterion] | Verified |
+| AC1 | [Criterion] | Verified |
+| AC2 | [Criterion] | Verified |
 
-### Decision: APPROVED / REJECTED
+## Decision
 
-## Example
+**Status**: APPROVED / BLOCKED
+
+### If Approved
+- PR merged via squash
+- Branch deleted
+- Issue closed
+
+### If Blocked
+- Issues documented in PR comments
+- Awaiting fixes
+```
+
+## Examples
 
 ```
-/approve 42
-/approve        # Uses current branch PR
+/approve 42          # Approve PR #42
+/approve             # Approve current branch's PR
 ```
