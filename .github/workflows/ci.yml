@@ -51,6 +51,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Velite content
+        run: npx velite
+
       - name: Run ESLint
         run: pnpm lint
 
@@ -91,6 +94,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Velite content
+        run: npx velite
+
       - name: Run tests with coverage
         run: pnpm test:coverage
         env:
@@ -128,6 +134,9 @@ jobs:
       - name: Generate Prisma client
         run: pnpm prisma generate
 
+      - name: Generate Velite content
+        run: npx velite
+
       - name: Build application
         run: pnpm build
         env:
@@ -151,6 +160,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Velite content
+        run: npx velite
 
       # Cache Playwright browsers for faster runs
       - name: Get Playwright version
