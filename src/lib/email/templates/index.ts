@@ -24,6 +24,10 @@ export {
   SubscriptionConfirmEmail,
   type SubscriptionConfirmEmailProps,
 } from "./subscription-confirm";
+export {
+  SubscriptionCancelledEmail,
+  type SubscriptionCancelledEmailProps,
+} from "./subscription-cancelled";
 
 // Component exports
 export * from "./components";
@@ -37,6 +41,10 @@ import {
   PasswordResetEmail,
   type PasswordResetEmailProps,
 } from "./password-reset";
+import {
+  SubscriptionCancelledEmail,
+  type SubscriptionCancelledEmailProps,
+} from "./subscription-cancelled";
 import {
   SubscriptionConfirmEmail,
   type SubscriptionConfirmEmailProps,
@@ -126,6 +134,20 @@ export async function renderSubscriptionConfirmEmail(
   return { html, text };
 }
 
+/**
+ * Render subscription cancelled email to HTML and plain text
+ */
+export async function renderSubscriptionCancelledEmail(
+  props: SubscriptionCancelledEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(SubscriptionCancelledEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
 // ============================================
 // TEMPLATE TYPES MAP
 // ============================================
@@ -140,6 +162,7 @@ export type EmailTemplates = {
   "password-reset": PasswordResetEmailProps;
   "password-changed": PasswordChangedEmailProps;
   "subscription-confirm": SubscriptionConfirmEmailProps;
+  "subscription-cancelled": SubscriptionCancelledEmailProps;
 };
 
 /**

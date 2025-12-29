@@ -3,7 +3,7 @@
  */
 
 import { db } from "@/lib/db";
-import { sendSubscriptionConfirmationEmail } from "@/lib/email";
+import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail } from "@/lib/email";
 
 import { stripe } from "./client";
 import { extractCustomerId, extractPriceId, extractSubscriptionId, getPlanFromPriceId, mapStripeStatus, unixToDate, validateCheckoutMetadata } from "./utils";
@@ -204,16 +204,47 @@ export async function handleSubscriptionDeleted(
     return;
   }
 
+  // Store the previous plan before updating
+  const previousPlan = existingSubscription.plan;
+
   await db.subscription.update({
     where: { id: existingSubscription.id },
     data: {
       status: "CANCELED",
+      plan: "FREE", // Reset plan to FREE on cancellation
       stripeSubscriptionId: null, // Clear subscription ID
       // Keep stripeCustomerId for potential resubscription
     },
   });
 
   console.log(`Subscription deleted: ${subscription.id}`);
+
+  // Send cancellation email (graceful degradation)
+  try {
+    // Fetch user details for email
+    const user = await db.user.findUnique({
+      where: { id: existingSubscription.userId },
+      select: { email: true, name: true },
+    });
+
+    if (user?.email) {
+      // Format end date from subscription
+      const endDate = unixToDate(subscription.current_period_end).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      await sendSubscriptionCancelledEmail(user.email, {
+        name: user.name ?? undefined,
+        planName: previousPlan,
+        endDate,
+      });
+    }
+  } catch (emailError) {
+    console.error("Failed to send subscription cancellation email:", emailError);
+    // Don't throw - subscription update was completed successfully
+  }
 }
 
 // ============================================

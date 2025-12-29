@@ -11,6 +11,7 @@ import {
   renderPasswordChangedEmail,
   renderWelcomeEmail,
   renderSubscriptionConfirmEmail,
+  renderSubscriptionCancelledEmail,
 } from "./templates";
 
 import type { SendEmailResult } from "./types";
@@ -201,6 +202,42 @@ export async function sendSubscriptionConfirmationEmail(
     from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
     to: email,
     subject: `Subscription Confirmed - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send subscription cancelled email
+ * @param email - Recipient email address
+ * @param cancellationData - Cancellation details
+ */
+export async function sendSubscriptionCancelledEmail(
+  email: string,
+  cancellationData: {
+    name?: string;
+    planName: string;
+    endDate: string;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const resubscribeUrl = `${config.appUrl}/pricing`;
+
+  const { html, text } = await renderSubscriptionCancelledEmail({
+    name: cancellationData.name,
+    planName: cancellationData.planName,
+    endDate: cancellationData.endDate,
+    resubscribeUrl,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to: email,
+    subject: `Subscription Cancelled - ${config.appName}`,
     html,
     text,
   });

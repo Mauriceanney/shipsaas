@@ -7,23 +7,34 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type Stripe from "stripe";
 
 // Hoist mocks for vitest
-const { mockDbSubscription, mockStripeSubscriptions } = vi.hoisted(() => ({
+const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail } = vi.hoisted(() => ({
   mockDbSubscription: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
     upsert: vi.fn(),
     update: vi.fn(),
   },
+  mockDbUser: {
+    findUnique: vi.fn(),
+  },
   mockStripeSubscriptions: {
     retrieve: vi.fn(),
   },
+  mockSendSubscriptionCancelledEmail: vi.fn(),
 }));
 
 // Mock database
 vi.mock("@/lib/db", () => ({
   db: {
     subscription: mockDbSubscription,
+    user: mockDbUser,
   },
+}));
+
+// Mock email service
+vi.mock("@/lib/email", () => ({
+  sendSubscriptionConfirmationEmail: vi.fn(),
+  sendSubscriptionCancelledEmail: mockSendSubscriptionCancelledEmail,
 }));
 
 // Mock Stripe client
@@ -262,11 +273,20 @@ describe("Stripe Webhooks", () => {
       expect(mockDbSubscription.update).not.toHaveBeenCalled();
     });
 
-    it("sets status to CANCELED and clears subscription ID", async () => {
-      mockDbSubscription.findFirst.mockResolvedValue({ id: "sub_db_123" });
+    it("sets status to CANCELED, resets plan to FREE, and clears subscription ID", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+      });
+      mockDbUser.findUnique.mockResolvedValue({
+        email: "user@example.com",
+        name: "Test User",
+      });
 
       const subscription = {
         id: "sub_stripe_123",
+        current_period_end: 1704067200,
       } as Stripe.Subscription;
 
       await handleSubscriptionDeleted(subscription);
@@ -275,9 +295,59 @@ describe("Stripe Webhooks", () => {
         where: { id: "sub_db_123" },
         data: {
           status: "CANCELED",
+          plan: "FREE",
           stripeSubscriptionId: null,
         },
       });
+    });
+
+    it("sends cancellation email when subscription is deleted", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+      });
+      mockDbUser.findUnique.mockResolvedValue({
+        email: "user@example.com",
+        name: "Test User",
+      });
+
+      const subscription = {
+        id: "sub_stripe_123",
+        current_period_end: 1704067200,
+      } as Stripe.Subscription;
+
+      await handleSubscriptionDeleted(subscription);
+
+      expect(mockDbUser.findUnique).toHaveBeenCalledWith({
+        where: { id: "user_123" },
+        select: { email: true, name: true },
+      });
+      expect(mockSendSubscriptionCancelledEmail).toHaveBeenCalledWith(
+        "user@example.com",
+        expect.objectContaining({
+          name: "Test User",
+          planName: "PRO",
+        })
+      );
+    });
+
+    it("does not send email when user not found", async () => {
+      mockDbSubscription.findFirst.mockResolvedValue({
+        id: "sub_db_123",
+        userId: "user_123",
+        plan: "PRO",
+      });
+      mockDbUser.findUnique.mockResolvedValue(null);
+
+      const subscription = {
+        id: "sub_stripe_123",
+        current_period_end: 1704067200,
+      } as Stripe.Subscription;
+
+      await handleSubscriptionDeleted(subscription);
+
+      expect(mockSendSubscriptionCancelledEmail).not.toHaveBeenCalled();
     });
   });
 
