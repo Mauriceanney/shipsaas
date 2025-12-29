@@ -50,39 +50,45 @@ Get comprehensive project status report.
 ```
 Manually trigger deployment operations.
 
-## Agent Orchestration
+## Specialized Agent System
 
-### Development Agents
-| Agent | Role |
-|-------|------|
-| Product Manager | User stories, acceptance criteria |
-| Architect | Technical design, API contracts |
-| Frontend Developer | React components, UI implementation |
-| Backend Developer | Server actions, database operations |
-| UI/UX Designer | Accessibility, design consistency |
-| Security | Security audits, vulnerability checks |
-| QA Engineer | Testing, coverage verification |
-| DevOps | CI/CD, deployments, infrastructure |
+This project uses a team of specialized AI agents, each with deep expertise in SaaS development, TypeScript, and Next.js. See `.claude/AGENTS.md` for full documentation.
+
+### Agent Team
+
+| Agent | Expertise | Responsibilities |
+|-------|-----------|------------------|
+| **Orchestrator** | Workflow Coordination | Coordinates agents, manages phases, enforces quality gates |
+| **Product Engineer** | SaaS Product Development | User stories, acceptance criteria, success metrics |
+| **Solution Architect** | Next.js 15 / TypeScript | Technical design, API contracts, data models |
+| **Full-Stack Engineer** | Server Actions / Prisma | Backend implementation with strict TDD |
+| **UI Engineer** | React / shadcn/ui / A11y | Frontend components with TDD, WCAG 2.1 AA |
+| **Security Engineer** | OWASP / Auth.js | Security audits, vulnerability assessment |
+| **Quality Engineer** | Vitest / Playwright | Testing, coverage verification, QA sign-off |
+| **Platform Engineer** | Docker / CI/CD | PR creation, deployments, infrastructure |
 
 ### Agent Workflow
+
 ```
 Feature Request
     │
-    ├── Product Manager → User Stories
-    │
-    ├── Architect → Technical Design
-    │
-    ├── Backend Developer → Server Logic (TDD)
-    │
-    ├── Frontend Developer → UI Components (TDD)
-    │
-    ├── UI/UX Designer → Design Review
-    │
-    ├── Security → Security Audit
-    │
-    ├── QA Engineer → Testing & Verification
-    │
-    └── DevOps → PR & Deployment
+    ├─ DISCOVERY ──────────────────────────────────────────┐
+    │   ├── Product Engineer → User Stories + AC           │
+    │   └── Solution Architect → Technical Feasibility     │ (parallel)
+    │                                                      │
+    ├─ DESIGN ─────────────────────────────────────────────┤
+    │   └── Solution Architect → Technical Design          │ (gate: design approved)
+    │                                                      │
+    ├─ IMPLEMENTATION ─────────────────────────────────────┤
+    │   ├── Full-Stack Engineer → Backend (TDD)            │ (parallel)
+    │   └── UI Engineer → Frontend (TDD)                   │ (gate: tests pass, 80% coverage)
+    │                                                      │
+    ├─ QUALITY ────────────────────────────────────────────┤
+    │   ├── Security Engineer → Security Audit             │ (parallel)
+    │   └── Quality Engineer → QA Verification             │ (gate: approved)
+    │                                                      │
+    └─ DELIVERY ───────────────────────────────────────────┤
+        └── Platform Engineer → PR + CI                    │ (gate: user approval)
 ```
 
 ## Key Commands

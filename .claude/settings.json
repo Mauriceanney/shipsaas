@@ -1,0 +1,38 @@
+{
+  "$schema": "https://code.claude.com/schemas/settings.json",
+
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Read(src/**)",
+      "Read(tests/**)",
+      "Read(prisma/**)",
+      "Read(.claude/**)",
+      "Edit(src/**)",
+      "Edit(tests/**)",
+      "Edit(prisma/**)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.stripe.com)",
+      "WebFetch(domain:nextjs.org)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(rm -rf:*)",
+      "Read(.env)",
+      "Read(.env.local)",
+      "Edit(.env)",
+      "Edit(.env.local)"
+    ]
+  },
+
+  "env": {
+    "STRIPE_SECRET_KEY": "sk_test_mock"
+  }
+}
