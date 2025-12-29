@@ -186,6 +186,14 @@ jobs:
       - name: Generate Velite content
         run: npx velite
 
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Push database schema
+        run: pnpm prisma db push
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+
       # Cache Playwright browsers for faster runs
       - name: Get Playwright version
         id: playwright-version
