@@ -1,11 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-// Test data
+// Test data - uses demo user from seed data for login tests
 const TEST_USER = {
-  name: "Test User",
-  email: "test@example.com",
-  password: "Password123!",
+  name: "Demo User",
+  email: "demo@example.com",
+  password: "demo123",
 };
+
+// Strong password for registration tests (must meet password requirements)
+const VALID_PASSWORD = "Password123!";
 
 const INVALID_CREDENTIALS = {
   email: "wrong@example.com",
@@ -179,8 +182,8 @@ test.describe("Signup Page", () => {
   test("validates email format", async ({ page }) => {
     await page.getByTestId("name").fill(TEST_USER.name);
     await page.getByTestId("email").fill("invalid-email");
-    await page.getByTestId("password").fill(TEST_USER.password);
-    await page.getByTestId("confirmPassword").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
+    await page.getByTestId("confirmPassword").fill(VALID_PASSWORD);
 
     // Email input should have type="email" for browser validation
     const emailInput = page.getByTestId("email");
@@ -248,7 +251,7 @@ test.describe("Signup Page", () => {
   test("shows error for password mismatch", async ({ page }) => {
     await page.getByTestId("name").fill(TEST_USER.name);
     await page.getByTestId("email").fill("newuser@example.com");
-    await page.getByTestId("password").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
     await page.getByTestId("confirmPassword").fill("DifferentPassword123!");
 
     await page.getByTestId("register-button").click();
@@ -263,8 +266,8 @@ test.describe("Signup Page", () => {
     // Note: This test assumes there's an existing user with this email
     await page.getByTestId("name").fill(TEST_USER.name);
     await page.getByTestId("email").fill(TEST_USER.email);
-    await page.getByTestId("password").fill(TEST_USER.password);
-    await page.getByTestId("confirmPassword").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
+    await page.getByTestId("confirmPassword").fill(VALID_PASSWORD);
 
     await page.getByTestId("register-button").click();
 
@@ -292,8 +295,8 @@ test.describe("Signup Page", () => {
 
     await page.getByTestId("name").fill(TEST_USER.name);
     await page.getByTestId("email").fill(uniqueEmail);
-    await page.getByTestId("password").fill(TEST_USER.password);
-    await page.getByTestId("confirmPassword").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
+    await page.getByTestId("confirmPassword").fill(VALID_PASSWORD);
 
     await page.getByTestId("register-button").click();
 
@@ -318,8 +321,8 @@ test.describe("Signup Page", () => {
   test("button shows loading state during submission", async ({ page }) => {
     await page.getByTestId("name").fill(TEST_USER.name);
     await page.getByTestId("email").fill("newuser@example.com");
-    await page.getByTestId("password").fill(TEST_USER.password);
-    await page.getByTestId("confirmPassword").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
+    await page.getByTestId("confirmPassword").fill(VALID_PASSWORD);
 
     const registerButton = page.getByTestId("register-button");
     await registerButton.click();
@@ -451,7 +454,7 @@ test.describe("Reset Password Page", () => {
   test("shows error for password mismatch", async ({ page }) => {
     await page.goto("/reset-password?token=test-token-123");
 
-    await page.getByTestId("password").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
     await page.getByTestId("confirmPassword").fill("DifferentPassword123!");
     await page.getByTestId("reset-password-button").click();
 
@@ -464,8 +467,8 @@ test.describe("Reset Password Page", () => {
   test("shows error for invalid/expired token", async ({ page }) => {
     await page.goto("/reset-password?token=invalid-token");
 
-    await page.getByTestId("password").fill(TEST_USER.password);
-    await page.getByTestId("confirmPassword").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
+    await page.getByTestId("confirmPassword").fill(VALID_PASSWORD);
     await page.getByTestId("reset-password-button").click();
 
     // Wait for error message (invalid token)
@@ -477,8 +480,8 @@ test.describe("Reset Password Page", () => {
   test("button shows loading state during submission", async ({ page }) => {
     await page.goto("/reset-password?token=test-token-123");
 
-    await page.getByTestId("password").fill(TEST_USER.password);
-    await page.getByTestId("confirmPassword").fill(TEST_USER.password);
+    await page.getByTestId("password").fill(VALID_PASSWORD);
+    await page.getByTestId("confirmPassword").fill(VALID_PASSWORD);
 
     const submitButton = page.getByTestId("reset-password-button");
     await submitButton.click();

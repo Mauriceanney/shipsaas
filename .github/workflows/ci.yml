@@ -194,6 +194,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
 
+      - name: Seed database with demo data
+        run: pnpm db:seed:demo
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+
       # Cache Playwright browsers for faster runs
       - name: Get Playwright version
         id: playwright-version
