@@ -406,6 +406,7 @@ export async function handleInvoicePaid(
       invoiceDate,
       invoiceNumber: invoice.number ?? invoice.id,
       billingPeriod,
+      invoiceUrl: invoice.hosted_invoice_url ?? undefined,
     });
 
     console.log(`Invoice receipt email sent for invoice: ${invoice.id}`);

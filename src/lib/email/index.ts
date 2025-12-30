@@ -302,12 +302,14 @@ export async function sendInvoiceReceiptEmail(
       start: string;
       end: string;
     };
+    invoiceUrl?: string;
   }
 ): Promise<SendEmailResult> {
   const config = getEmailConfig();
   const provider = getEmailProvider();
 
-  const invoiceUrl = `${config.appUrl}/settings/billing`;
+  // Use Stripe hosted invoice URL if provided, fallback to billing page
+  const invoiceUrl = receiptData.invoiceUrl ?? `${config.appUrl}/settings/billing`;
 
   const { html, text } = await renderInvoiceReceiptEmail({
     name: receiptData.name,

@@ -859,6 +859,41 @@ describe("Stripe Webhooks", () => {
             planName: "PRO",
             amount: "USD 19.00",
             invoiceNumber: "INV-0001",
+            invoiceUrl: "https://invoice.stripe.com/i/test",
+          })
+        );
+      });
+
+      it("uses billing page URL as fallback when hosted_invoice_url is null", async () => {
+        mockDbSubscription.findFirst
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            id: "sub_db_123",
+            userId: "user_123",
+            plan: "PRO",
+          });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockSendInvoiceReceiptEmail.mockResolvedValue({ success: true });
+
+        const invoice = {
+          id: "in_test",
+          number: "INV-0001",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+          hosted_invoice_url: null, // No hosted URL
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendInvoiceReceiptEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            invoiceUrl: undefined, // Falls back to default in email service
           })
         );
       });
