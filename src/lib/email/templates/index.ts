@@ -36,11 +36,27 @@ export {
   InvoiceReceiptEmail,
   type InvoiceReceiptEmailProps,
 } from "./invoice-receipt";
+export {
+  DunningReminderEmail,
+  type DunningReminderEmailProps,
+} from "./dunning-reminder";
+export {
+  DunningFinalWarningEmail,
+  type DunningFinalWarningEmailProps,
+} from "./dunning-final-warning";
 
 // Component exports
 export * from "./components";
 
 // Import templates for render functions
+import {
+  DunningFinalWarningEmail,
+  type DunningFinalWarningEmailProps,
+} from "./dunning-final-warning";
+import {
+  DunningReminderEmail,
+  type DunningReminderEmailProps,
+} from "./dunning-reminder";
 import {
   InvoiceReceiptEmail,
   type InvoiceReceiptEmailProps,
@@ -192,6 +208,34 @@ export async function renderInvoiceReceiptEmail(
   return { html, text };
 }
 
+/**
+ * Render dunning reminder email to HTML and plain text
+ */
+export async function renderDunningReminderEmail(
+  props: DunningReminderEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(DunningReminderEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
+/**
+ * Render dunning final warning email to HTML and plain text
+ */
+export async function renderDunningFinalWarningEmail(
+  props: DunningFinalWarningEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(DunningFinalWarningEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
 // ============================================
 // TEMPLATE TYPES MAP
 // ============================================
@@ -209,6 +253,8 @@ export type EmailTemplates = {
   "subscription-cancelled": SubscriptionCancelledEmailProps;
   "payment-failed": PaymentFailedEmailProps;
   "invoice-receipt": InvoiceReceiptEmailProps;
+  "dunning-reminder": DunningReminderEmailProps;
+  "dunning-final-warning": DunningFinalWarningEmailProps;
 };
 
 /**

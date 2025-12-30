@@ -7,7 +7,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type Stripe from "stripe";
 
 // Hoist mocks for vitest
-const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockSendPaymentFailedEmail, mockSendInvoiceReceiptEmail, mockRevalidatePath } = vi.hoisted(() => ({
+const { mockDbSubscription, mockDbUser, mockDbDunningEmail, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockSendPaymentFailedEmail, mockSendInvoiceReceiptEmail, mockRevalidatePath } = vi.hoisted(() => ({
   mockDbSubscription: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
@@ -16,6 +16,9 @@ const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscri
   },
   mockDbUser: {
     findUnique: vi.fn(),
+  },
+  mockDbDunningEmail: {
+    create: vi.fn(),
   },
   mockStripeSubscriptions: {
     retrieve: vi.fn(),
@@ -32,6 +35,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     subscription: mockDbSubscription,
     user: mockDbUser,
+    dunningEmail: mockDbDunningEmail,
   },
 }));
 
@@ -794,8 +798,13 @@ describe("Stripe Webhooks", () => {
     it("handles subscription as object", async () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
+        userId: "user_123",
         status: "PAST_DUE",
+        user: {
+          email: "user@example.com",
+        },
       });
+      mockDbDunningEmail.create.mockResolvedValue({});
 
       const invoice = {
         id: "in_test",
@@ -808,6 +817,13 @@ describe("Stripe Webhooks", () => {
         where: {
           stripeSubscriptionId: "sub_stripe_123",
           status: "PAST_DUE",
+        },
+        include: {
+          user: {
+            select: {
+              email: true,
+            },
+          },
         },
       });
     });
@@ -1009,6 +1025,7 @@ describe("Stripe Webhooks", () => {
         email: "user@example.com",
         name: "Test User",
       });
+      mockDbDunningEmail.create.mockResolvedValue({});
 
       const invoice = {
         id: "in_test",
@@ -1026,7 +1043,10 @@ describe("Stripe Webhooks", () => {
 
       expect(mockDbSubscription.update).toHaveBeenCalledWith({
         where: { id: "sub_db_123" },
-        data: { status: "PAST_DUE" },
+        data: {
+          status: "PAST_DUE",
+          statusChangedAt: expect.any(Date),
+        },
       });
     });
 
