@@ -143,7 +143,7 @@ describe("getLoginHistory", () => {
 
       expect(mockFindMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          take: 20,
+          take: 4,
         })
       );
     });

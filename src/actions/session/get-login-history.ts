@@ -28,7 +28,7 @@ export async function getLoginHistory(): Promise<Result> {
     const history = await db.loginHistory.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 4,
       select: {
         id: true,
         ipAddress: true,
