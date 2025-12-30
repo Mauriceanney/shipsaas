@@ -35,7 +35,11 @@ export function LoginForm() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.push(callbackUrl as any);
         router.refresh();
-      } else {
+      } else if ("requires2FA" in result && result.requires2FA) {
+        // Redirect to 2FA verification page with userId
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.push(`/login/verify-2fa?userId=${result.userId}&callbackUrl=${encodeURIComponent(callbackUrl)}` as any);
+      } else if ("error" in result) {
         setError(result.error);
       }
     });

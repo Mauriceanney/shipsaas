@@ -1,9 +1,11 @@
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 import { db } from "@/lib/db";
+import { hashDeviceToken, TRUSTED_DEVICE_COOKIE } from "@/lib/two-factor";
 import { loginSchema } from "@/lib/validations/auth";
 
 import type { Role } from "@prisma/client";
@@ -18,6 +20,66 @@ export const authConfig: NextAuthConfig = {
     newUser: "/dashboard",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      // Skip 2FA check for the two-factor provider (already verified)
+      if (account?.provider === "two-factor") {
+        return true;
+      }
+
+      // Check 2FA for OAuth providers (Google, GitHub)
+      if (account?.provider === "google" || account?.provider === "github") {
+        // Find user by email to check 2FA status
+        const dbUser = await db.user.findUnique({
+          where: { email: user.email ?? undefined },
+          select: {
+            id: true,
+            twoFactorEnabled: true,
+            disabled: true,
+          },
+        });
+
+        // Block disabled users
+        if (dbUser?.disabled) {
+          return "/login?error=AccountDisabled";
+        }
+
+        // If user has 2FA enabled, check for trusted device first
+        if (dbUser?.twoFactorEnabled) {
+          // Check for trusted device cookie
+          const cookieStore = await cookies();
+          const deviceToken = cookieStore.get(TRUSTED_DEVICE_COOKIE)?.value;
+
+          if (deviceToken) {
+            // Verify the device token
+            const tokenHash = await hashDeviceToken(deviceToken);
+            const trustedDevice = await db.trustedDevice.findFirst({
+              where: {
+                userId: dbUser.id,
+                tokenHash,
+                expiresAt: { gt: new Date() }, // Not expired
+              },
+            });
+
+            if (trustedDevice) {
+              // Update last used timestamp
+              await db.trustedDevice.update({
+                where: { id: trustedDevice.id },
+                data: { lastUsedAt: new Date() },
+              });
+
+              // Device is trusted, skip 2FA
+              return true;
+            }
+          }
+
+          // No valid trusted device, require 2FA
+          return `/login/verify-2fa?userId=${dbUser.id}`;
+        }
+      }
+
+      // For credentials provider, 2FA is handled in the login action
+      return true;
+    },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const { pathname } = nextUrl;
@@ -28,6 +90,7 @@ export const authConfig: NextAuthConfig = {
         "/pricing",
         "/blog",
         "/login",
+        "/login/verify-2fa",
         "/signup",
         "/forgot-password",
         "/reset-password",
@@ -94,6 +157,7 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env["AUTH_GITHUB_SECRET"],
     }),
     Credentials({
+      id: "credentials",
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -130,6 +194,57 @@ export const authConfig: NextAuthConfig = {
         // Check if account is disabled
         if (user.disabled) {
           throw new Error("AccountDisabled");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
+      },
+    }),
+    // 2FA verification provider - used after TOTP/backup code verification
+    Credentials({
+      id: "two-factor",
+      name: "two-factor",
+      credentials: {
+        userId: { label: "User ID", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.userId || typeof credentials.userId !== "string") {
+          return null;
+        }
+
+        // Get user by ID (2FA was already verified in the action)
+        const user = await db.user.findUnique({
+          where: { id: credentials.userId },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            emailVerified: true,
+            disabled: true,
+            twoFactorEnabled: true,
+            password: true, // Check if user is OAuth-only
+          },
+        });
+
+        if (!user) {
+          return null;
+        }
+
+        // Block disabled users
+        if (user.disabled) {
+          return null;
+        }
+
+        // OAuth users (no password) don't need email verification - OAuth provider verified it
+        // Credentials users must have verified their email
+        const isOAuthUser = !user.password;
+        if (!isOAuthUser && !user.emailVerified) {
+          return null;
         }
 
         return {

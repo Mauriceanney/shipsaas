@@ -25,8 +25,14 @@ model User {
   welcomeEmailSent Boolean   @default(false)
   disabled         Boolean   @default(false)
 
+  // Two-Factor Authentication
+  twoFactorSecret      String?   // Encrypted TOTP secret
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorBackupCodes String[]  // Hashed backup codes (bcrypt)
+
   accounts               Account[]
   sessions               Session[]
+  trustedDevices         TrustedDevice[]
   subscription           Subscription?
   dataExportRequests     DataExportRequest[]
   accountDeletionRequest AccountDeletionRequest?
@@ -40,6 +46,7 @@ model User {
   @@index([createdAt])
   @@index([deletedAt])
   @@index([disabled])
+  @@index([twoFactorEnabled])
 }
 
 model Account {
@@ -84,6 +91,22 @@ model VerificationToken {
 
   @@id([identifier, token])
   @@index([expires])
+}
+
+model TrustedDevice {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String   // Hashed device token (stored in browser cookie)
+  deviceName  String   // Browser/device info for user reference
+  lastUsedAt  DateTime @default(now())
+  expiresAt   DateTime // When the trust expires (e.g., 30 days from creation)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, tokenHash])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([tokenHash])
 }
 
 // ============================================
