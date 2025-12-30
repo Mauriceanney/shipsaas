@@ -28,6 +28,10 @@ export {
   SubscriptionCancelledEmail,
   type SubscriptionCancelledEmailProps,
 } from "./subscription-cancelled";
+export {
+  PaymentFailedEmail,
+  type PaymentFailedEmailProps,
+} from "./payment-failed";
 
 // Component exports
 export * from "./components";
@@ -41,6 +45,10 @@ import {
   PasswordResetEmail,
   type PasswordResetEmailProps,
 } from "./password-reset";
+import {
+  PaymentFailedEmail,
+  type PaymentFailedEmailProps,
+} from "./payment-failed";
 import {
   SubscriptionCancelledEmail,
   type SubscriptionCancelledEmailProps,
@@ -148,6 +156,20 @@ export async function renderSubscriptionCancelledEmail(
   return { html, text };
 }
 
+/**
+ * Render payment failed email to HTML and plain text
+ */
+export async function renderPaymentFailedEmail(
+  props: PaymentFailedEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(PaymentFailedEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
 // ============================================
 // TEMPLATE TYPES MAP
 // ============================================
@@ -163,6 +185,7 @@ export type EmailTemplates = {
   "password-changed": PasswordChangedEmailProps;
   "subscription-confirm": SubscriptionConfirmEmailProps;
   "subscription-cancelled": SubscriptionCancelledEmailProps;
+  "payment-failed": PaymentFailedEmailProps;
 };
 
 /**

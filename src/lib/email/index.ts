@@ -12,6 +12,7 @@ import {
   renderWelcomeEmail,
   renderSubscriptionConfirmEmail,
   renderSubscriptionCancelledEmail,
+  renderPaymentFailedEmail,
 } from "./templates";
 
 import type { SendEmailResult } from "./types";
@@ -238,6 +239,46 @@ export async function sendSubscriptionCancelledEmail(
     from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
     to: email,
     subject: `Subscription Cancelled - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send payment failed notification email
+ * @param email - Recipient email address
+ * @param paymentData - Payment failure details
+ */
+export async function sendPaymentFailedEmail(
+  email: string,
+  paymentData: {
+    name?: string;
+    planName: string;
+    amount: string;
+    failedDate: string;
+    nextRetryDate?: string;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const updatePaymentUrl = `${config.appUrl}/settings/billing`;
+
+  const { html, text } = await renderPaymentFailedEmail({
+    name: paymentData.name,
+    planName: paymentData.planName,
+    amount: paymentData.amount,
+    failedDate: paymentData.failedDate,
+    nextRetryDate: paymentData.nextRetryDate,
+    updatePaymentUrl,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to: email,
+    subject: `Payment Failed - Action Required - ${config.appName}`,
     html,
     text,
   });
