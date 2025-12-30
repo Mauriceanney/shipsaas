@@ -121,6 +121,7 @@ export const authConfig: NextAuthConfig = {
         "/blog",
         "/terms",
         "/privacy",
+        "/unsubscribe",
         "/login",
         "/login/verify-2fa",
         "/signup",
