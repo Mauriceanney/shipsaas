@@ -7,7 +7,15 @@ import { UpgradeCard } from "@/components/feature-gate/upgrade-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function TestFeatureGatePage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+
+  if (status === "loading") {
+    return (
+      <div className="container mx-auto p-8">
+        <p className="text-muted-foreground">Loading session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto space-y-8 p-8">
@@ -42,7 +50,7 @@ export default function TestFeatureGatePage() {
               </p>
             </div>
           ) : (
-            <p className="text-muted-foreground">Loading subscription data...</p>
+            <p className="text-muted-foreground">No subscription data found.</p>
           )}
         </CardContent>
       </Card>
