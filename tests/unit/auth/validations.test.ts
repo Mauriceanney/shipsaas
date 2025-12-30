@@ -46,6 +46,7 @@ describe("Auth Validation Schemas", () => {
         email: "john@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
       expect(result.success).toBe(true);
     });
@@ -56,6 +57,7 @@ describe("Auth Validation Schemas", () => {
         email: "john@example.com",
         password: "weak",
         confirmPassword: "weak",
+        tosAccepted: true,
       });
       expect(result.success).toBe(false);
     });
@@ -66,6 +68,7 @@ describe("Auth Validation Schemas", () => {
         email: "john@example.com",
         password: "SecurePass123!",
         confirmPassword: "DifferentPass123!",
+        tosAccepted: true,
       });
       expect(result.success).toBe(false);
     });
@@ -76,6 +79,7 @@ describe("Auth Validation Schemas", () => {
         email: "john@example.com",
         password: "securepass123!",
         confirmPassword: "securepass123!",
+        tosAccepted: true,
       });
       expect(result.success).toBe(false);
     });
@@ -86,6 +90,7 @@ describe("Auth Validation Schemas", () => {
         email: "john@example.com",
         password: "SecurePass!",
         confirmPassword: "SecurePass!",
+        tosAccepted: true,
       });
       expect(result.success).toBe(false);
     });
@@ -96,6 +101,7 @@ describe("Auth Validation Schemas", () => {
         email: "john@example.com",
         password: "SecurePass123",
         confirmPassword: "SecurePass123",
+        tosAccepted: true,
       });
       expect(result.success).toBe(false);
     });
@@ -106,6 +112,18 @@ describe("Auth Validation Schemas", () => {
         email: "john@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects when TOS not accepted", () => {
+      const result = registerSchema.safeParse({
+        name: "John Doe",
+        email: "john@example.com",
+        password: "SecurePass123!",
+        confirmPassword: "SecurePass123!",
+        tosAccepted: false,
       });
       expect(result.success).toBe(false);
     });

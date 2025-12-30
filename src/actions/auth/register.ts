@@ -41,7 +41,7 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
       };
     }
 
-    const { name, email, password } = validatedFields.data;
+    const { name, email, password, tosAccepted } = validatedFields.data;
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
@@ -64,6 +64,7 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
         name,
         email,
         password: hashedPassword,
+        tosAcceptedAt: tosAccepted ? new Date() : null,
       },
     });
 

@@ -101,6 +101,12 @@ export default async function HomePage() {
             <Link href="/pricing" className="hover:underline">
               Pricing
             </Link>
+            <Link href="/terms" className="hover:underline">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:underline">
+              Privacy
+            </Link>
             <Link href="/login" className="hover:underline">
               Login
             </Link>

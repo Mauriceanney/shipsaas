@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { registerAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -17,11 +18,17 @@ export function RegisterForm() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [tosAccepted, setTosAccepted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (!tosAccepted) {
+      setError("You must accept the Terms of Service to continue");
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
@@ -35,6 +42,7 @@ export function RegisterForm() {
         email,
         password,
         confirmPassword,
+        tosAccepted,
       });
 
       if (result.success) {
@@ -127,6 +135,37 @@ export function RegisterForm() {
             disabled={isPending}
             data-testid="confirmPassword"
           />
+        </div>
+
+        <div className="flex items-start space-x-2">
+          <Checkbox
+            id="tos"
+            checked={tosAccepted}
+            onCheckedChange={(checked) => setTosAccepted(checked === true)}
+            disabled={isPending}
+            data-testid="tos-checkbox"
+          />
+          <label
+            htmlFor="tos"
+            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            I agree to the{" "}
+            <Link
+              href="/terms"
+              className="text-primary underline hover:no-underline"
+              target="_blank"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="text-primary underline hover:no-underline"
+              target="_blank"
+            >
+              Privacy Policy
+            </Link>
+          </label>
         </div>
 
         <Button

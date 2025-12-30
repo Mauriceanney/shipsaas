@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { stripe } from "@/lib/stripe";
 
 /**
  * Account Deletion Actions
@@ -77,8 +78,35 @@ export async function requestAccountDeletion(
     data: { disabled: true },
   });
 
+  // Cancel active Stripe subscription if exists
+  try {
+    const subscription = await db.subscription.findUnique({
+      where: { userId },
+    });
+
+    if (subscription?.stripeSubscriptionId) {
+      // Cancel subscription immediately to stop billing
+      await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+
+      // Update subscription status in database
+      await db.subscription.update({
+        where: { userId },
+        data: {
+          status: "CANCELED",
+          cancelAtPeriodEnd: false,
+        },
+      });
+
+      console.log(
+        `[deleteAccount] Cancelled Stripe subscription ${subscription.stripeSubscriptionId} for user ${userId}`
+      );
+    }
+  } catch (stripeError) {
+    // Log error but don't fail the deletion request
+    console.error("[deleteAccount] Failed to cancel Stripe subscription:", stripeError);
+  }
+
   // TODO: Send confirmation email
-  // TODO: Cancel active subscriptions via Stripe
 
   return { success: true, scheduledFor };
 }

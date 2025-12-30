@@ -24,6 +24,7 @@ model User {
   role             Role      @default(USER)
   welcomeEmailSent Boolean   @default(false)
   disabled         Boolean   @default(false)
+  tosAcceptedAt    DateTime? // Terms of Service acceptance timestamp
 
   // Two-Factor Authentication
   twoFactorSecret      String?   // Encrypted TOTP secret

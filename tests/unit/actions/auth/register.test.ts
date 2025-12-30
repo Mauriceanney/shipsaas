@@ -76,6 +76,7 @@ describe("registerAction", () => {
         email: "invalid-email",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -91,6 +92,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -105,6 +107,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -119,6 +122,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "securepass123!",
         confirmPassword: "securepass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -133,6 +137,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SECUREPASS123!",
         confirmPassword: "SECUREPASS123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -147,6 +152,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePassWord!",
         confirmPassword: "SecurePassWord!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -161,6 +167,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123",
         confirmPassword: "SecurePass123",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -175,6 +182,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "Pass1!",
         confirmPassword: "Pass1!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -189,11 +197,27 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "DifferentPass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("match");
+      }
+    });
+
+    it("returns error when TOS not accepted", async () => {
+      const result = await registerAction({
+        name: "Test User",
+        email: "user@example.com",
+        password: "SecurePass123!",
+        confirmPassword: "SecurePass123!",
+        tosAccepted: false,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Terms of Service");
       }
     });
   });
@@ -213,6 +237,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(true);
@@ -235,6 +260,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(bcrypt.hash).toHaveBeenCalledWith("SecurePass123!", 12);
@@ -254,6 +280,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(mockCreate).toHaveBeenCalledWith({
@@ -261,6 +288,7 @@ describe("registerAction", () => {
           name: "Test User",
           email: "user@example.com",
           password: "hashed_password",
+          tosAcceptedAt: expect.any(Date),
         },
       });
     });
@@ -280,6 +308,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
       const afterCall = Date.now();
 
@@ -314,6 +343,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(mockSendVerificationEmail).toHaveBeenCalledWith(
@@ -336,6 +366,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -353,6 +384,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -376,6 +408,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       // Registration should still succeed even if email fails
@@ -398,6 +431,7 @@ describe("registerAction", () => {
         email: "user+test@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(true);
@@ -422,6 +456,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(true);
@@ -446,6 +481,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(true);
@@ -466,6 +502,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123@",
         confirmPassword: "SecurePass123@",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(true);
@@ -486,6 +523,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(false);
@@ -510,6 +548,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(mockGetClientIpFromHeaders).toHaveBeenCalled();
@@ -530,6 +569,7 @@ describe("registerAction", () => {
         email: "user@example.com",
         password: "SecurePass123!",
         confirmPassword: "SecurePass123!",
+        tosAccepted: true,
       });
 
       expect(result.success).toBe(true);
