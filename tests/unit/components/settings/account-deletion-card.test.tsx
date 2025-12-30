@@ -14,6 +14,19 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { AccountDeletionCard } from "@/components/settings/account-deletion-card";
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 // Mock the requestAccountDeletion action
 const mockRequestAccountDeletion = vi.fn();
 vi.mock("@/actions/gdpr", () => ({
@@ -265,7 +278,7 @@ describe("AccountDeletionCard", () => {
   });
 
   describe("Success Handling", () => {
-    it("shows success message on successful deletion", async () => {
+    it("shows warning toast on successful deletion", async () => {
       const user = userEvent.setup();
       const scheduledDate = new Date("2024-02-15");
       mockRequestAccountDeletion.mockResolvedValue({
@@ -287,11 +300,11 @@ describe("AccountDeletionCard", () => {
       const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
-      // Wait for success message
+      // Wait for warning toast
       await waitFor(() => {
-        expect(
-          screen.getByText(/your account is scheduled for deletion/i)
-        ).toBeInTheDocument();
+        expect(mockToast.warning).toHaveBeenCalledWith(
+          expect.stringContaining("Your account is scheduled for deletion")
+        );
       });
     });
 
@@ -382,7 +395,7 @@ describe("AccountDeletionCard", () => {
   });
 
   describe("Error Handling", () => {
-    it("shows error message on failed deletion", async () => {
+    it("shows error toast on failed deletion", async () => {
       const user = userEvent.setup();
       mockRequestAccountDeletion.mockResolvedValue({
         success: false,
@@ -403,15 +416,13 @@ describe("AccountDeletionCard", () => {
       const confirmButton = dialogButtons[dialogButtons.length - 1]!;
       await user.click(confirmButton);
 
-      // Wait for error message
+      // Wait for error toast
       await waitFor(() => {
-        expect(
-          screen.getByText("Account deletion already scheduled")
-        ).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Account deletion already scheduled");
       });
     });
 
-    it("shows default error message when no error provided", async () => {
+    it("shows default error toast when no error provided", async () => {
       const user = userEvent.setup();
       mockRequestAccountDeletion.mockResolvedValue({
         success: false,
@@ -432,13 +443,11 @@ describe("AccountDeletionCard", () => {
       await user.click(confirmButton);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Failed to request account deletion")
-        ).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Failed to request account deletion");
       });
     });
 
-    it("shows error message on unexpected error", async () => {
+    it("shows error toast on unexpected error", async () => {
       const user = userEvent.setup();
       mockRequestAccountDeletion.mockRejectedValue(new Error("Network error"));
 
@@ -457,68 +466,9 @@ describe("AccountDeletionCard", () => {
       await user.click(confirmButton);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("An unexpected error occurred")
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("applies error styling to error message", async () => {
-      const user = userEvent.setup();
-      mockRequestAccountDeletion.mockResolvedValue({
-        success: false,
-        error: "Test error",
-      });
-
-      render(<AccountDeletionCard />);
-
-      // Open dialog and delete
-      await user.click(
-        screen.getByRole("button", { name: /delete my account/i })
-      );
-      await user.type(screen.getByPlaceholderText("DELETE"), "DELETE");
-
-      const dialogButtons = screen.getAllByRole("button", {
-        name: /delete account/i,
-      });
-      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
-      await user.click(confirmButton);
-
-      await waitFor(() => {
-        const errorMessage = screen.getByText("Test error");
-        expect(errorMessage.closest("div")).toHaveClass("bg-red-50");
+        expect(mockToast.error).toHaveBeenCalledWith("An unexpected error occurred");
       });
     });
   });
 
-  describe("Message Styling", () => {
-    it("applies success styling to success message", async () => {
-      const user = userEvent.setup();
-      mockRequestAccountDeletion.mockResolvedValue({
-        success: true,
-        scheduledFor: new Date(),
-      });
-
-      render(<AccountDeletionCard />);
-
-      // Open dialog and delete
-      await user.click(
-        screen.getByRole("button", { name: /delete my account/i })
-      );
-      await user.type(screen.getByPlaceholderText("DELETE"), "DELETE");
-
-      const dialogButtons = screen.getAllByRole("button", {
-        name: /delete account/i,
-      });
-      const confirmButton = dialogButtons[dialogButtons.length - 1]!;
-      await user.click(confirmButton);
-
-      await waitFor(() => {
-        const successMessage = screen.getByText(
-          /your account is scheduled for deletion/i
-        );
-        expect(successMessage.closest("div")).toHaveClass("bg-green-50");
-      });
-    });
-  });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 
 import { toggleFeatureFlag } from "@/actions/admin/config";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,14 @@ interface FeatureFlagsFormProps {
 export function FeatureFlagsForm({ flags }: FeatureFlagsFormProps) {
   const [isPending, startTransition] = useTransition();
 
-  const handleToggle = (key: string) => {
+  const handleToggle = (key: string, currentState: boolean) => {
     startTransition(async () => {
-      await toggleFeatureFlag(key);
+      try {
+        await toggleFeatureFlag(key);
+        toast.success(`Feature "${key.replace(/_/g, " ")}" ${currentState ? "disabled" : "enabled"}`);
+      } catch {
+        toast.error("Failed to toggle feature flag");
+      }
     });
   };
 
@@ -59,7 +65,7 @@ export function FeatureFlagsForm({ flags }: FeatureFlagsFormProps) {
             <Button
               variant={flag.enabled ? "default" : "outline"}
               size="sm"
-              onClick={() => handleToggle(flag.key)}
+              onClick={() => handleToggle(flag.key, flag.enabled)}
               disabled={isPending}
             >
               {flag.enabled ? "Enabled" : "Disabled"}

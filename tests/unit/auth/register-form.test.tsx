@@ -19,6 +19,19 @@ vi.mock("next-auth/react", () => ({
   signIn: vi.fn(),
 }));
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 // Mock next/navigation
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -233,7 +246,7 @@ describe("RegisterForm", () => {
       });
     });
 
-    it("displays success message on successful registration", async () => {
+    it("calls toast.success on successful registration", async () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       mockRegisterAction.mockResolvedValue({
@@ -252,35 +265,10 @@ describe("RegisterForm", () => {
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Please check your email to verify your account")
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("displays success message with proper styling", async () => {
-      vi.useRealTimers();
-      const user = userEvent.setup();
-      mockRegisterAction.mockResolvedValue({
-        success: true,
-        message: "Please check your email to verify your account",
-      });
-
-      render(<RegisterForm />);
-
-      await fillFormAndAcceptTos(user, {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "Password123!",
-        confirmPassword: "Password123!",
-      });
-      await user.click(screen.getByTestId("register-button"));
-
-      await waitFor(() => {
-        const successElement = screen.getByText(
-          "Please check your email to verify your account"
+        expect(mockToast.success).toHaveBeenCalledWith(
+          "Account created! Check your email to verify.",
+          expect.objectContaining({ description: "Redirecting to login..." })
         );
-        expect(successElement.closest("div")).toHaveClass("bg-green-100");
       });
     });
 
@@ -314,44 +302,10 @@ describe("RegisterForm", () => {
       });
     });
 
-    it("clears previous messages when submitting again", async () => {
-      vi.useRealTimers();
-      const user = userEvent.setup();
-      mockRegisterAction.mockResolvedValueOnce({
-        success: false,
-        error: "Email already exists",
-      });
-
-      render(<RegisterForm />);
-
-      // First submission - fails
-      await fillFormAndAcceptTos(user, {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "Password123!",
-        confirmPassword: "Password123!",
-      });
-      await user.click(screen.getByTestId("register-button"));
-
-      await waitFor(() => {
-        expect(screen.getByText("Email already exists")).toBeInTheDocument();
-      });
-
-      // Second submission - clears error
-      mockRegisterAction.mockResolvedValueOnce({
-        success: true,
-        message: "Success",
-      });
-      await user.click(screen.getByTestId("register-button"));
-
-      await waitFor(() => {
-        expect(mockRegisterAction).toHaveBeenCalledTimes(2);
-      });
-    });
   });
 
   describe("Error Handling", () => {
-    it("displays error message when registration fails", async () => {
+    it("calls toast.error when registration fails", async () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       mockRegisterAction.mockResolvedValue({
@@ -370,50 +324,15 @@ describe("RegisterForm", () => {
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
-        expect(
-          screen.getByText("An account with this email already exists")
-        ).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("An account with this email already exists");
       });
     });
 
-    it("displays error with proper styling", async () => {
-      vi.useRealTimers();
-      const user = userEvent.setup();
-      mockRegisterAction.mockResolvedValue({
-        success: false,
-        error: "Invalid input",
-      });
-
+    it("does not call toast initially", () => {
       render(<RegisterForm />);
 
-      await fillFormAndAcceptTos(user, {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "Password123!",
-        confirmPassword: "Password123!",
-      });
-      await user.click(screen.getByTestId("register-button"));
-
-      await waitFor(() => {
-        const errorElement = screen.getByText("Invalid input");
-        expect(errorElement.closest("div")).toHaveClass("bg-destructive/10");
-      });
-    });
-
-    it("does not display error initially", () => {
-      render(<RegisterForm />);
-
-      expect(
-        screen.queryByText(/an account with this email already exists/i)
-      ).not.toBeInTheDocument();
-    });
-
-    it("does not display success message initially", () => {
-      render(<RegisterForm />);
-
-      expect(
-        screen.queryByText(/please check your email/i)
-      ).not.toBeInTheDocument();
+      expect(mockToast.error).not.toHaveBeenCalled();
+      expect(mockToast.success).not.toHaveBeenCalled();
     });
   });
 

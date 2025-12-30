@@ -3,6 +3,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 
 import { CookieConsentBanner } from "@/components/cookie-consent-banner";
+import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
 import type { Metadata, Viewport } from "next";
@@ -92,6 +93,7 @@ export default function RootLayout({
         )}
       >
         {children}
+        <Toaster />
         <CookieConsentBanner />
       </body>
     </html>

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
+import { toast } from "sonner";
 
 import { forgotPasswordAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -10,30 +11,22 @@ import { Label } from "@/components/ui/label";
 
 export function ForgotPasswordForm() {
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMessage(null);
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
     startTransition(async () => {
       const result = await forgotPasswordAction({ email });
-      setMessage(result.message);
+      toast.success(result.message);
     });
   };
 
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {message && (
-          <div className="rounded-md bg-green-100 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
-            {message}
-          </div>
-        )}
-
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { registerAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -16,17 +17,13 @@ import { SocialLoginButtons } from "./social-login-buttons";
 export function RegisterForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [tosAccepted, setTosAccepted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
 
     if (!tosAccepted) {
-      setError("You must accept the Terms of Service to continue");
+      toast.error("You must accept the Terms of Service to continue");
       return;
     }
 
@@ -46,11 +43,13 @@ export function RegisterForm() {
       });
 
       if (result.success) {
-        setSuccess(result.message);
+        toast.success("Account created! Check your email to verify.", {
+          description: "Redirecting to login...",
+        });
         // Redirect to login after 2 seconds
         setTimeout(() => router.push("/login"), 2000);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   };
@@ -71,18 +70,6 @@ export function RegisterForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="rounded-md bg-green-100 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
-            {success}
-          </div>
-        )}
-
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
           <Input

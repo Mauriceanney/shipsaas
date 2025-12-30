@@ -2,6 +2,7 @@
 
 import { ShieldCheck, ShieldOff } from "lucide-react";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import {
   setupTwoFactorAction,
@@ -26,7 +27,6 @@ interface TwoFactorSettingsProps {
 export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettingsProps) {
   const [isEnabled, setIsEnabled] = useState(initialEnabled);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
 
   // Setup dialog state
   const [showSetupDialog, setShowSetupDialog] = useState(false);
@@ -64,7 +64,6 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
   };
 
   const handleSetup = () => {
-    setError(null);
     startTransition(async () => {
       const result = await setupTwoFactorAction();
       if (result.success) {
@@ -72,14 +71,13 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
         setSetupStep("qr");
         setShowSetupDialog(true);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   };
 
   const handleVerifySetup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
 
     startTransition(async () => {
       const result = await enableTwoFactorAction({ code: setupCode });
@@ -88,15 +86,15 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
         setSetupStep("backup");
         setIsEnabled(true);
         setSetupCode(""); // Clear the code
+        toast.success("Two-factor authentication enabled");
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   };
 
   const handleDisable = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
 
     startTransition(async () => {
       const result = await disableTwoFactorAction({ code: disableCode });
@@ -104,14 +102,16 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
         setIsEnabled(false);
         setShowDisableDialog(false);
         setDisableCode(""); // Clear the code
+        toast.warning("Two-factor authentication disabled");
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   };
 
   const handleCopyBackupCodes = () => {
     navigator.clipboard.writeText(backupCodes.join("\n"));
+    toast.info("Backup codes copied to clipboard");
   };
 
   const handleDownloadBackupCodes = () => {
@@ -158,18 +158,11 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
         )}
       </div>
 
-      {error && (
-        <div className="mt-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
       {/* Setup Dialog */}
       <Dialog open={showSetupDialog} onOpenChange={(open) => {
         setShowSetupDialog(open);
         if (!open) {
           setSetupCode("");
-          setError(null);
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -213,11 +206,6 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
 
           {setupStep === "verify" && (
             <form onSubmit={handleVerifySetup} className="space-y-4">
-              {error && (
-                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
               <div className="space-y-2">
                 <Label htmlFor="setup-code">Verification Code</Label>
                 <Input
@@ -301,7 +289,6 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
         setShowDisableDialog(open);
         if (!open) {
           setDisableCode("");
-          setError(null);
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -313,11 +300,6 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleDisable} className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="disable-code">Verification Code</Label>
               <Input

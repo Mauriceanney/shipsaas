@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { requestAccountDeletion } from "@/actions/gdpr";
 import {
@@ -32,10 +33,6 @@ export function AccountDeletionCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [reason, setReason] = useState("");
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   const isConfirmed = confirmation === "DELETE";
 
@@ -43,7 +40,6 @@ export function AccountDeletionCard() {
     if (!isConfirmed) return;
 
     setIsLoading(true);
-    setMessage(null);
 
     try {
       const result = await requestAccountDeletion({
@@ -52,26 +48,19 @@ export function AccountDeletionCard() {
       });
 
       if (result.success && result.scheduledFor) {
-        setMessage({
-          type: "success",
-          text: `Your account is scheduled for deletion on ${new Date(
+        toast.warning(
+          `Your account is scheduled for deletion on ${new Date(
             result.scheduledFor
-          ).toLocaleDateString()}. You can cancel this by logging in before that date.`,
-        });
+          ).toLocaleDateString()}. You can cancel this by logging in before that date.`
+        );
         setIsOpen(false);
         setConfirmation("");
         setReason("");
       } else {
-        setMessage({
-          type: "error",
-          text: result.error || "Failed to request account deletion",
-        });
+        toast.error(result.error || "Failed to request account deletion");
       }
     } catch {
-      setMessage({
-        type: "error",
-        text: "An unexpected error occurred",
-      });
+      toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -104,18 +93,6 @@ export function AccountDeletionCard() {
             </div>
           </div>
         </div>
-
-        {message && (
-          <div
-            className={`p-3 rounded-md text-sm ${
-              message.type === "success"
-                ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
 
         <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
           <AlertDialogTrigger asChild>

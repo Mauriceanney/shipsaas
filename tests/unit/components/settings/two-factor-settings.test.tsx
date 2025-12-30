@@ -2,6 +2,19 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 // Mock actions
 const mockSetupAction = vi.fn();
 const mockEnableAction = vi.fn();
@@ -63,7 +76,7 @@ describe("TwoFactorSettings", () => {
       });
     });
 
-    it("shows error if setup fails", async () => {
+    it("shows error toast if setup fails", async () => {
       mockSetupAction.mockResolvedValue({
         success: false,
         error: "Setup failed",
@@ -74,7 +87,7 @@ describe("TwoFactorSettings", () => {
       await user.click(screen.getByRole("button", { name: /enable 2fa/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("Setup failed")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Setup failed");
       });
     });
 

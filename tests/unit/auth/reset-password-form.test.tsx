@@ -8,6 +8,19 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 // Mock the reset password action
 const mockResetPasswordAction = vi.fn();
 vi.mock("@/actions/auth", () => ({
@@ -160,7 +173,7 @@ describe("ResetPasswordForm", () => {
       });
     });
 
-    it("displays success message on successful reset", async () => {
+    it("displays success toast on successful reset", async () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       mockResetPasswordAction.mockResolvedValue({
@@ -175,31 +188,9 @@ describe("ResetPasswordForm", () => {
       await user.click(screen.getByTestId("reset-password-button"));
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Your password has been reset successfully")
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("displays success message with proper styling", async () => {
-      vi.useRealTimers();
-      const user = userEvent.setup();
-      mockResetPasswordAction.mockResolvedValue({
-        success: true,
-        message: "Your password has been reset successfully",
-      });
-
-      render(<ResetPasswordForm />);
-
-      await user.type(screen.getByTestId("password"), "NewPassword123!");
-      await user.type(screen.getByTestId("confirmPassword"), "NewPassword123!");
-      await user.click(screen.getByTestId("reset-password-button"));
-
-      await waitFor(() => {
-        const successElement = screen.getByText(
-          "Your password has been reset successfully"
-        );
-        expect(successElement.closest("div")).toHaveClass("bg-green-100");
+        expect(mockToast.success).toHaveBeenCalledWith("Password updated successfully!", {
+          description: "Redirecting to login...",
+        });
       });
     });
 
@@ -229,7 +220,7 @@ describe("ResetPasswordForm", () => {
       });
     });
 
-    it("clears previous messages when submitting again", async () => {
+    it("shows toast for each submission", async () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       mockResetPasswordAction.mockResolvedValueOnce({
@@ -245,10 +236,10 @@ describe("ResetPasswordForm", () => {
       await user.click(screen.getByTestId("reset-password-button"));
 
       await waitFor(() => {
-        expect(screen.getByText("Token expired")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Token expired");
       });
 
-      // Second submission - should clear error
+      // Second submission - succeeds
       mockResetPasswordAction.mockResolvedValueOnce({
         success: true,
         message: "Success",
@@ -256,13 +247,16 @@ describe("ResetPasswordForm", () => {
       await user.click(screen.getByTestId("reset-password-button"));
 
       await waitFor(() => {
+        expect(mockToast.success).toHaveBeenCalledWith("Password updated successfully!", {
+          description: "Redirecting to login...",
+        });
         expect(mockResetPasswordAction).toHaveBeenCalledTimes(2);
       });
     });
   });
 
   describe("Error Handling", () => {
-    it("displays error message when reset fails", async () => {
+    it("displays error toast when reset fails", async () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       mockResetPasswordAction.mockResolvedValue({
@@ -277,13 +271,11 @@ describe("ResetPasswordForm", () => {
       await user.click(screen.getByTestId("reset-password-button"));
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Invalid or expired reset link")
-        ).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Invalid or expired reset link");
       });
     });
 
-    it("displays password mismatch error", async () => {
+    it("displays error toast for password mismatch", async () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       mockResetPasswordAction.mockResolvedValue({
@@ -298,11 +290,11 @@ describe("ResetPasswordForm", () => {
       await user.click(screen.getByTestId("reset-password-button"));
 
       await waitFor(() => {
-        expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Passwords do not match");
       });
     });
 
-    it("displays error with proper styling", async () => {
+    it("displays error toast when token is expired", async () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       mockResetPasswordAction.mockResolvedValue({
@@ -317,23 +309,8 @@ describe("ResetPasswordForm", () => {
       await user.click(screen.getByTestId("reset-password-button"));
 
       await waitFor(() => {
-        const errorElement = screen.getByText("Token expired");
-        expect(errorElement.closest("div")).toHaveClass("bg-destructive/10");
+        expect(mockToast.error).toHaveBeenCalledWith("Token expired");
       });
-    });
-
-    it("does not display error initially", () => {
-      render(<ResetPasswordForm />);
-
-      expect(screen.queryByText(/invalid or expired/i)).not.toBeInTheDocument();
-    });
-
-    it("does not display success message initially", () => {
-      render(<ResetPasswordForm />);
-
-      expect(
-        screen.queryByText(/password has been reset/i)
-      ).not.toBeInTheDocument();
     });
   });
 

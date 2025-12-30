@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { updatePlanConfig } from "@/actions/admin/config";
 import { Button } from "@/components/ui/button";
@@ -80,27 +81,38 @@ export function PlanConfigForm({ configs }: PlanConfigFormProps) {
     if (!editingPlan) return;
 
     startTransition(async () => {
-      await updatePlanConfig(editingPlan as "FREE" | "PRO" | "ENTERPRISE", {
-        name: formData.name,
-        monthlyPriceId: formData.monthlyPriceId || undefined,
-        yearlyPriceId: formData.yearlyPriceId || undefined,
-        monthlyPrice: Math.round(parseFloat(formData.monthlyPrice || "0") * 100),
-        yearlyPrice: Math.round(parseFloat(formData.yearlyPrice || "0") * 100),
-        features: formData.features
-          .split("\n")
-          .map((f) => f.trim())
-          .filter(Boolean),
-      });
-      setEditingPlan(null);
+      try {
+        await updatePlanConfig(editingPlan as "FREE" | "PRO" | "ENTERPRISE", {
+          name: formData.name,
+          monthlyPriceId: formData.monthlyPriceId || undefined,
+          yearlyPriceId: formData.yearlyPriceId || undefined,
+          monthlyPrice: Math.round(parseFloat(formData.monthlyPrice || "0") * 100),
+          yearlyPrice: Math.round(parseFloat(formData.yearlyPrice || "0") * 100),
+          features: formData.features
+            .split("\n")
+            .map((f) => f.trim())
+            .filter(Boolean),
+        });
+        toast.success(`Plan "${editingPlan}" updated`);
+        setEditingPlan(null);
+      } catch {
+        toast.error("Failed to update plan");
+      }
     });
   };
 
   const handleToggle = (plan: string) => {
     const config = configMap[plan];
+    const newState = config?.isActive === false;
     startTransition(async () => {
-      await updatePlanConfig(plan as "FREE" | "PRO" | "ENTERPRISE", {
-        isActive: !config?.isActive,
-      });
+      try {
+        await updatePlanConfig(plan as "FREE" | "PRO" | "ENTERPRISE", {
+          isActive: newState,
+        });
+        toast.success(`Plan "${plan}" ${newState ? "enabled" : "disabled"}`);
+      } catch {
+        toast.error("Failed to update plan status");
+      }
     });
   };
 

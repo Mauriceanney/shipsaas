@@ -8,6 +8,19 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DataExportCard } from "@/components/settings/data-export-card";
 import { requestDataExport } from "@/actions/gdpr";
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 // Mock the GDPR action
 vi.mock("@/actions/gdpr", () => ({
   requestDataExport: vi.fn(),
@@ -64,18 +77,11 @@ describe("DataExportCard", () => {
       expect(button).not.toBeDisabled();
     });
 
-    it("does not show any message initially", () => {
+    it("does not call toast initially", () => {
       render(<DataExportCard />);
 
-      expect(
-        screen.queryByText(/Your data export has been initiated/)
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByText(/Failed to request data export/)
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByText(/An unexpected error occurred/)
-      ).not.toBeInTheDocument();
+      expect(mockToast.success).not.toHaveBeenCalled();
+      expect(mockToast.error).not.toHaveBeenCalled();
     });
   });
 
@@ -152,7 +158,7 @@ describe("DataExportCard", () => {
   });
 
   describe("Success State", () => {
-    it("shows success message on successful export", async () => {
+    it("shows success toast on successful export", async () => {
       mockRequestDataExport.mockResolvedValueOnce({
         success: true,
         requestId: "req_123",
@@ -164,30 +170,9 @@ describe("DataExportCard", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(
-          screen.getByText(
-            "Your data export has been initiated. Check back in a few minutes to download."
-          )
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("applies success styling to success message", async () => {
-      mockRequestDataExport.mockResolvedValueOnce({
-        success: true,
-        requestId: "req_123",
-      });
-
-      render(<DataExportCard />);
-
-      const button = screen.getByRole("button", { name: /export my data/i });
-      fireEvent.click(button);
-
-      await waitFor(() => {
-        const successMessage = screen.getByText(
+        expect(mockToast.success).toHaveBeenCalledWith(
           "Your data export has been initiated. Check back in a few minutes to download."
         );
-        expect(successMessage).toHaveClass("bg-green-50", "text-green-700");
       });
     });
 
@@ -210,7 +195,7 @@ describe("DataExportCard", () => {
   });
 
   describe("Error State", () => {
-    it("shows error message on failed export", async () => {
+    it("shows error toast on failed export", async () => {
       mockRequestDataExport.mockResolvedValueOnce({
         success: false,
         error: "A data export request is already in progress",
@@ -222,13 +207,13 @@ describe("DataExportCard", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("A data export request is already in progress")
-        ).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith(
+          "A data export request is already in progress"
+        );
       });
     });
 
-    it("shows default error message when no error provided", async () => {
+    it("shows default error toast when no error provided", async () => {
       mockRequestDataExport.mockResolvedValueOnce({
         success: false,
       });
@@ -239,26 +224,7 @@ describe("DataExportCard", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Failed to request data export")
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("applies error styling to error message", async () => {
-      mockRequestDataExport.mockResolvedValueOnce({
-        success: false,
-        error: "Export failed",
-      });
-
-      render(<DataExportCard />);
-
-      const button = screen.getByRole("button", { name: /export my data/i });
-      fireEvent.click(button);
-
-      await waitFor(() => {
-        const errorMessage = screen.getByText("Export failed");
-        expect(errorMessage).toHaveClass("bg-red-50", "text-red-700");
+        expect(mockToast.error).toHaveBeenCalledWith("Failed to request data export");
       });
     });
 
@@ -290,9 +256,7 @@ describe("DataExportCard", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("An unexpected error occurred")
-        ).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("An unexpected error occurred");
       });
     });
 
@@ -305,9 +269,7 @@ describe("DataExportCard", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("An unexpected error occurred")
-        ).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("An unexpected error occurred");
       });
     });
 
@@ -324,24 +286,10 @@ describe("DataExportCard", () => {
         expect(screen.getByText(/export my data/i)).toBeInTheDocument();
       });
     });
-
-    it("applies error styling to unexpected error message", async () => {
-      mockRequestDataExport.mockRejectedValueOnce(new Error("Network error"));
-
-      render(<DataExportCard />);
-
-      const button = screen.getByRole("button", { name: /export my data/i });
-      fireEvent.click(button);
-
-      await waitFor(() => {
-        const errorMessage = screen.getByText("An unexpected error occurred");
-        expect(errorMessage).toHaveClass("bg-red-50", "text-red-700");
-      });
-    });
   });
 
-  describe("Message Clearing", () => {
-    it("clears previous message when exporting again", async () => {
+  describe("Multiple Exports", () => {
+    it("shows toast for each export attempt", async () => {
       mockRequestDataExport.mockResolvedValueOnce({
         success: true,
         requestId: "req_123",
@@ -353,12 +301,12 @@ describe("DataExportCard", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/Your data export has been initiated/)
-        ).toBeInTheDocument();
+        expect(mockToast.success).toHaveBeenCalledWith(
+          "Your data export has been initiated. Check back in a few minutes to download."
+        );
       });
 
-      // Click again - message should be cleared during new export
+      // Click again - should show new toast
       mockRequestDataExport.mockResolvedValueOnce({
         success: false,
         error: "New error",
@@ -367,10 +315,7 @@ describe("DataExportCard", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(
-          screen.queryByText(/Your data export has been initiated/)
-        ).not.toBeInTheDocument();
-        expect(screen.getByText("New error")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("New error");
       });
     });
   });
