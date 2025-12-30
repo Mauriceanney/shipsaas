@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
+import { Suspense } from "react";
 
 import { checkAndSendWelcomeEmail } from "@/actions/auth/send-welcome-email";
+import { DunningBanner } from "@/components/billing/dunning-banner";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { SessionValidationProvider } from "@/components/providers/session-validation-provider";
 import { auth } from "@/lib/auth";
@@ -33,7 +35,12 @@ export default async function DashboardLayout({
       <SessionValidationProvider>
         <div className="flex h-screen overflow-hidden">
           <AppSidebar user={user} />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto p-6">
+            <Suspense fallback={null}>
+              <DunningBanner />
+            </Suspense>
+            {children}
+          </main>
         </div>
       </SessionValidationProvider>
     </SessionProvider>

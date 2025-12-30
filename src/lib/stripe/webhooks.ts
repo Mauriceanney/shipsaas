@@ -356,6 +356,13 @@ export async function handleInvoicePaid(
       stripeSubscriptionId: subscriptionId,
       status: "PAST_DUE",
     },
+    include: {
+      user: {
+        select: {
+          email: true,
+        },
+      },
+    },
   });
 
   if (pastDueSubscription) {
@@ -370,6 +377,21 @@ export async function handleInvoicePaid(
     });
 
     console.log(`Subscription reactivated after payment: ${subscriptionId}`);
+
+    // Track payment recovery in dunning emails
+    try {
+      await db.dunningEmail.create({
+        data: {
+          subscriptionId: pastDueSubscription.id,
+          emailType: "PAYMENT_RECOVERED",
+          recipientEmail: pastDueSubscription.user.email,
+          emailStatus: "SENT",
+        },
+      });
+    } catch (dunningError) {
+      console.error("Failed to create dunning recovery record:", dunningError);
+      // Don't throw - this is just tracking
+    }
   }
 
   // Send invoice receipt email (graceful degradation)
@@ -477,10 +499,13 @@ export async function handleInvoicePaymentFailed(
     return;
   }
 
-  // Update subscription status to past_due
+  // Update subscription status to past_due and track when it changed
   await db.subscription.update({
     where: { id: existingSubscription.id },
-    data: { status: "PAST_DUE" },
+    data: {
+      status: "PAST_DUE",
+      statusChangedAt: new Date(),
+    },
   });
 
   // Track payment failed event
@@ -525,6 +550,16 @@ export async function handleInvoicePaymentFailed(
         amount: formattedAmount,
         failedDate,
         nextRetryDate,
+      });
+
+      // Track Day 0 dunning email
+      await db.dunningEmail.create({
+        data: {
+          subscriptionId: existingSubscription.id,
+          emailType: "DAY_0_PAYMENT_FAILED",
+          recipientEmail: user.email,
+          emailStatus: "SENT",
+        },
       });
 
       console.log(`Payment failed email sent for subscription: ${existingSubscription.id}`);

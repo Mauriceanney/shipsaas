@@ -180,6 +180,7 @@ model Subscription {
   statusChangedAt        DateTime?          // When status last changed (for grace period tracking)
   plan                   Plan               @default(FREE)
   cancelAtPeriodEnd      Boolean            @default(false)
+  dunningEmails          DunningEmail[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -310,4 +311,39 @@ enum DataExportStatus {
   COMPLETED
   FAILED
   EXPIRED
+}
+
+// ============================================
+// DUNNING FLOW MODELS
+// ============================================
+
+model DunningEmail {
+  id             String           @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  emailType      DunningEmailType
+  sentAt         DateTime         @default(now())
+  recipientEmail String
+  emailStatus    EmailSendStatus  @default(PENDING)
+  errorMessage   String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([subscriptionId, emailType])
+  @@index([subscriptionId])
+  @@index([subscriptionId, emailType])
+  @@index([sentAt])
+}
+
+enum DunningEmailType {
+  DAY_0_PAYMENT_FAILED
+  DAY_3_REMINDER
+  DAY_7_FINAL_WARNING
+  PAYMENT_RECOVERED
+}
+
+enum EmailSendStatus {
+  PENDING
+  SENT
+  FAILED
 }

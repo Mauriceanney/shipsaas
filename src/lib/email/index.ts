@@ -14,6 +14,8 @@ import {
   renderSubscriptionCancelledEmail,
   renderPaymentFailedEmail,
   renderInvoiceReceiptEmail,
+  renderDunningReminderEmail,
+  renderDunningFinalWarningEmail,
 } from "./templates";
 
 import type { SendEmailResult } from "./types";
@@ -327,6 +329,80 @@ export async function sendInvoiceReceiptEmail(
     from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
     to: email,
     subject: `Payment Receipt - ${receiptData.amount} - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send dunning reminder email (Day 3)
+ * @param email - Recipient email address
+ * @param dunningData - Dunning reminder details
+ */
+export async function sendDunningReminderEmail(
+  email: string,
+  dunningData: {
+    name?: string;
+    planName: string;
+    daysSinceFailed: number;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const updatePaymentUrl = `${config.appUrl}/settings/billing`;
+
+  const { html, text } = await renderDunningReminderEmail({
+    name: dunningData.name,
+    planName: dunningData.planName,
+    daysSinceFailed: dunningData.daysSinceFailed,
+    updatePaymentUrl,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to: email,
+    subject: `Reminder: Update Your Payment Method - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send dunning final warning email (Day 7)
+ * @param email - Recipient email address
+ * @param dunningData - Dunning final warning details
+ */
+export async function sendDunningFinalWarningEmail(
+  email: string,
+  dunningData: {
+    name?: string;
+    planName: string;
+    daysSinceFailed: number;
+    suspensionDate: string;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const updatePaymentUrl = `${config.appUrl}/settings/billing`;
+
+  const { html, text } = await renderDunningFinalWarningEmail({
+    name: dunningData.name,
+    planName: dunningData.planName,
+    daysSinceFailed: dunningData.daysSinceFailed,
+    suspensionDate: dunningData.suspensionDate,
+    updatePaymentUrl,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to: email,
+    subject: `URGENT: Update Payment to Avoid Service Suspension - ${config.appName}`,
     html,
     text,
   });
