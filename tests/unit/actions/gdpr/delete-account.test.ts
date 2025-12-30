@@ -16,6 +16,19 @@ vi.mock("@/lib/db", () => ({
     user: {
       update: vi.fn(),
     },
+    subscription: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+  },
+}));
+
+// Mock Stripe
+vi.mock("@/lib/stripe", () => ({
+  stripe: {
+    subscriptions: {
+      cancel: vi.fn(),
+    },
   },
 }));
 
@@ -93,6 +106,7 @@ describe("Account Deletion Actions", () => {
       } as never);
 
       vi.mocked(db.accountDeletionRequest.findUnique).mockResolvedValue(null);
+      vi.mocked(db.subscription.findUnique).mockResolvedValue(null);
 
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 30);
@@ -115,6 +129,54 @@ describe("Account Deletion Actions", () => {
 
       expect(result.success).toBe(true);
       expect(result.scheduledFor).toBeDefined();
+    });
+
+    it("should cancel Stripe subscription on deletion", async () => {
+      const { auth } = await import("@/lib/auth");
+      const { db } = await import("@/lib/db");
+      const { stripe } = await import("@/lib/stripe");
+
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: "user123", email: "test@example.com" },
+      } as never);
+
+      vi.mocked(db.accountDeletionRequest.findUnique).mockResolvedValue(null);
+      vi.mocked(db.subscription.findUnique).mockResolvedValue({
+        id: "sub123",
+        userId: "user123",
+        stripeSubscriptionId: "sub_stripe123",
+        status: "ACTIVE",
+      } as never);
+      vi.mocked(db.subscription.update).mockResolvedValue({} as never);
+      vi.mocked(stripe.subscriptions.cancel).mockResolvedValue({} as never);
+
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+
+      vi.mocked(db.accountDeletionRequest.upsert).mockResolvedValue({
+        id: "request123",
+        userId: "user123",
+        scheduledFor: futureDate,
+      } as never);
+
+      vi.mocked(db.user.update).mockResolvedValue({} as never);
+
+      const { requestAccountDeletion } = await import(
+        "@/actions/gdpr/delete-account"
+      );
+      const result = await requestAccountDeletion({
+        confirmation: "DELETE",
+      });
+
+      expect(result.success).toBe(true);
+      expect(stripe.subscriptions.cancel).toHaveBeenCalledWith("sub_stripe123");
+      expect(db.subscription.update).toHaveBeenCalledWith({
+        where: { userId: "user123" },
+        data: {
+          status: "CANCELED",
+          cancelAtPeriodEnd: false,
+        },
+      });
     });
   });
 

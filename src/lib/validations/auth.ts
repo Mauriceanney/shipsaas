@@ -28,6 +28,9 @@ export const registerSchema = z
     email: z.string().email("Please enter a valid email address"),
     password: passwordSchema,
     confirmPassword: z.string(),
+    tosAccepted: z.boolean().refine((val) => val === true, {
+      message: "You must accept the Terms of Service",
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

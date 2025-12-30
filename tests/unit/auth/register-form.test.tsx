@@ -43,6 +43,20 @@ describe("RegisterForm", () => {
     vi.useRealTimers();
   });
 
+  // Helper function to fill out the form with TOS acceptance
+  async function fillFormAndAcceptTos(
+    user: ReturnType<typeof userEvent.setup>,
+    formData: { name: string; email: string; password: string; confirmPassword: string }
+  ) {
+    await user.type(screen.getByTestId("name"), formData.name);
+    await user.type(screen.getByTestId("email"), formData.email);
+    await user.type(screen.getByTestId("password"), formData.password);
+    await user.type(screen.getByTestId("confirmPassword"), formData.confirmPassword);
+    // Click the TOS checkbox
+    const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+    await user.click(tosCheckbox);
+  }
+
   describe("Rendering", () => {
     it("renders the registration form with all fields", () => {
       render(<RegisterForm />);
@@ -52,6 +66,50 @@ describe("RegisterForm", () => {
       expect(screen.getByTestId("password")).toBeInTheDocument();
       expect(screen.getByTestId("confirmPassword")).toBeInTheDocument();
       expect(screen.getByTestId("register-button")).toBeInTheDocument();
+    });
+
+    it("renders TOS checkbox", () => {
+      render(<RegisterForm />);
+
+      expect(screen.getByRole("checkbox", { name: /terms of service/i })).toBeInTheDocument();
+    });
+
+    it("renders submit button disabled initially when TOS not accepted", () => {
+      render(<RegisterForm />);
+
+      expect(screen.getByTestId("register-button")).toBeDisabled();
+    });
+
+    it("enables submit button when TOS is accepted", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      // Initially disabled
+      expect(screen.getByTestId("register-button")).toBeDisabled();
+
+      // Click TOS checkbox
+      const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+      await user.click(tosCheckbox);
+
+      // Now enabled
+      expect(screen.getByTestId("register-button")).not.toBeDisabled();
+    });
+
+    it("disables submit button when TOS is unchecked", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+
+      // Accept TOS
+      await user.click(tosCheckbox);
+      expect(screen.getByTestId("register-button")).not.toBeDisabled();
+
+      // Uncheck TOS
+      await user.click(tosCheckbox);
+      expect(screen.getByTestId("register-button")).toBeDisabled();
     });
 
     it("renders name input with correct attributes", () => {
@@ -156,10 +214,12 @@ describe("RegisterForm", () => {
       const user = userEvent.setup();
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
@@ -168,6 +228,7 @@ describe("RegisterForm", () => {
           email: "john@example.com",
           password: "Password123!",
           confirmPassword: "Password123!",
+          tosAccepted: true,
         });
       });
     });
@@ -182,10 +243,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
@@ -205,10 +268,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
@@ -228,10 +293,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       // Wait for registration to complete
@@ -258,10 +325,12 @@ describe("RegisterForm", () => {
       render(<RegisterForm />);
 
       // First submission - fails
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
@@ -292,10 +361,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "existing@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "existing@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
@@ -315,10 +386,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "weak");
-      await user.type(screen.getByTestId("confirmPassword"), "weak");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
@@ -357,10 +430,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       expect(screen.getByText("Creating account...")).toBeInTheDocument();
@@ -378,10 +453,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       expect(screen.getByTestId("name")).toBeDisabled();
@@ -401,10 +478,12 @@ describe("RegisterForm", () => {
 
       render(<RegisterForm />);
 
-      await user.type(screen.getByTestId("name"), "John Doe");
-      await user.type(screen.getByTestId("email"), "john@example.com");
-      await user.type(screen.getByTestId("password"), "Password123!");
-      await user.type(screen.getByTestId("confirmPassword"), "Password123!");
+      await fillFormAndAcceptTos(user, {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      });
       await user.click(screen.getByTestId("register-button"));
 
       await waitFor(() => {
@@ -435,8 +514,14 @@ describe("RegisterForm", () => {
       expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument();
     });
 
-    it("submit button is focusable", () => {
+    it("submit button is focusable when enabled", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
       render(<RegisterForm />);
+
+      // Accept TOS to enable the button
+      const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+      await user.click(tosCheckbox);
 
       const submitButton = screen.getByTestId("register-button");
       submitButton.focus();
