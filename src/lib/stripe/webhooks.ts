@@ -5,7 +5,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
-import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail } from "@/lib/email";
+import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail, sendPaymentFailedEmail } from "@/lib/email";
 
 import { stripe } from "./client";
 import { extractCustomerId, extractPriceId, extractSubscriptionId, getPlanFromPriceId, mapStripeStatus, unixToDate, validateCheckoutMetadata } from "./utils";
@@ -377,7 +377,49 @@ export async function handleInvoicePaymentFailed(
 
     console.log(`Subscription marked as past_due: ${subscriptionId}`);
 
-    // TODO: Send notification email to user
+    // Send payment failed notification email (graceful degradation)
+    try {
+      const user = await db.user.findUnique({
+        where: { id: existingSubscription.userId },
+        select: { email: true, name: true },
+      });
+
+      if (user?.email) {
+        // Format amount from invoice
+        const amountDue = invoice.amount_due ?? 0;
+        const currency = invoice.currency?.toUpperCase() ?? "USD";
+        const formattedAmount = `${currency} ${(amountDue / 100).toFixed(2)}`;
+
+        // Format failed date from invoice created timestamp
+        const failedDate = unixToDate(invoice.created).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+
+        // Format next retry date if available
+        const nextRetryDate = invoice.next_payment_attempt
+          ? unixToDate(invoice.next_payment_attempt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : undefined;
+
+        await sendPaymentFailedEmail(user.email, {
+          name: user.name ?? undefined,
+          planName: existingSubscription.plan,
+          amount: formattedAmount,
+          failedDate,
+          nextRetryDate,
+        });
+
+        console.log(`Payment failed email sent for subscription: ${subscriptionId}`);
+      }
+    } catch (emailError) {
+      console.error("Failed to send payment failed email:", emailError);
+      // Don't throw - subscription update was completed successfully
+    }
   }
 }
 
