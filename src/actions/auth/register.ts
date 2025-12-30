@@ -68,6 +68,15 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
       },
     });
 
+    // Create FREE subscription for new user
+    await db.subscription.create({
+      data: {
+        userId: user.id,
+        plan: "FREE",
+        status: "ACTIVE",
+      },
+    });
+
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
