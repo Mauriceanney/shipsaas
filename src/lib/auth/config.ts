@@ -165,11 +165,33 @@ export const authConfig: NextAuthConfig = {
 
       return true;
     },
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token["id"] = user.id;
         token["role"] = user.role;
       }
+
+      // Load subscription on sign in or when token is updated
+      if (trigger === "signIn" || trigger === "update" || !token["subscription"]) {
+        const userId = token["id"] as string;
+        const subscription = await db.subscription.findUnique({
+          where: { userId },
+          select: {
+            plan: true,
+            status: true,
+            stripeCurrentPeriodEnd: true,
+            statusChangedAt: true,
+          },
+        });
+
+        token["subscription"] = {
+          plan: subscription?.plan ?? "FREE",
+          status: subscription?.status ?? "INACTIVE",
+          stripeCurrentPeriodEnd: subscription?.stripeCurrentPeriodEnd ?? null,
+          statusChangedAt: subscription?.statusChangedAt ?? null,
+        };
+      }
+
       return token;
     },
     session({ session, token }) {
@@ -177,6 +199,14 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token["id"] as string;
         session.user.role = token["role"] as Role;
       }
+
+      session.subscription = token["subscription"] as {
+        plan: "FREE" | "PRO" | "ENTERPRISE";
+        status: "ACTIVE" | "INACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING";
+        stripeCurrentPeriodEnd: Date | null;
+        statusChangedAt: Date | null;
+      };
+
       return session;
     },
   },
