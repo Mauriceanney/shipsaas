@@ -127,6 +127,11 @@ export const authConfig: NextAuthConfig = {
           throw new Error("EmailNotVerified");
         }
 
+        // Check if account is disabled
+        if (user.disabled) {
+          throw new Error("AccountDisabled");
+        }
+
         return {
           id: user.id,
           email: user.email,

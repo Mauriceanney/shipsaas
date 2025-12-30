@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted for mock functions that need to be hoisted
-const { mockFindUnique, mockDeleteMany, mockTokenCreate, mockSendPasswordResetEmail } = vi.hoisted(() => ({
+const { mockFindUnique, mockDeleteMany, mockTokenCreate, mockSendPasswordResetEmail, mockRateLimitPasswordReset, mockGetClientIpFromHeaders } = vi.hoisted(() => ({
   mockFindUnique: vi.fn(),
   mockDeleteMany: vi.fn(),
   mockTokenCreate: vi.fn(),
   mockSendPasswordResetEmail: vi.fn(),
+  mockRateLimitPasswordReset: vi.fn(),
+  mockGetClientIpFromHeaders: vi.fn(),
 }));
 
 // Mock the database module
@@ -35,6 +37,14 @@ vi.mock("@/lib/email", () => ({
   sendPasswordResetEmail: mockSendPasswordResetEmail,
 }));
 
+// Mock rate limiting
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimiters: {
+    passwordReset: mockRateLimitPasswordReset,
+  },
+  getClientIpFromHeaders: mockGetClientIpFromHeaders,
+}));
+
 import { forgotPasswordAction } from "@/actions/auth/forgot-password";
 
 describe("forgotPasswordAction", () => {
@@ -43,6 +53,8 @@ describe("forgotPasswordAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSendPasswordResetEmail.mockResolvedValue({ success: true });
+    mockRateLimitPasswordReset.mockResolvedValue({ success: true, limit: 3, remaining: 2, reset: Date.now() + 900000 });
+    mockGetClientIpFromHeaders.mockReturnValue("127.0.0.1");
   });
 
   describe("input validation", () => {

@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 import { getRedis } from "@/lib/redis";
 
 /**
@@ -125,21 +127,48 @@ export const rateLimiters = {
  * Extract client IP address from request headers
  */
 export function getClientIp(request: Request): string {
-  const headers = request.headers;
+  const reqHeaders = request.headers;
 
   // Check x-forwarded-for (may contain multiple IPs)
-  const forwarded = headers.get("x-forwarded-for");
+  const forwarded = reqHeaders.get("x-forwarded-for");
   if (forwarded) {
     const ip = forwarded.split(",")[0]?.trim();
     if (ip) return ip;
   }
 
   // Check x-real-ip (single IP from reverse proxy)
-  const realIp = headers.get("x-real-ip");
+  const realIp = reqHeaders.get("x-real-ip");
   if (realIp) return realIp;
 
   // Fallback
   return "unknown";
+}
+
+/**
+ * Extract client IP from server action context
+ * Uses next/headers to access request headers in Server Actions
+ */
+export async function getClientIpFromHeaders(): Promise<string> {
+  try {
+    const headersList = await headers();
+
+    // Check x-forwarded-for (may contain multiple IPs)
+    const forwarded = headersList.get("x-forwarded-for");
+    if (forwarded) {
+      const ip = forwarded.split(",")[0]?.trim();
+      if (ip) return ip;
+    }
+
+    // Check x-real-ip (single IP from reverse proxy)
+    const realIp = headersList.get("x-real-ip");
+    if (realIp) return realIp;
+
+    // Fallback
+    return "unknown";
+  } catch {
+    // If headers() fails (e.g., not in a request context), return unknown
+    return "unknown";
+  }
 }
 
 /**

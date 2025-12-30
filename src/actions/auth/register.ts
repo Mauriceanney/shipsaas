@@ -6,6 +6,10 @@ import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/email";
+import {
+  rateLimiters,
+  getClientIpFromHeaders,
+} from "@/lib/rate-limit";
 import { registerSchema } from "@/lib/validations/auth";
 
 import type { RegisterInput } from "@/lib/validations/auth";
@@ -16,6 +20,17 @@ type Result =
 
 export async function registerAction(input: RegisterInput): Promise<Result> {
   try {
+    // Rate limiting
+    const clientIp = await getClientIpFromHeaders();
+    const rateLimitResult = await rateLimiters.auth(clientIp);
+
+    if (!rateLimitResult.success) {
+      return {
+        success: false,
+        error: "Too many registration attempts. Please try again later.",
+      };
+    }
+
     // Validate input
     const validatedFields = registerSchema.safeParse(input);
 

@@ -5,6 +5,10 @@ import crypto from "crypto";
 import { db } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
 import {
+  rateLimiters,
+  getClientIpFromHeaders,
+} from "@/lib/rate-limit";
+import {
   forgotPasswordSchema,
   type ForgotPasswordInput,
 } from "@/lib/validations/auth";
@@ -19,6 +23,15 @@ export async function forgotPasswordAction(
     "If an account exists with this email, you will receive a reset link";
 
   try {
+    // Rate limiting - use stricter passwordReset limiter
+    const clientIp = await getClientIpFromHeaders();
+    const rateLimitResult = await rateLimiters.passwordReset(clientIp);
+
+    // Return success even when rate limited to prevent enumeration
+    if (!rateLimitResult.success) {
+      return { success: true, message: successMessage };
+    }
+
     // Validate input
     const validatedFields = forgotPasswordSchema.safeParse(input);
 
