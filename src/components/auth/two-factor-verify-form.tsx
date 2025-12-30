@@ -18,6 +18,18 @@ export function TwoFactorVerifyForm() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [useBackupCode, setUseBackupCode] = useState(false);
+  const [code, setCode] = useState("");
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (useBackupCode) {
+      // Backup codes: allow alphanumeric and hyphens, uppercase
+      setCode(value.toUpperCase().replace(/[^A-Z0-9-]/g, ""));
+    } else {
+      // TOTP: digits only
+      setCode(value.replace(/\D/g, ""));
+    }
+  };
 
   if (!userId) {
     return (
@@ -34,9 +46,6 @@ export function TwoFactorVerifyForm() {
     e.preventDefault();
     setError(null);
 
-    const formData = new FormData(e.currentTarget);
-    const code = formData.get("code") as string;
-
     startTransition(async () => {
       const result = await verifyTwoFactorAction({ code, userId });
 
@@ -48,6 +57,11 @@ export function TwoFactorVerifyForm() {
         setError(result.error);
       }
     });
+  };
+
+  const handleToggleBackupCode = () => {
+    setUseBackupCode(!useBackupCode);
+    setCode(""); // Clear code when switching modes
   };
 
   return (
@@ -68,8 +82,11 @@ export function TwoFactorVerifyForm() {
             name="code"
             type="text"
             inputMode={useBackupCode ? "text" : "numeric"}
+            pattern={useBackupCode ? "[A-Z0-9-]+" : "[0-9]{6}"}
             placeholder={useBackupCode ? "XXXX-XXXX" : "000000"}
             maxLength={useBackupCode ? 9 : 6}
+            value={code}
+            onChange={handleCodeChange}
             required
             disabled={isPending}
             autoComplete="one-time-code"
@@ -90,7 +107,7 @@ export function TwoFactorVerifyForm() {
       <div className="text-center">
         <button
           type="button"
-          onClick={() => setUseBackupCode(!useBackupCode)}
+          onClick={handleToggleBackupCode}
           className="text-sm text-muted-foreground hover:text-primary"
         >
           {useBackupCode

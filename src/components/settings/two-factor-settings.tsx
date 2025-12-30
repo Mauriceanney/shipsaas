@@ -40,6 +40,18 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
   // Disable dialog state
   const [showDisableDialog, setShowDisableDialog] = useState(false);
 
+  // Controlled input states for TOTP codes
+  const [setupCode, setSetupCode] = useState("");
+  const [disableCode, setDisableCode] = useState("");
+
+  const handleDigitOnlyChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    // Only allow digits
+    setter(e.target.value.replace(/\D/g, ""));
+  };
+
   const handleSetup = () => {
     setError(null);
     startTransition(async () => {
@@ -58,15 +70,13 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
     e.preventDefault();
     setError(null);
 
-    const formData = new FormData(e.currentTarget);
-    const code = formData.get("code") as string;
-
     startTransition(async () => {
-      const result = await enableTwoFactorAction({ code });
+      const result = await enableTwoFactorAction({ code: setupCode });
       if (result.success) {
         setBackupCodes(result.backupCodes);
         setSetupStep("backup");
         setIsEnabled(true);
+        setSetupCode(""); // Clear the code
       } else {
         setError(result.error);
       }
@@ -77,14 +87,12 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
     e.preventDefault();
     setError(null);
 
-    const formData = new FormData(e.currentTarget);
-    const code = formData.get("code") as string;
-
     startTransition(async () => {
-      const result = await disableTwoFactorAction({ code });
+      const result = await disableTwoFactorAction({ code: disableCode });
       if (result.success) {
         setIsEnabled(false);
         setShowDisableDialog(false);
+        setDisableCode(""); // Clear the code
       } else {
         setError(result.error);
       }
@@ -146,7 +154,13 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
       )}
 
       {/* Setup Dialog */}
-      <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
+      <Dialog open={showSetupDialog} onOpenChange={(open) => {
+        setShowSetupDialog(open);
+        if (!open) {
+          setSetupCode("");
+          setError(null);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -200,8 +214,11 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
                   name="code"
                   type="text"
                   inputMode="numeric"
+                  pattern="[0-9]{6}"
                   placeholder="000000"
                   maxLength={6}
+                  value={setupCode}
+                  onChange={(e) => handleDigitOnlyChange(e, setSetupCode)}
                   required
                   disabled={isPending}
                   className="text-center text-lg tracking-widest"
@@ -268,7 +285,13 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
       </Dialog>
 
       {/* Disable Dialog */}
-      <Dialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
+      <Dialog open={showDisableDialog} onOpenChange={(open) => {
+        setShowDisableDialog(open);
+        if (!open) {
+          setDisableCode("");
+          setError(null);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
@@ -290,8 +313,11 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
                 name="code"
                 type="text"
                 inputMode="numeric"
+                pattern="[0-9]{6}"
                 placeholder="000000"
                 maxLength={6}
+                value={disableCode}
+                onChange={(e) => handleDigitOnlyChange(e, setDisableCode)}
                 required
                 disabled={isPending}
                 className="text-center text-lg tracking-widest"
