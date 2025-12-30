@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition, useEffect } from "react";
+import { useTransition, useEffect } from "react";
+import { toast } from "sonner";
 
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -24,13 +25,11 @@ export function LoginForm() {
   const errorParam = searchParams.get("error");
 
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(
-    errorParam ? ERROR_MESSAGES[errorParam] ?? null : null
-  );
 
-  // Clear error parameter from URL after reading it (so it doesn't persist on reload)
+  // Show toast for URL error params and clear from URL
   useEffect(() => {
     if (errorParam && ERROR_MESSAGES[errorParam]) {
+      toast.warning(ERROR_MESSAGES[errorParam]);
       const url = new URL(window.location.href);
       url.searchParams.delete("error");
       window.history.replaceState({}, "", url.toString());
@@ -39,7 +38,6 @@ export function LoginForm() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
@@ -49,6 +47,7 @@ export function LoginForm() {
       const result = await loginAction({ email, password });
 
       if (result.success) {
+        toast.success("Welcome back!");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.push(callbackUrl as any);
         router.refresh();
@@ -57,7 +56,7 @@ export function LoginForm() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.push(`/login/verify-2fa?userId=${result.userId}&callbackUrl=${encodeURIComponent(callbackUrl)}` as any);
       } else if ("error" in result) {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   };
@@ -78,12 +77,6 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input

@@ -2,6 +2,7 @@
 
 import { Download, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { requestDataExport } from "@/actions/gdpr";
 import { Button } from "@/components/ui/button";
@@ -15,34 +16,20 @@ import {
 
 export function DataExportCard() {
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   async function handleExport() {
     setIsLoading(true);
-    setMessage(null);
 
     try {
       const result = await requestDataExport();
 
       if (result.success) {
-        setMessage({
-          type: "success",
-          text: "Your data export has been initiated. Check back in a few minutes to download.",
-        });
+        toast.success("Your data export has been initiated. Check back in a few minutes to download.");
       } else {
-        setMessage({
-          type: "error",
-          text: result.error || "Failed to request data export",
-        });
+        toast.error(result.error || "Failed to request data export");
       }
     } catch {
-      setMessage({
-        type: "error",
-        text: "An unexpected error occurred",
-      });
+      toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -66,18 +53,6 @@ export function DataExportCard() {
             <li>Subscription details</li>
           </ul>
         </div>
-
-        {message && (
-          <div
-            className={`p-3 rounded-md text-sm ${
-              message.type === "success"
-                ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
 
         <Button onClick={handleExport} disabled={isLoading}>
           {isLoading ? (

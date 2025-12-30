@@ -14,6 +14,19 @@ vi.mock("@/actions/auth", () => ({
   forgotPasswordAction: (input: unknown) => mockForgotPasswordAction(input),
 }));
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 describe("ForgotPasswordForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -91,7 +104,7 @@ describe("ForgotPasswordForm", () => {
       });
     });
 
-    it("displays success message after submission", async () => {
+    it("calls toast.success after submission", async () => {
       const user = userEvent.setup();
       mockForgotPasswordAction.mockResolvedValue({
         success: true,
@@ -104,87 +117,18 @@ describe("ForgotPasswordForm", () => {
       await user.click(screen.getByTestId("forgot-password-button"));
 
       await waitFor(() => {
-        expect(
-          screen.getByText(
-            "If an account exists with this email, you will receive a reset link"
-          )
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("displays message with proper styling", async () => {
-      const user = userEvent.setup();
-      mockForgotPasswordAction.mockResolvedValue({
-        success: true,
-        message: "If an account exists with this email, you will receive a reset link",
-      });
-
-      render(<ForgotPasswordForm />);
-
-      await user.type(screen.getByTestId("email"), "test@example.com");
-      await user.click(screen.getByTestId("forgot-password-button"));
-
-      await waitFor(() => {
-        const messageElement = screen.getByText(
+        expect(mockToast.success).toHaveBeenCalledWith(
           "If an account exists with this email, you will receive a reset link"
         );
-        expect(messageElement.closest("div")).toHaveClass("bg-green-100");
-      });
-    });
-
-    it("clears previous message when submitting again", async () => {
-      const user = userEvent.setup();
-
-      render(<ForgotPasswordForm />);
-
-      // First submission
-      await user.type(screen.getByTestId("email"), "first@example.com");
-      await user.click(screen.getByTestId("forgot-password-button"));
-
-      await waitFor(() => {
-        expect(mockForgotPasswordAction).toHaveBeenCalledTimes(1);
-      });
-
-      // Clear email and submit again
-      await user.clear(screen.getByTestId("email"));
-      await user.type(screen.getByTestId("email"), "second@example.com");
-      await user.click(screen.getByTestId("forgot-password-button"));
-
-      await waitFor(() => {
-        expect(mockForgotPasswordAction).toHaveBeenCalledTimes(2);
       });
     });
   });
 
   describe("Message Display", () => {
-    it("does not display message initially", () => {
+    it("does not call toast initially", () => {
       render(<ForgotPasswordForm />);
 
-      expect(
-        screen.queryByText(/if an account exists/i)
-      ).not.toBeInTheDocument();
-    });
-
-    it("always shows success-style message regardless of result", async () => {
-      const user = userEvent.setup();
-      // Even for non-existent emails, the API returns success to prevent enumeration
-      mockForgotPasswordAction.mockResolvedValue({
-        success: true,
-        message: "If an account exists with this email, you will receive a reset link",
-      });
-
-      render(<ForgotPasswordForm />);
-
-      await user.type(screen.getByTestId("email"), "nonexistent@example.com");
-      await user.click(screen.getByTestId("forgot-password-button"));
-
-      await waitFor(() => {
-        const messageElement = screen.getByText(
-          "If an account exists with this email, you will receive a reset link"
-        );
-        // Should use green styling (success) to prevent email enumeration
-        expect(messageElement.closest("div")).toHaveClass("bg-green-100");
-      });
+      expect(mockToast.success).not.toHaveBeenCalled();
     });
   });
 

@@ -2,6 +2,7 @@
 
 import { Monitor, Smartphone, Tablet, LogOut, Loader2 } from "lucide-react";
 import { useTransition, useState, useEffect } from "react";
+import { toast } from "sonner";
 
 import {
   getActiveSessions,
@@ -53,8 +54,6 @@ export function SessionsList() {
   const [sessions, setSessions] = useState<UserSessionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,23 +71,19 @@ export function SessionsList() {
 
   const handleRevokeSession = (sessionId: string) => {
     setRevokingId(sessionId);
-    setActionError(null);
-    setSuccessMessage(null);
     startTransition(async () => {
       const result = await revokeSession({ sessionId });
       if (result.success) {
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-        setSuccessMessage("Session revoked successfully");
+        toast.success("Session revoked successfully");
       } else {
-        setActionError(result.error);
+        toast.error(result.error);
       }
       setRevokingId(null);
     });
   };
 
   const handleRevokeAllOther = () => {
-    setActionError(null);
-    setSuccessMessage(null);
     startTransition(async () => {
       const result = await revokeAllOtherSessions();
       if (result.success) {
@@ -97,9 +92,9 @@ export function SessionsList() {
         if (refreshResult.success) {
           setSessions(refreshResult.data);
         }
-        setSuccessMessage(`Revoked ${result.data.revokedCount} session(s)`);
+        toast.success(`Revoked ${result.data.revokedCount} session(s)`);
       } else {
-        setActionError(result.error);
+        toast.error(result.error);
       }
     });
   };
@@ -132,16 +127,6 @@ export function SessionsList() {
 
   return (
     <div className="space-y-4">
-      {successMessage && (
-        <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-600">
-          {successMessage}
-        </div>
-      )}
-      {actionError && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {actionError}
-        </div>
-      )}
       {sessions.map((session) => {
         const DeviceIcon = getDeviceIcon(session.deviceName);
 

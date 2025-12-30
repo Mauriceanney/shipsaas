@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
+import { toast } from "sonner";
 
 import { resetPasswordAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,6 @@ export function ResetPasswordForm() {
   const token = searchParams.get("token");
 
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   if (!token) {
     return (
@@ -34,8 +33,6 @@ export function ResetPasswordForm() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
 
     const formData = new FormData(e.currentTarget);
     const password = formData.get("password") as string;
@@ -49,11 +46,13 @@ export function ResetPasswordForm() {
       });
 
       if (result.success) {
-        setSuccess(result.message);
+        toast.success("Password updated successfully!", {
+          description: "Redirecting to login...",
+        });
         // Redirect to login after 2 seconds
         setTimeout(() => router.push("/login"), 2000);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   };
@@ -61,18 +60,6 @@ export function ResetPasswordForm() {
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="rounded-md bg-green-100 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
-            {success}
-          </div>
-        )}
-
         <div className="space-y-2">
           <Label htmlFor="password">New Password</Label>
           <Input

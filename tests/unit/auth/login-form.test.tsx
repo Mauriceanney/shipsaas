@@ -19,6 +19,19 @@ vi.mock("next-auth/react", () => ({
   signIn: vi.fn(),
 }));
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 // Mock next/navigation with proper search params
 const mockPush = vi.fn();
 const mockRefresh = vi.fn();
@@ -148,37 +161,24 @@ describe("LoginForm", () => {
       });
     });
 
-    it("clears previous error when submitting again", async () => {
+    it("calls toast.success on successful login", async () => {
       const user = userEvent.setup();
-      mockLoginAction.mockResolvedValueOnce({
-        success: false,
-        error: "Invalid credentials",
-      });
+      mockLoginAction.mockResolvedValue({ success: true });
 
       render(<LoginForm />);
 
-      // First submission - fails
       await user.type(screen.getByTestId("email"), "test@example.com");
-      await user.type(screen.getByTestId("password"), "wrongpassword");
+      await user.type(screen.getByTestId("password"), "password123");
       await user.click(screen.getByTestId("login-button"));
 
       await waitFor(() => {
-        expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
-      });
-
-      // Second submission - clears error during submission
-      mockLoginAction.mockResolvedValueOnce({ success: true });
-      await user.click(screen.getByTestId("login-button"));
-
-      // Error should be cleared when submission starts
-      await waitFor(() => {
-        expect(mockLoginAction).toHaveBeenCalledTimes(2);
+        expect(mockToast.success).toHaveBeenCalledWith("Welcome back!");
       });
     });
   });
 
   describe("Error Handling", () => {
-    it("displays error message when login fails", async () => {
+    it("calls toast.error when login fails", async () => {
       const user = userEvent.setup();
       mockLoginAction.mockResolvedValue({
         success: false,
@@ -192,35 +192,14 @@ describe("LoginForm", () => {
       await user.click(screen.getByTestId("login-button"));
 
       await waitFor(() => {
-        expect(screen.getByText("Invalid email or password")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Invalid email or password");
       });
     });
 
-    it("displays error with proper styling", async () => {
-      const user = userEvent.setup();
-      mockLoginAction.mockResolvedValue({
-        success: false,
-        error: "Invalid email or password",
-      });
-
+    it("does not call toast.error initially", () => {
       render(<LoginForm />);
 
-      await user.type(screen.getByTestId("email"), "test@example.com");
-      await user.type(screen.getByTestId("password"), "wrongpassword");
-      await user.click(screen.getByTestId("login-button"));
-
-      await waitFor(() => {
-        const errorElement = screen.getByText("Invalid email or password");
-        expect(errorElement.closest("div")).toHaveClass("bg-destructive/10");
-      });
-    });
-
-    it("does not display error initially", () => {
-      render(<LoginForm />);
-
-      expect(
-        screen.queryByText(/invalid email or password/i)
-      ).not.toBeInTheDocument();
+      expect(mockToast.error).not.toHaveBeenCalled();
     });
   });
 

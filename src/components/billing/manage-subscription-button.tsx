@@ -2,6 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
@@ -13,13 +14,11 @@ export function ManageSubscriptionButton({
   hasSubscription,
 }: ManageSubscriptionButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleClick = async () => {
     if (!hasSubscription) return;
 
     setIsLoading(true);
-    setError(null);
 
     try {
       const response = await fetch("/api/stripe/portal", {
@@ -36,7 +35,7 @@ export function ManageSubscriptionButton({
       // Redirect to Stripe Portal
       window.location.href = data.url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      toast.error(err instanceof Error ? err.message : "An error occurred");
       setIsLoading(false);
     }
   };
@@ -46,17 +45,14 @@ export function ManageSubscriptionButton({
   }
 
   return (
-    <div>
-      <Button
-        variant="outline"
-        onClick={handleClick}
-        disabled={isLoading}
-        className="gap-2"
-      >
-        {isLoading ? "Loading..." : "Manage Subscription"}
-        <ExternalLink className="h-4 w-4" />
-      </Button>
-      {error && <p className="text-destructive text-sm mt-2">{error}</p>}
-    </div>
+    <Button
+      variant="outline"
+      onClick={handleClick}
+      disabled={isLoading}
+      className="gap-2"
+    >
+      {isLoading ? "Loading..." : "Manage Subscription"}
+      <ExternalLink className="h-4 w-4" />
+    </Button>
   );
 }

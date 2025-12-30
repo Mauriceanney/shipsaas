@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { updateUserRole } from "@/actions/admin/users";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,13 @@ export function RoleChangeForm({ userId, currentRole }: RoleChangeFormProps) {
   const handleRoleChange = (newRole: "USER" | "ADMIN") => {
     setRole(newRole);
     startTransition(async () => {
-      await updateUserRole(userId, newRole);
+      try {
+        await updateUserRole(userId, newRole);
+        toast.success(`User role updated to ${newRole}`);
+      } catch {
+        toast.error("Failed to update user role");
+        setRole(currentRole); // Revert on error
+      }
     });
   };
 

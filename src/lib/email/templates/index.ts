@@ -42,6 +42,10 @@ export * from "./components";
 
 // Import templates for render functions
 import {
+  InvoiceReceiptEmail,
+  type InvoiceReceiptEmailProps,
+} from "./invoice-receipt";
+import {
   PasswordChangedEmail,
   type PasswordChangedEmailProps,
 } from "./password-changed";
@@ -53,10 +57,6 @@ import {
   PaymentFailedEmail,
   type PaymentFailedEmailProps,
 } from "./payment-failed";
-import {
-  InvoiceReceiptEmail,
-  type InvoiceReceiptEmailProps,
-} from "./invoice-receipt";
 import {
   SubscriptionCancelledEmail,
   type SubscriptionCancelledEmailProps,

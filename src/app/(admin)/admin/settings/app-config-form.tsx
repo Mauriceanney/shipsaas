@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { updateAppConfig } from "@/actions/admin/config";
 import { Button } from "@/components/ui/button";
@@ -43,8 +44,13 @@ export function AppConfigForm({ configs }: AppConfigFormProps) {
       } catch {
         value = editValue;
       }
-      await updateAppConfig(key, value);
-      setEditingKey(null);
+      try {
+        await updateAppConfig(key, value);
+        toast.success(`Setting "${key}" updated`);
+        setEditingKey(null);
+      } catch {
+        toast.error("Failed to update setting");
+      }
     });
   };
 

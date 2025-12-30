@@ -7,6 +7,19 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
 
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToast = vi.mocked(toast);
+
 describe("ManageSubscriptionButton", () => {
   const mockFetch = vi.fn();
   const originalLocation = window.location;
@@ -170,7 +183,7 @@ describe("ManageSubscriptionButton", () => {
   });
 
   describe("error handling", () => {
-    it("displays error message on API failure", async () => {
+    it("displays error toast on API failure", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: () => Promise.resolve({ error: "Failed to open portal" }),
@@ -184,11 +197,11 @@ describe("ManageSubscriptionButton", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(screen.getByText("Failed to open portal")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Failed to open portal");
       });
     });
 
-    it("displays default error message when no error provided", async () => {
+    it("displays default error toast when no error provided", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: () => Promise.resolve({}),
@@ -202,11 +215,11 @@ describe("ManageSubscriptionButton", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(screen.getByText("Failed to open portal")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Failed to open portal");
       });
     });
 
-    it("displays error message on network failure", async () => {
+    it("displays error toast on network failure", async () => {
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
       render(<ManageSubscriptionButton hasSubscription={true} />);
@@ -217,7 +230,7 @@ describe("ManageSubscriptionButton", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(screen.getByText("Network error")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("Network error");
       });
     });
 
@@ -232,7 +245,7 @@ describe("ManageSubscriptionButton", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(screen.getByText("An error occurred")).toBeInTheDocument();
+        expect(mockToast.error).toHaveBeenCalledWith("An error occurred");
       });
     });
 
@@ -249,22 +262,6 @@ describe("ManageSubscriptionButton", () => {
       await waitFor(() => {
         expect(button).not.toBeDisabled();
         expect(screen.getByText("Manage Subscription")).toBeInTheDocument();
-      });
-    });
-
-    it("applies destructive styling to error message", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
-
-      render(<ManageSubscriptionButton hasSubscription={true} />);
-
-      const button = screen.getByRole("button", {
-        name: /manage subscription/i,
-      });
-      fireEvent.click(button);
-
-      await waitFor(() => {
-        const errorMessage = screen.getByText("Network error");
-        expect(errorMessage).toHaveClass("text-destructive");
       });
     });
   });

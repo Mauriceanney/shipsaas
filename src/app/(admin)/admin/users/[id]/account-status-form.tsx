@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 
 import { toggleUserStatus } from "@/actions/admin/users";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,9 @@ export function AccountStatusForm({
     startTransition(async () => {
       try {
         await toggleUserStatus(userId);
-      } catch (error) {
-        // Handle error (e.g., can't disable own account)
-        console.error(error);
+        toast.success(isDisabled ? "Account enabled" : "Account disabled");
+      } catch {
+        toast.error("Failed to update account status");
       }
     });
   };
