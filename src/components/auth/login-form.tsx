@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,15 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(
     errorParam ? ERROR_MESSAGES[errorParam] ?? null : null
   );
+
+  // Clear error parameter from URL after reading it (so it doesn't persist on reload)
+  useEffect(() => {
+    if (errorParam && ERROR_MESSAGES[errorParam]) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [errorParam]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
