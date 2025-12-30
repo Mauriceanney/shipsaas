@@ -5,7 +5,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
-import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail, sendPaymentFailedEmail } from "@/lib/email";
+import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail, sendPaymentFailedEmail, sendInvoiceReceiptEmail } from "@/lib/email";
 
 import { stripe } from "./client";
 import { extractCustomerId, extractPriceId, extractSubscriptionId, getPlanFromPriceId, mapStripeStatus, unixToDate, validateCheckoutMetadata } from "./utils";
@@ -332,20 +332,87 @@ export async function handleInvoicePaid(
   }
 
   // Update subscription status if it was past_due
-  const existingSubscription = await db.subscription.findFirst({
+  const pastDueSubscription = await db.subscription.findFirst({
     where: {
       stripeSubscriptionId: subscriptionId,
       status: "PAST_DUE",
     },
   });
 
-  if (existingSubscription) {
+  if (pastDueSubscription) {
     await db.subscription.update({
-      where: { id: existingSubscription.id },
+      where: { id: pastDueSubscription.id },
       data: { status: "ACTIVE" },
     });
 
     console.log(`Subscription reactivated after payment: ${subscriptionId}`);
+  }
+
+  // Send invoice receipt email (graceful degradation)
+  try {
+    // Look up subscription for email (regardless of status)
+    const subscription = await db.subscription.findFirst({
+      where: { stripeSubscriptionId: subscriptionId },
+    });
+
+    if (!subscription) {
+      console.log("No subscription found for invoice receipt email:", invoice.id);
+      return;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: subscription.userId },
+      select: { email: true, name: true },
+    });
+
+    if (!user?.email) {
+      console.log("No user email found for invoice receipt:", invoice.id);
+      return;
+    }
+
+    // Format amount from invoice
+    const amountPaid = invoice.amount_paid ?? 0;
+    const currency = invoice.currency?.toUpperCase() ?? "USD";
+    const formattedAmount = `${currency} ${(amountPaid / 100).toFixed(2)}`;
+
+    // Format invoice date from created timestamp
+    const invoiceDate = unixToDate(invoice.created).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    // Extract billing period if available
+    const lineItem = invoice.lines?.data?.[0];
+    const billingPeriod = lineItem?.period
+      ? {
+          start: unixToDate(lineItem.period.start).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          end: unixToDate(lineItem.period.end).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+        }
+      : undefined;
+
+    await sendInvoiceReceiptEmail(user.email, {
+      name: user.name ?? undefined,
+      planName: subscription.plan,
+      amount: formattedAmount,
+      invoiceDate,
+      invoiceNumber: invoice.number ?? invoice.id,
+      billingPeriod,
+      invoiceUrl: invoice.hosted_invoice_url ?? undefined,
+    });
+
+    console.log(`Invoice receipt email sent for invoice: ${invoice.id}`);
+  } catch (emailError) {
+    console.error("Failed to send invoice receipt email:", emailError);
+    // Don't throw - payment was processed successfully
   }
 }
 

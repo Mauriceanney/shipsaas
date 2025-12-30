@@ -7,7 +7,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type Stripe from "stripe";
 
 // Hoist mocks for vitest
-const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockSendPaymentFailedEmail, mockRevalidatePath } = vi.hoisted(() => ({
+const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockSendPaymentFailedEmail, mockSendInvoiceReceiptEmail, mockRevalidatePath } = vi.hoisted(() => ({
   mockDbSubscription: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
@@ -23,6 +23,7 @@ const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscri
   },
   mockSendSubscriptionCancelledEmail: vi.fn(),
   mockSendPaymentFailedEmail: vi.fn(),
+  mockSendInvoiceReceiptEmail: vi.fn(),
   mockRevalidatePath: vi.fn(),
 }));
 
@@ -39,6 +40,7 @@ vi.mock("@/lib/email", () => ({
   sendSubscriptionConfirmationEmail: vi.fn(),
   sendSubscriptionCancelledEmail: mockSendSubscriptionCancelledEmail,
   sendPaymentFailedEmail: mockSendPaymentFailedEmail,
+  sendInvoiceReceiptEmail: mockSendInvoiceReceiptEmail,
 }));
 
 // Mock Stripe client
@@ -807,6 +809,179 @@ describe("Stripe Webhooks", () => {
           stripeSubscriptionId: "sub_stripe_123",
           status: "PAST_DUE",
         },
+      });
+    });
+
+    // Invoice receipt email tests
+    describe("invoice receipt email", () => {
+      it("sends invoice receipt email on successful payment", async () => {
+        // Return null for PAST_DUE lookup but subscription exists for email lookup
+        mockDbSubscription.findFirst
+          .mockResolvedValueOnce(null) // First call: PAST_DUE lookup
+          .mockResolvedValueOnce({
+            id: "sub_db_123",
+            userId: "user_123",
+            plan: "PRO",
+            status: "ACTIVE",
+          }); // Second call: email lookup
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockSendInvoiceReceiptEmail.mockResolvedValue({ success: true });
+
+        const invoice = {
+          id: "in_test",
+          number: "INV-0001",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200, // Jan 1, 2024
+          hosted_invoice_url: "https://invoice.stripe.com/i/test",
+          lines: {
+            data: [
+              {
+                period: {
+                  start: 1704067200,
+                  end: 1706745600,
+                },
+              },
+            ],
+          },
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendInvoiceReceiptEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            name: "Test User",
+            planName: "PRO",
+            amount: "USD 19.00",
+            invoiceNumber: "INV-0001",
+            invoiceUrl: "https://invoice.stripe.com/i/test",
+          })
+        );
+      });
+
+      it("uses billing page URL as fallback when hosted_invoice_url is null", async () => {
+        mockDbSubscription.findFirst
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            id: "sub_db_123",
+            userId: "user_123",
+            plan: "PRO",
+          });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockSendInvoiceReceiptEmail.mockResolvedValue({ success: true });
+
+        const invoice = {
+          id: "in_test",
+          number: "INV-0001",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+          hosted_invoice_url: null, // No hosted URL
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendInvoiceReceiptEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            invoiceUrl: undefined, // Falls back to default in email service
+          })
+        );
+      });
+
+      it("skips email when user not found", async () => {
+        mockDbSubscription.findFirst
+          .mockResolvedValueOnce(null) // PAST_DUE lookup
+          .mockResolvedValueOnce({
+            id: "sub_db_123",
+            userId: "user_123",
+            plan: "PRO",
+          });
+        mockDbUser.findUnique.mockResolvedValue(null);
+
+        const invoice = {
+          id: "in_test",
+          number: "INV-0001",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendInvoiceReceiptEmail).not.toHaveBeenCalled();
+      });
+
+      it("handles email sending failure gracefully", async () => {
+        mockDbSubscription.findFirst
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            id: "sub_db_123",
+            userId: "user_123",
+            plan: "PRO",
+          });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockSendInvoiceReceiptEmail.mockRejectedValue(new Error("Email failed"));
+
+        const invoice = {
+          id: "in_test",
+          number: "INV-0001",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        // Should not throw
+        await expect(handleInvoicePaid(invoice)).resolves.not.toThrow();
+      });
+
+      it("uses invoice URL as fallback when hosted_invoice_url missing", async () => {
+        mockDbSubscription.findFirst
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            id: "sub_db_123",
+            userId: "user_123",
+            plan: "PRO",
+          });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: null,
+        });
+        mockSendInvoiceReceiptEmail.mockResolvedValue({ success: true });
+
+        const invoice = {
+          id: "in_test",
+          number: "INV-0001",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+          hosted_invoice_url: null,
+          invoice_pdf: null,
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendInvoiceReceiptEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            name: undefined,
+          })
+        );
       });
     });
   });

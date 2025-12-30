@@ -13,6 +13,7 @@ import {
   renderSubscriptionConfirmEmail,
   renderSubscriptionCancelledEmail,
   renderPaymentFailedEmail,
+  renderInvoiceReceiptEmail,
 } from "./templates";
 
 import type { SendEmailResult } from "./types";
@@ -279,6 +280,53 @@ export async function sendPaymentFailedEmail(
     from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
     to: email,
     subject: `Payment Failed - Action Required - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send invoice receipt email
+ * @param email - Recipient email address
+ * @param receiptData - Invoice receipt details
+ */
+export async function sendInvoiceReceiptEmail(
+  email: string,
+  receiptData: {
+    name?: string;
+    planName: string;
+    amount: string;
+    invoiceDate: string;
+    invoiceNumber: string;
+    billingPeriod?: {
+      start: string;
+      end: string;
+    };
+    invoiceUrl?: string;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  // Use Stripe hosted invoice URL if provided, fallback to billing page
+  const invoiceUrl = receiptData.invoiceUrl ?? `${config.appUrl}/settings/billing`;
+
+  const { html, text } = await renderInvoiceReceiptEmail({
+    name: receiptData.name,
+    planName: receiptData.planName,
+    amount: receiptData.amount,
+    invoiceDate: receiptData.invoiceDate,
+    invoiceNumber: receiptData.invoiceNumber,
+    billingPeriod: receiptData.billingPeriod,
+    invoiceUrl,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to: email,
+    subject: `Payment Receipt - ${receiptData.amount} - ${config.appName}`,
     html,
     text,
   });
