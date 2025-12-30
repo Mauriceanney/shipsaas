@@ -52,6 +52,17 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
     setter(e.target.value.replace(/\D/g, ""));
   };
 
+  const handleDigitOnlyPaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text");
+    // Extract only digits and limit to 6 characters
+    const digits = pastedText.replace(/\D/g, "").slice(0, 6);
+    setter(digits);
+  };
+
   const handleSetup = () => {
     setError(null);
     startTransition(async () => {
@@ -219,6 +230,7 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
                   maxLength={6}
                   value={setupCode}
                   onChange={(e) => handleDigitOnlyChange(e, setSetupCode)}
+                  onPaste={(e) => handleDigitOnlyPaste(e, setSetupCode)}
                   required
                   disabled={isPending}
                   className="text-center text-lg tracking-widest"
@@ -318,6 +330,7 @@ export function TwoFactorSettings({ isEnabled: initialEnabled }: TwoFactorSettin
                 maxLength={6}
                 value={disableCode}
                 onChange={(e) => handleDigitOnlyChange(e, setDisableCode)}
+                onPaste={(e) => handleDigitOnlyPaste(e, setDisableCode)}
                 required
                 disabled={isPending}
                 className="text-center text-lg tracking-widest"

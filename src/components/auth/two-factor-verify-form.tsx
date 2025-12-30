@@ -33,6 +33,21 @@ export function TwoFactorVerifyForm() {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text");
+
+    if (useBackupCode) {
+      // Backup codes: extract alphanumeric and hyphens, uppercase, limit to 9 chars
+      const cleaned = pastedText.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 9);
+      setCode(cleaned);
+    } else {
+      // TOTP: extract only digits, limit to 6
+      const digits = pastedText.replace(/\D/g, "").slice(0, 6);
+      setCode(digits);
+    }
+  };
+
   if (!userId) {
     return (
       <div className="space-y-4 text-center">
@@ -89,6 +104,7 @@ export function TwoFactorVerifyForm() {
             maxLength={useBackupCode ? 9 : 6}
             value={code}
             onChange={handleCodeChange}
+            onPaste={handlePaste}
             required
             disabled={isPending}
             autoComplete="one-time-code"
