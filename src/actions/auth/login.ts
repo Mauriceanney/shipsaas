@@ -1,8 +1,8 @@
 "use server";
 
-import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { AuthError } from "next-auth";
 
 import { signIn } from "@/lib/auth";
 import { db } from "@/lib/db";

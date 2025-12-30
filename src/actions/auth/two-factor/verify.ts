@@ -5,6 +5,10 @@ import { cookies, headers } from "next/headers";
 import { signIn } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
+  rateLimiters,
+  getClientIpFromHeaders,
+} from "@/lib/rate-limit";
+import {
   verifyTOTP,
   verifyBackupCode,
   generateDeviceToken,
@@ -14,10 +18,6 @@ import {
   TRUSTED_DEVICE_DURATION_DAYS,
   TRUSTED_DEVICE_COOKIE,
 } from "@/lib/two-factor";
-import {
-  rateLimiters,
-  getClientIpFromHeaders,
-} from "@/lib/rate-limit";
 import {
   verifyTwoFactorSchema,
   type VerifyTwoFactorInput,
@@ -79,7 +79,6 @@ export async function verifyTwoFactorAction(
     }
 
     let isValid = false;
-    let usedBackupCode = false;
 
     // Try TOTP verification first (6 digits)
     if (code.length === 6 && /^\d+$/.test(code)) {
@@ -92,7 +91,6 @@ export async function verifyTwoFactorAction(
 
       if (backupCodeIndex !== -1) {
         isValid = true;
-        usedBackupCode = true;
 
         // Remove used backup code
         const updatedBackupCodes = [...user.twoFactorBackupCodes];

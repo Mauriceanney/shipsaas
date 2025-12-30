@@ -5,10 +5,11 @@
  * using the RFC 6238 standard.
  */
 
+import crypto from "crypto";
+
+import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
 
 import { siteConfig } from "@/config/site";
 
