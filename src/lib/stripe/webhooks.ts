@@ -359,67 +359,83 @@ export async function handleInvoicePaymentFailed(
     ? invoice.subscription
     : invoice.subscription?.id;
 
-  if (!subscriptionId) {
-    console.log("No subscription ID in invoice:", invoice.id);
+  // Extract customer ID for fallback lookup
+  const customerId = typeof invoice.customer === "string"
+    ? invoice.customer
+    : invoice.customer?.id;
+
+  // Try to find subscription by subscription ID first, then by customer ID
+  let existingSubscription = null;
+
+  if (subscriptionId) {
+    existingSubscription = await db.subscription.findFirst({
+      where: { stripeSubscriptionId: subscriptionId },
+    });
+  }
+
+  // Fallback: if no subscription found by ID, try customer ID
+  if (!existingSubscription && customerId) {
+    console.log(`No subscription found by ID, trying customer fallback: ${customerId}`);
+    existingSubscription = await db.subscription.findFirst({
+      where: { stripeCustomerId: customerId },
+    });
+  }
+
+  if (!existingSubscription) {
+    console.log("No subscription found for invoice:", invoice.id);
     return;
   }
 
   // Update subscription status to past_due
-  const existingSubscription = await db.subscription.findFirst({
-    where: { stripeSubscriptionId: subscriptionId },
+  await db.subscription.update({
+    where: { id: existingSubscription.id },
+    data: { status: "PAST_DUE" },
   });
 
-  if (existingSubscription) {
-    await db.subscription.update({
-      where: { id: existingSubscription.id },
-      data: { status: "PAST_DUE" },
+  console.log(`Subscription marked as past_due: ${existingSubscription.id}`);
+
+  // Send payment failed notification email (graceful degradation)
+  try {
+    const user = await db.user.findUnique({
+      where: { id: existingSubscription.userId },
+      select: { email: true, name: true },
     });
 
-    console.log(`Subscription marked as past_due: ${subscriptionId}`);
+    if (user?.email) {
+      // Format amount from invoice
+      const amountDue = invoice.amount_due ?? 0;
+      const currency = invoice.currency?.toUpperCase() ?? "USD";
+      const formattedAmount = `${currency} ${(amountDue / 100).toFixed(2)}`;
 
-    // Send payment failed notification email (graceful degradation)
-    try {
-      const user = await db.user.findUnique({
-        where: { id: existingSubscription.userId },
-        select: { email: true, name: true },
+      // Format failed date from invoice created timestamp
+      const failedDate = unixToDate(invoice.created).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
 
-      if (user?.email) {
-        // Format amount from invoice
-        const amountDue = invoice.amount_due ?? 0;
-        const currency = invoice.currency?.toUpperCase() ?? "USD";
-        const formattedAmount = `${currency} ${(amountDue / 100).toFixed(2)}`;
+      // Format next retry date if available
+      const nextRetryDate = invoice.next_payment_attempt
+        ? unixToDate(invoice.next_payment_attempt).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : undefined;
 
-        // Format failed date from invoice created timestamp
-        const failedDate = unixToDate(invoice.created).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
+      await sendPaymentFailedEmail(user.email, {
+        name: user.name ?? undefined,
+        planName: existingSubscription.plan,
+        amount: formattedAmount,
+        failedDate,
+        nextRetryDate,
+      });
 
-        // Format next retry date if available
-        const nextRetryDate = invoice.next_payment_attempt
-          ? unixToDate(invoice.next_payment_attempt).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })
-          : undefined;
-
-        await sendPaymentFailedEmail(user.email, {
-          name: user.name ?? undefined,
-          planName: existingSubscription.plan,
-          amount: formattedAmount,
-          failedDate,
-          nextRetryDate,
-        });
-
-        console.log(`Payment failed email sent for subscription: ${subscriptionId}`);
-      }
-    } catch (emailError) {
-      console.error("Failed to send payment failed email:", emailError);
-      // Don't throw - subscription update was completed successfully
+      console.log(`Payment failed email sent for subscription: ${existingSubscription.id}`);
     }
+  } catch (emailError) {
+    console.error("Failed to send payment failed email:", emailError);
+    // Don't throw - subscription update was completed successfully
   }
 }
 

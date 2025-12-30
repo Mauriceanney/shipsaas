@@ -19,6 +19,7 @@ const { mockDbSubscription, mockDbUser, mockStripeSubscriptions, mockSendSubscri
   },
   mockStripeSubscriptions: {
     retrieve: vi.fn(),
+    list: vi.fn(),
   },
   mockSendSubscriptionCancelledEmail: vi.fn(),
   mockSendPaymentFailedEmail: vi.fn(),
@@ -1083,6 +1084,118 @@ describe("Stripe Webhooks", () => {
 
         await handleInvoicePaymentFailed(invoice);
 
+        expect(mockSendPaymentFailedEmail).not.toHaveBeenCalled();
+      });
+    });
+
+    // Customer fallback tests - when subscription is null but customer is present
+    describe("customer fallback lookup", () => {
+      it("looks up subscription by customer ID when subscription is null", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          status: "ACTIVE",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const invoice = {
+          id: "in_test",
+          subscription: null, // No subscription ID in webhook payload
+          customer: "cus_123", // But customer ID is present
+          amount_due: 1900,
+          currency: "usd",
+          created: 1704067200,
+          next_payment_attempt: 1704672000,
+          lines: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaymentFailed(invoice);
+
+        // Should look up subscription by customer ID
+        expect(mockDbSubscription.findFirst).toHaveBeenCalledWith({
+          where: { stripeCustomerId: "cus_123" },
+        });
+        expect(mockSendPaymentFailedEmail).toHaveBeenCalled();
+      });
+
+      it("handles customer as expanded object", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          status: "ACTIVE",
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const invoice = {
+          id: "in_test",
+          subscription: null,
+          customer: { id: "cus_456" }, // Customer as expanded object
+          amount_due: 1900,
+          currency: "usd",
+          created: 1704067200,
+          next_payment_attempt: 1704672000,
+          lines: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaymentFailed(invoice);
+
+        expect(mockDbSubscription.findFirst).toHaveBeenCalledWith({
+          where: { stripeCustomerId: "cus_456" },
+        });
+        expect(mockSendPaymentFailedEmail).toHaveBeenCalled();
+      });
+
+      it("skips when both subscription and customer are null", async () => {
+        const invoice = {
+          id: "in_test",
+          subscription: null,
+          customer: null,
+          amount_due: 1900,
+          currency: "usd",
+          created: 1704067200,
+          next_payment_attempt: 1704672000,
+          lines: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaymentFailed(invoice);
+
+        expect(mockDbSubscription.findFirst).not.toHaveBeenCalled();
+        expect(mockSendPaymentFailedEmail).not.toHaveBeenCalled();
+      });
+
+      it("skips when no subscription found for customer", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue(null);
+
+        const invoice = {
+          id: "in_test",
+          subscription: null,
+          customer: "cus_unknown",
+          amount_due: 1900,
+          currency: "usd",
+          created: 1704067200,
+          next_payment_attempt: 1704672000,
+          lines: {
+            data: [{ price: { id: "price_pro_monthly" } }],
+          },
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaymentFailed(invoice);
+
+        expect(mockDbSubscription.update).not.toHaveBeenCalled();
         expect(mockSendPaymentFailedEmail).not.toHaveBeenCalled();
       });
     });
