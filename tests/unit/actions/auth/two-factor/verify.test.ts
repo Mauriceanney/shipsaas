@@ -98,6 +98,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -112,6 +113,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -121,6 +123,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -134,6 +137,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -153,6 +157,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -172,6 +177,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -196,6 +202,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(true);
@@ -215,6 +222,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "000000",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -241,6 +249,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "ABCD1234",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(true);
@@ -263,6 +272,7 @@ describe("verifyTwoFactorAction", () => {
       await verifyTwoFactorAction({
         code: "BACKUP12",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(mockUpdate).toHaveBeenCalledWith({
@@ -285,6 +295,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "INVALID1",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -364,6 +375,7 @@ describe("verifyTwoFactorAction", () => {
       await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(mockSignIn).toHaveBeenCalledWith("two-factor", {
@@ -380,6 +392,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
@@ -402,6 +415,7 @@ describe("verifyTwoFactorAction", () => {
       const result = await verifyTwoFactorAction({
         code: "123456",
         userId: "user-1",
+        rememberDevice: false,
       });
 
       expect(result.success).toBe(false);
