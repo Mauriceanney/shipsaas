@@ -1,8 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { mockAuth, mockFindMany } = vi.hoisted(() => ({
+const { mockAuth, mockFindMany, mockCookies } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockFindMany: vi.fn(),
+  mockCookies: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -17,11 +18,18 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: mockCookies,
+}));
+
 import { getActiveSessions } from "@/actions/session/get-active-sessions";
 
 describe("getActiveSessions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: "current-session-token" }),
+    });
   });
 
   describe("authentication", () => {
@@ -79,7 +87,7 @@ describe("getActiveSessions", () => {
         {
           id: "session-1",
           userId: "user-1",
-          sessionToken: "token-1",
+          sessionToken: "current-session-token",
           ipAddress: "192.168.1.1",
           userAgent: "Mozilla/5.0",
           deviceName: "Chrome on macOS",
@@ -91,7 +99,7 @@ describe("getActiveSessions", () => {
         {
           id: "session-2",
           userId: "user-1",
-          sessionToken: "token-2",
+          sessionToken: "other-token",
           ipAddress: "10.0.0.1",
           userAgent: "Safari/17.0",
           deviceName: "Safari on iPhone",
@@ -112,6 +120,11 @@ describe("getActiveSessions", () => {
         expect(result.data[0]).toMatchObject({
           id: "session-1",
           deviceName: "Chrome on macOS",
+          isCurrent: true,
+        });
+        expect(result.data[1]).toMatchObject({
+          id: "session-2",
+          isCurrent: false,
         });
       }
     });

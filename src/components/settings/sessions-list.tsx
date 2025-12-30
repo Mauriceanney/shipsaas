@@ -22,9 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-interface SessionsListProps {
-  _currentSessionToken?: string;
-}
+// No props needed - current session is determined server-side
 
 function getDeviceIcon(deviceName: string | null) {
   const name = deviceName?.toLowerCase() ?? "";
@@ -50,7 +48,7 @@ function formatRelativeTime(date: Date): string {
   return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
 }
 
-export function SessionsList({ _currentSessionToken }: SessionsListProps) {
+export function SessionsList() {
   const [isPending, startTransition] = useTransition();
   const [sessions, setSessions] = useState<UserSessionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -146,7 +144,6 @@ export function SessionsList({ _currentSessionToken }: SessionsListProps) {
       )}
       {sessions.map((session) => {
         const DeviceIcon = getDeviceIcon(session.deviceName);
-        const isCurrentSession = false; // We'll mark based on the most recent
 
         return (
           <div
@@ -160,7 +157,7 @@ export function SessionsList({ _currentSessionToken }: SessionsListProps) {
                   <p className="font-medium">
                     {session.deviceName ?? "Unknown Device"}
                   </p>
-                  {isCurrentSession && (
+                  {session.isCurrent && (
                     <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600">
                       Current
                     </span>
@@ -172,7 +169,7 @@ export function SessionsList({ _currentSessionToken }: SessionsListProps) {
                 </p>
               </div>
             </div>
-            {!isCurrentSession && (
+            {!session.isCurrent && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button

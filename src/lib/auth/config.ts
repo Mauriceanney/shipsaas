@@ -8,6 +8,11 @@ import { db } from "@/lib/db";
 import { hashDeviceToken, TRUSTED_DEVICE_COOKIE } from "@/lib/two-factor";
 import { loginSchema } from "@/lib/validations/auth";
 
+import {
+  createUserSession,
+  recordLoginAttempt,
+} from "./session-tracking";
+
 import type { Role } from "@prisma/client";
 import type { NextAuthConfig } from "next-auth";
 
@@ -18,6 +23,31 @@ export const authConfig: NextAuthConfig = {
     error: "/login",
     verifyRequest: "/verify-email",
     newUser: "/dashboard",
+  },
+  events: {
+    async signIn({ user, account }) {
+      if (user.id && account?.provider) {
+        // Record successful login
+        await recordLoginAttempt({
+          userId: user.id,
+          success: true,
+          provider: account.provider,
+        });
+
+        // Create a user session for tracking
+        const sessionToken = await createUserSession(user.id);
+
+        // Store the session token in a cookie for later reference
+        const cookieStore = await cookies();
+        cookieStore.set("user-session-token", sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 30 * 24 * 60 * 60, // 30 days
+          path: "/",
+        });
+      }
+    },
   },
   callbacks: {
     async signIn({ user, account }) {

@@ -18,10 +18,8 @@ export async function revokeAllOtherSessions(): Promise<Result> {
     }
 
     const cookieStore = await cookies();
-    // Handle both secure (HTTPS) and non-secure cookie names
-    const currentSessionToken =
-      cookieStore.get("__Secure-authjs.session-token")?.value ??
-      cookieStore.get("authjs.session-token")?.value;
+    // Get the user session token we set during login
+    const currentSessionToken = cookieStore.get("user-session-token")?.value;
 
     // Build the where clause - only exclude current session if token exists
     const whereClause: {

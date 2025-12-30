@@ -1,5 +1,7 @@
 "use server";
 
+import { cookies } from "next/headers";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -11,6 +13,7 @@ export type UserSessionData = {
   lastActiveAt: Date;
   expiresAt: Date;
   createdAt: Date;
+  isCurrent: boolean;
 };
 
 type Result =
@@ -24,6 +27,10 @@ export async function getActiveSessions(): Promise<Result> {
       return { success: false, error: "Unauthorized" };
     }
 
+    // Get the current session token from cookie
+    const cookieStore = await cookies();
+    const currentSessionToken = cookieStore.get("user-session-token")?.value;
+
     const sessions = await db.userSession.findMany({
       where: {
         userId: session.user.id,
@@ -33,6 +40,7 @@ export async function getActiveSessions(): Promise<Result> {
       orderBy: { lastActiveAt: "desc" },
       select: {
         id: true,
+        sessionToken: true,
         ipAddress: true,
         userAgent: true,
         deviceName: true,
@@ -42,7 +50,19 @@ export async function getActiveSessions(): Promise<Result> {
       },
     });
 
-    return { success: true, data: sessions };
+    // Map sessions and mark the current one
+    const sessionsWithCurrent = sessions.map((s) => ({
+      id: s.id,
+      ipAddress: s.ipAddress,
+      userAgent: s.userAgent,
+      deviceName: s.deviceName,
+      lastActiveAt: s.lastActiveAt,
+      expiresAt: s.expiresAt,
+      createdAt: s.createdAt,
+      isCurrent: s.sessionToken === currentSessionToken,
+    }));
+
+    return { success: true, data: sessionsWithCurrent };
   } catch (error) {
     console.error("[getActiveSessions]", error);
     return { success: false, error: "Failed to fetch sessions" };
