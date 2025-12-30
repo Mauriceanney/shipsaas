@@ -25,6 +25,11 @@ model User {
   welcomeEmailSent Boolean   @default(false)
   disabled         Boolean   @default(false)
 
+  // Two-Factor Authentication
+  twoFactorSecret      String?   // Encrypted TOTP secret
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorBackupCodes String[]  // Hashed backup codes (bcrypt)
+
   accounts               Account[]
   sessions               Session[]
   subscription           Subscription?
@@ -40,6 +45,7 @@ model User {
   @@index([createdAt])
   @@index([deletedAt])
   @@index([disabled])
+  @@index([twoFactorEnabled])
 }
 
 model Account {

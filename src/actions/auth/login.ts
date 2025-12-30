@@ -1,8 +1,10 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import bcrypt from "bcryptjs";
 
 import { signIn } from "@/lib/auth";
+import { db } from "@/lib/db";
 import {
   rateLimiters,
   getClientIpFromHeaders,
@@ -11,7 +13,8 @@ import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
 type Result =
   | { success: true }
-  | { success: false; error: string };
+  | { success: false; error: string }
+  | { success: false; requires2FA: true; userId: string };
 
 export async function loginAction(input: LoginInput): Promise<Result> {
   try {
@@ -38,6 +41,49 @@ export async function loginAction(input: LoginInput): Promise<Result> {
 
     const { email, password } = validatedFields.data;
 
+    // Check if user has 2FA enabled before attempting sign-in
+    const user = await db.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        password: true,
+        emailVerified: true,
+        disabled: true,
+        twoFactorEnabled: true,
+      },
+    });
+
+    // Validate credentials manually for 2FA check
+    if (user && user.password && user.twoFactorEnabled) {
+      const passwordMatch = await bcrypt.compare(password, user.password);
+
+      if (passwordMatch) {
+        // Check email verification
+        if (!user.emailVerified) {
+          return {
+            success: false,
+            error: "Please verify your email before logging in",
+          };
+        }
+
+        // Check if disabled
+        if (user.disabled) {
+          return {
+            success: false,
+            error: "Your account has been disabled",
+          };
+        }
+
+        // User has 2FA enabled - return pending state
+        return {
+          success: false,
+          requires2FA: true,
+          userId: user.id,
+        };
+      }
+    }
+
+    // No 2FA or validation failed - proceed with normal sign-in
     await signIn("credentials", {
       email,
       password,

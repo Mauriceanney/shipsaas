@@ -1,10 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted to properly hoist the mock function
-const { mockSignIn, mockRateLimitAuth, mockGetClientIpFromHeaders } = vi.hoisted(() => ({
+const { mockSignIn, mockRateLimitAuth, mockGetClientIpFromHeaders, mockFindUnique } = vi.hoisted(() => ({
   mockSignIn: vi.fn(),
   mockRateLimitAuth: vi.fn(),
   mockGetClientIpFromHeaders: vi.fn(),
+  mockFindUnique: vi.fn(),
 }));
 
 // Mock next-auth to avoid import issues
@@ -35,6 +36,15 @@ vi.mock("@/lib/rate-limit", () => ({
   getClientIpFromHeaders: mockGetClientIpFromHeaders,
 }));
 
+// Mock database
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: {
+      findUnique: mockFindUnique,
+    },
+  },
+}));
+
 import { loginAction } from "@/actions/auth/login";
 import { AuthError } from "next-auth";
 
@@ -42,14 +52,21 @@ describe("loginAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: rate limiting allows request
-    mockGetClientIpFromHeaders.mockReturnValue("192.168.1.1");
+    mockGetClientIpFromHeaders.mockResolvedValue("192.168.1.1");
     mockRateLimitAuth.mockResolvedValue({
       success: true,
       limit: 5,
       remaining: 4,
       reset: Math.ceil(Date.now() / 1000) + 60,
     });
+    // Default: user without 2FA
+    mockFindUnique.mockResolvedValue(null);
   });
+
+  // Helper to check for error in result
+  const hasError = (result: { success: boolean; error?: string }): result is { success: false; error: string } => {
+    return !result.success && "error" in result;
+  };
 
   describe("input validation", () => {
     it("returns error for invalid email format", async () => {
@@ -59,7 +76,8 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toContain("email");
       }
       expect(mockSignIn).not.toHaveBeenCalled();
@@ -72,7 +90,8 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toBeDefined();
       }
       expect(mockSignIn).not.toHaveBeenCalled();
@@ -85,7 +104,8 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toContain("required");
       }
       expect(mockSignIn).not.toHaveBeenCalled();
@@ -144,7 +164,8 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toBe("Invalid email or password");
       }
     });
@@ -161,7 +182,8 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toBe("Please verify your email before logging in");
       }
     });
@@ -177,7 +199,8 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toBe("An error occurred during login");
       }
     });
@@ -256,14 +279,15 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toContain("Too many");
       }
       expect(mockSignIn).not.toHaveBeenCalled();
     });
 
     it("calls rate limiter with client IP", async () => {
-      mockGetClientIpFromHeaders.mockReturnValue("10.0.0.1");
+      mockGetClientIpFromHeaders.mockResolvedValue("10.0.0.1");
       mockSignIn.mockResolvedValue(undefined);
 
       await loginAction({
@@ -301,7 +325,8 @@ describe("loginAction", () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      expect(hasError(result)).toBe(true);
+      if (hasError(result)) {
         expect(result.error).toBe("Your account has been disabled");
       }
     });

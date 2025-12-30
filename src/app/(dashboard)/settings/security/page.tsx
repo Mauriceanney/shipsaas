@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TwoFactorSettings } from "@/components/settings/two-factor-settings";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 import type { Metadata } from "next";
 
@@ -19,6 +21,12 @@ export default async function SecurityPage() {
     redirect("/login");
   }
 
+  // Get user's 2FA status
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { twoFactorEnabled: true },
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -33,7 +41,24 @@ export default async function SecurityPage() {
           <div className="flex items-center gap-3">
             <Shield className="h-5 w-5 text-primary" />
             <div>
-              <CardTitle>Authentication</CardTitle>
+              <CardTitle>Two-Factor Authentication</CardTitle>
+              <CardDescription>
+                Add an extra layer of security to your account
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <TwoFactorSettings isEnabled={user?.twoFactorEnabled ?? false} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Key className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Password</CardTitle>
               <CardDescription>
                 Your account security status
               </CardDescription>
@@ -42,21 +67,18 @@ export default async function SecurityPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="flex items-center gap-3">
-              <Key className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Password</p>
-                <p className="text-sm text-muted-foreground">
-                  Secured with OAuth authentication
-                </p>
-              </div>
+            <div>
+              <p className="font-medium">Password Authentication</p>
+              <p className="text-sm text-muted-foreground">
+                Secured with OAuth or credentials
+              </p>
             </div>
             <Button variant="outline" disabled>
               Change Password
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Your account uses OAuth authentication. Password changes should be made through your authentication provider.
+            Password changes should be made through your authentication provider or forgot password flow.
           </p>
         </CardContent>
       </Card>

@@ -64,6 +64,31 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
+// Two-Factor Authentication schemas
+export const setupTwoFactorSchema = z.object({
+  code: z
+    .string()
+    .length(6, "Code must be 6 digits")
+    .regex(/^\d+$/, "Code must only contain numbers"),
+});
+
+export const verifyTwoFactorSchema = z.object({
+  code: z
+    .string()
+    .min(6, "Code is required")
+    .max(10, "Code is too long") // Allow backup codes (8 chars + formatting)
+    .transform((val) => val.replace(/[\s-]/g, "")), // Remove spaces and dashes
+  userId: z.string().min(1, "User ID is required"),
+});
+
+export const disableTwoFactorSchema = z.object({
+  code: z
+    .string()
+    .min(6, "Code is required")
+    .max(10, "Code is too long")
+    .transform((val) => val.replace(/[\s-]/g, "")),
+});
+
 // Type exports
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -71,3 +96,6 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type SetupTwoFactorInput = z.infer<typeof setupTwoFactorSchema>;
+export type VerifyTwoFactorInput = z.infer<typeof verifyTwoFactorSchema>;
+export type DisableTwoFactorInput = z.infer<typeof disableTwoFactorSchema>;

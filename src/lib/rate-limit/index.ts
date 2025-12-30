@@ -121,6 +121,17 @@ export const rateLimiters = {
       limit: 1000,
       window: 60,
     }),
+
+  /**
+   * Two-Factor Authentication: 5 attempts per 5 minutes
+   * Strict limit to prevent TOTP brute force
+   */
+  twoFactor: (identifier: string) =>
+    rateLimit({
+      key: `2fa:${identifier}`,
+      limit: 5,
+      window: 300, // 5 minutes
+    }),
 };
 
 /**
