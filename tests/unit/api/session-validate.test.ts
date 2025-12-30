@@ -54,7 +54,7 @@ describe("GET /api/session/validate", () => {
   });
 
   describe("session validation", () => {
-    it("returns valid:false when no session token cookie exists", async () => {
+    it("returns valid:true when no session token cookie exists (legacy session)", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockCookies.mockResolvedValue({
         get: vi.fn().mockReturnValue(undefined),
@@ -63,10 +63,11 @@ describe("GET /api/session/validate", () => {
       const response = await GET();
       const data = await response.json();
 
-      expect(data.valid).toBe(false);
+      // Legacy sessions (no cookie) should be treated as valid
+      expect(data.valid).toBe(true);
     });
 
-    it("returns valid:false when session is revoked", async () => {
+    it("returns valid:false when session token exists but is revoked", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockFindFirst.mockResolvedValue(null); // No valid session found
 
@@ -113,14 +114,15 @@ describe("GET /api/session/validate", () => {
   });
 
   describe("error handling", () => {
-    it("returns valid:false on database error", async () => {
+    it("returns valid:true on database error (fail safe)", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockFindFirst.mockRejectedValue(new Error("Database error"));
 
       const response = await GET();
       const data = await response.json();
 
-      expect(data.valid).toBe(false);
+      // On error, fail safe - don't invalidate session
+      expect(data.valid).toBe(true);
     });
   });
 });

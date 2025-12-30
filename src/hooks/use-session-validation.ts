@@ -1,28 +1,37 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+
+import { forceLogoutAction } from "@/actions/auth/force-logout";
 
 const VALIDATION_INTERVAL = 30000; // Check every 30 seconds
 
 export function useSessionValidation() {
-  const router = useRouter();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const validateSession = useCallback(async () => {
+    // Prevent multiple logout attempts
+    if (isLoggingOut) return;
+
     try {
       const response = await fetch("/api/session/validate");
       const data = await response.json();
 
       if (!data.valid) {
-        // Session is no longer valid, redirect to login
-        router.push("/login?error=SessionRevoked");
+        setIsLoggingOut(true);
+        // Clear interval to prevent more checks
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        // Session is no longer valid, force logout
+        await forceLogoutAction();
       }
     } catch (error) {
       // On network error, don't redirect - might be temporary
       console.error("[useSessionValidation] Error:", error);
     }
-  }, [router]);
+  }, [isLoggingOut]);
 
   useEffect(() => {
     // Start polling

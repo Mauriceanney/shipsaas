@@ -8,6 +8,7 @@ export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
+      // Not authenticated via Auth.js - invalid
       return NextResponse.json({ valid: false });
     }
 
@@ -15,7 +16,10 @@ export async function GET() {
     const sessionToken = cookieStore.get("user-session-token")?.value;
 
     if (!sessionToken) {
-      return NextResponse.json({ valid: false });
+      // No session token cookie means this is a legacy session
+      // (logged in before session tracking was implemented)
+      // Treat as valid - don't force logout for existing users
+      return NextResponse.json({ valid: true });
     }
 
     // Check if the session is still valid (not revoked, not expired)
@@ -29,9 +33,12 @@ export async function GET() {
       select: { id: true },
     });
 
+    // If session token exists but no matching valid session found,
+    // it means the session was revoked
     return NextResponse.json({ valid: !!userSession });
   } catch (error) {
     console.error("[session/validate]", error);
-    return NextResponse.json({ valid: false });
+    // On error, don't invalidate the session - fail safe
+    return NextResponse.json({ valid: true });
   }
 }
