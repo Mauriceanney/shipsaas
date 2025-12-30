@@ -74,6 +74,44 @@ describe("RegisterForm", () => {
       expect(screen.getByRole("checkbox", { name: /terms of service/i })).toBeInTheDocument();
     });
 
+    it("renders submit button disabled initially when TOS not accepted", () => {
+      render(<RegisterForm />);
+
+      expect(screen.getByTestId("register-button")).toBeDisabled();
+    });
+
+    it("enables submit button when TOS is accepted", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      // Initially disabled
+      expect(screen.getByTestId("register-button")).toBeDisabled();
+
+      // Click TOS checkbox
+      const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+      await user.click(tosCheckbox);
+
+      // Now enabled
+      expect(screen.getByTestId("register-button")).not.toBeDisabled();
+    });
+
+    it("disables submit button when TOS is unchecked", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+
+      // Accept TOS
+      await user.click(tosCheckbox);
+      expect(screen.getByTestId("register-button")).not.toBeDisabled();
+
+      // Uncheck TOS
+      await user.click(tosCheckbox);
+      expect(screen.getByTestId("register-button")).toBeDisabled();
+    });
+
     it("renders name input with correct attributes", () => {
       render(<RegisterForm />);
 
@@ -476,8 +514,14 @@ describe("RegisterForm", () => {
       expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument();
     });
 
-    it("submit button is focusable", () => {
+    it("submit button is focusable when enabled", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
       render(<RegisterForm />);
+
+      // Accept TOS to enable the button
+      const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+      await user.click(tosCheckbox);
 
       const submitButton = screen.getByTestId("register-button");
       submitButton.focus();

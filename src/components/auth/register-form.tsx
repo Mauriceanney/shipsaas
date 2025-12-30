@@ -171,7 +171,7 @@ export function RegisterForm() {
         <Button
           type="submit"
           className="w-full"
-          disabled={isPending}
+          disabled={isPending || !tosAccepted}
           data-testid="register-button"
         >
           {isPending ? "Creating account..." : "Create account"}
