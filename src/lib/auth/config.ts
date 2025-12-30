@@ -5,14 +5,11 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 import { db } from "@/lib/db";
-import { hashDeviceToken } from "@/lib/two-factor";
+import { hashDeviceToken, TRUSTED_DEVICE_COOKIE } from "@/lib/two-factor";
 import { loginSchema } from "@/lib/validations/auth";
 
 import type { Role } from "@prisma/client";
 import type { NextAuthConfig } from "next-auth";
-
-/** Cookie name for trusted device token */
-const TRUSTED_DEVICE_COOKIE = "trusted_device";
 
 export const authConfig: NextAuthConfig = {
   pages: {

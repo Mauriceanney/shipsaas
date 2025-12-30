@@ -12,6 +12,7 @@ import {
   getTrustedDeviceExpiry,
   parseDeviceName,
   TRUSTED_DEVICE_DURATION_DAYS,
+  TRUSTED_DEVICE_COOKIE,
 } from "@/lib/two-factor";
 import {
   rateLimiters,
@@ -21,9 +22,6 @@ import {
   verifyTwoFactorSchema,
   type VerifyTwoFactorInput,
 } from "@/lib/validations/auth";
-
-/** Cookie name for trusted device token */
-export const TRUSTED_DEVICE_COOKIE = "trusted_device";
 
 type VerifyResult =
   | { success: true }

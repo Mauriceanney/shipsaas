@@ -117,6 +117,9 @@ export function formatBackupCodes(codes: string[]): string[] {
 /** Default trust duration: 30 days */
 export const TRUSTED_DEVICE_DURATION_DAYS = 30;
 
+/** Cookie name for trusted device token */
+export const TRUSTED_DEVICE_COOKIE = "trusted_device";
+
 /**
  * Generate a secure device token for trusted device cookie
  */

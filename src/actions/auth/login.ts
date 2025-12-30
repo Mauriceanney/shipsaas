@@ -10,11 +10,8 @@ import {
   rateLimiters,
   getClientIpFromHeaders,
 } from "@/lib/rate-limit";
-import { hashDeviceToken } from "@/lib/two-factor";
+import { hashDeviceToken, TRUSTED_DEVICE_COOKIE } from "@/lib/two-factor";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
-
-/** Cookie name for trusted device token */
-const TRUSTED_DEVICE_COOKIE = "trusted_device";
 
 type Result =
   | { success: true }
