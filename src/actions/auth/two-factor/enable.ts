@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { verifyTOTP, generateBackupCodes, formatBackupCodes } from "@/lib/two-factor";
@@ -80,6 +81,9 @@ export async function enableTwoFactorAction(
         twoFactorBackupCodes: hashedCodes,
       },
     });
+
+    // Track 2FA enabled event
+    trackServerEvent(session.user.id, AUTH_EVENTS.TWO_FACTOR_ENABLED);
 
     // Return formatted backup codes for display
     return {

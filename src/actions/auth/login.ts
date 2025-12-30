@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { AuthError } from "next-auth";
 
+import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { signIn } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -104,6 +105,11 @@ export async function loginAction(input: LoginInput): Promise<Result> {
               redirect: false,
             });
 
+            // Track login success
+            trackServerEvent(user.id, AUTH_EVENTS.LOGIN_SUCCESS, {
+              method: "trusted_device",
+            });
+
             return { success: true };
           }
         }
@@ -123,6 +129,17 @@ export async function loginAction(input: LoginInput): Promise<Result> {
       password,
       redirect: false,
     });
+
+    // Track login success (fetch user for ID if not already loaded)
+    const loggedInUser = user ?? await db.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (loggedInUser) {
+      trackServerEvent(loggedInUser.id, AUTH_EVENTS.LOGIN_SUCCESS, {
+        method: "credentials",
+      });
+    }
 
     return { success: true };
   } catch (error) {
