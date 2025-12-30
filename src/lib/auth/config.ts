@@ -18,6 +18,38 @@ export const authConfig: NextAuthConfig = {
     newUser: "/dashboard",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      // Skip 2FA check for the two-factor provider (already verified)
+      if (account?.provider === "two-factor") {
+        return true;
+      }
+
+      // Check 2FA for OAuth providers (Google, GitHub)
+      if (account?.provider === "google" || account?.provider === "github") {
+        // Find user by email to check 2FA status
+        const dbUser = await db.user.findUnique({
+          where: { email: user.email ?? undefined },
+          select: {
+            id: true,
+            twoFactorEnabled: true,
+            disabled: true,
+          },
+        });
+
+        // Block disabled users
+        if (dbUser?.disabled) {
+          return "/login?error=AccountDisabled";
+        }
+
+        // If user has 2FA enabled, redirect to 2FA verification
+        if (dbUser?.twoFactorEnabled) {
+          return `/login/verify-2fa?userId=${dbUser.id}`;
+        }
+      }
+
+      // For credentials provider, 2FA is handled in the login action
+      return true;
+    },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const { pathname } = nextUrl;
@@ -28,6 +60,7 @@ export const authConfig: NextAuthConfig = {
         "/pricing",
         "/blog",
         "/login",
+        "/login/verify-2fa",
         "/signup",
         "/forgot-password",
         "/reset-password",
