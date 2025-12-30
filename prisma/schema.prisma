@@ -26,6 +26,12 @@ model User {
   disabled         Boolean   @default(false)
   tosAcceptedAt    DateTime? // Terms of Service acceptance timestamp
 
+  // Email Preferences (GDPR compliant)
+  unsubscribeToken       String   @unique @default(cuid()) // Token for one-click unsubscribe
+  emailMarketingOptIn    Boolean  @default(true)  // Marketing/promotional emails
+  emailProductUpdates    Boolean  @default(true)  // Product updates and announcements
+  emailSecurityAlerts    Boolean  @default(true)  // Security alerts (recommended always on)
+
   // Two-Factor Authentication
   twoFactorSecret      String?   // Encrypted TOTP secret
   twoFactorEnabled     Boolean   @default(false)
@@ -50,6 +56,7 @@ model User {
   @@index([deletedAt])
   @@index([disabled])
   @@index([twoFactorEnabled])
+  @@index([unsubscribeToken])
 }
 
 model Account {
