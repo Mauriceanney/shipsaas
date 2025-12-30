@@ -8,7 +8,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider, usePostHog } from "posthog-js/react";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { initPostHog } from "@/lib/analytics/client";
 import { analyticsConfig } from "@/lib/analytics/config";
@@ -37,8 +37,17 @@ function PostHogPageView() {
 
 /**
  * Suspended page view tracker
+ * Only renders after client-side hydration to avoid SSR mismatch
  */
 function SuspendedPageView() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <Suspense fallback={null}>
       <PostHogPageView />
@@ -55,8 +64,9 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
     initPostHog();
   }, []);
 
-  // If no PostHog key or SSR, render children without provider
-  if (!analyticsConfig.posthogKey || typeof window === "undefined") {
+  // If no PostHog key, render children without provider
+  // Note: Don't check typeof window here as it causes hydration mismatch
+  if (!analyticsConfig.posthogKey) {
     return <>{children}</>;
   }
 

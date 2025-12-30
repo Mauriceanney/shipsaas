@@ -10,7 +10,7 @@ export const analyticsConfig = {
   enabled:
     process.env.NODE_ENV === "production" &&
     !!process.env["NEXT_PUBLIC_POSTHOG_KEY"],
-  debug: process.env.NODE_ENV === "development",
+  debug: process.env["NEXT_PUBLIC_POSTHOG_DEBUG"] === "true",
 } as const;
 
 /**
