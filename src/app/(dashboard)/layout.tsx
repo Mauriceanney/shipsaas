@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SessionProvider } from "next-auth/react";
 
 import { checkAndSendWelcomeEmail } from "@/actions/auth/send-welcome-email";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
@@ -28,11 +29,13 @@ export default async function DashboardLayout({
   };
 
   return (
-    <SessionValidationProvider>
-      <div className="flex h-screen overflow-hidden">
-        <AppSidebar user={user} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
-      </div>
-    </SessionValidationProvider>
+    <SessionProvider session={session}>
+      <SessionValidationProvider>
+        <div className="flex h-screen overflow-hidden">
+          <AppSidebar user={user} />
+          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        </div>
+      </SessionValidationProvider>
+    </SessionProvider>
   );
 }

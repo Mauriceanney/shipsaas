@@ -177,6 +177,7 @@ model Subscription {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
   status                 SubscriptionStatus @default(INACTIVE)
+  statusChangedAt        DateTime?          // When status last changed (for grace period tracking)
   plan                   Plan               @default(FREE)
   cancelAtPeriodEnd      Boolean            @default(false)
 

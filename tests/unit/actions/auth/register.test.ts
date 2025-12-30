@@ -1,10 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted for mock functions that need to be hoisted
-const { mockFindUnique, mockCreate, mockTokenCreate, mockSendVerificationEmail, mockRateLimitAuth, mockGetClientIpFromHeaders } = vi.hoisted(() => ({
+const { mockFindUnique, mockCreate, mockTokenCreate, mockSubscriptionCreate, mockSendVerificationEmail, mockRateLimitAuth, mockGetClientIpFromHeaders } = vi.hoisted(() => ({
   mockFindUnique: vi.fn(),
   mockCreate: vi.fn(),
   mockTokenCreate: vi.fn(),
+  mockSubscriptionCreate: vi.fn(),
   mockSendVerificationEmail: vi.fn(),
   mockRateLimitAuth: vi.fn(),
   mockGetClientIpFromHeaders: vi.fn(),
@@ -19,6 +20,9 @@ vi.mock("@/lib/db", () => ({
     },
     verificationToken: {
       create: mockTokenCreate,
+    },
+    subscription: {
+      create: mockSubscriptionCreate,
     },
   },
 }));
@@ -59,6 +63,12 @@ describe("registerAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSendVerificationEmail.mockResolvedValue({ success: true });
+    mockSubscriptionCreate.mockResolvedValue({
+      id: "sub-123",
+      userId: "user-123",
+      plan: "FREE",
+      status: "ACTIVE",
+    });
     // Default: rate limiting allows request
     mockGetClientIpFromHeaders.mockReturnValue("192.168.1.1");
     mockRateLimitAuth.mockResolvedValue({
@@ -351,6 +361,33 @@ describe("registerAction", () => {
         "mock-verification-token",
         "Test User"
       );
+    });
+
+    it("creates FREE subscription for new user", async () => {
+      mockFindUnique.mockResolvedValue(null);
+      mockCreate.mockResolvedValue({
+        id: "user-123",
+        name: "Test User",
+        email: "user@example.com",
+      });
+      mockTokenCreate.mockResolvedValue({});
+
+      const result = await registerAction({
+        name: "Test User",
+        email: "user@example.com",
+        password: "SecurePass123!",
+        confirmPassword: "SecurePass123!",
+        tosAccepted: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockSubscriptionCreate).toHaveBeenCalledWith({
+        data: {
+          userId: "user-123",
+          plan: "FREE",
+          status: "ACTIVE",
+        },
+      });
     });
   });
 
