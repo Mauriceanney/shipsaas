@@ -32,6 +32,10 @@ export {
   PaymentFailedEmail,
   type PaymentFailedEmailProps,
 } from "./payment-failed";
+export {
+  InvoiceReceiptEmail,
+  type InvoiceReceiptEmailProps,
+} from "./invoice-receipt";
 
 // Component exports
 export * from "./components";
@@ -49,6 +53,10 @@ import {
   PaymentFailedEmail,
   type PaymentFailedEmailProps,
 } from "./payment-failed";
+import {
+  InvoiceReceiptEmail,
+  type InvoiceReceiptEmailProps,
+} from "./invoice-receipt";
 import {
   SubscriptionCancelledEmail,
   type SubscriptionCancelledEmailProps,
@@ -170,6 +178,20 @@ export async function renderPaymentFailedEmail(
   return { html, text };
 }
 
+/**
+ * Render invoice receipt email to HTML and plain text
+ */
+export async function renderInvoiceReceiptEmail(
+  props: InvoiceReceiptEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(InvoiceReceiptEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
 // ============================================
 // TEMPLATE TYPES MAP
 // ============================================
@@ -186,6 +208,7 @@ export type EmailTemplates = {
   "subscription-confirm": SubscriptionConfirmEmailProps;
   "subscription-cancelled": SubscriptionCancelledEmailProps;
   "payment-failed": PaymentFailedEmailProps;
+  "invoice-receipt": InvoiceReceiptEmailProps;
 };
 
 /**
