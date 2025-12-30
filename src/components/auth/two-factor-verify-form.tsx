@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { verifyTwoFactorAction } from "@/actions/auth/two-factor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -19,6 +20,7 @@ export function TwoFactorVerifyForm() {
   const [error, setError] = useState<string | null>(null);
   const [useBackupCode, setUseBackupCode] = useState(false);
   const [code, setCode] = useState("");
+  const [rememberDevice, setRememberDevice] = useState(false);
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -47,7 +49,7 @@ export function TwoFactorVerifyForm() {
     setError(null);
 
     startTransition(async () => {
-      const result = await verifyTwoFactorAction({ code, userId });
+      const result = await verifyTwoFactorAction({ code, userId, rememberDevice });
 
       if (result.success) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,6 +99,21 @@ export function TwoFactorVerifyForm() {
               ? "Enter one of your backup codes"
               : "Enter the 6-digit code from your authenticator app"}
           </p>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="rememberDevice"
+            checked={rememberDevice}
+            onCheckedChange={(checked) => setRememberDevice(checked === true)}
+            disabled={isPending}
+          />
+          <Label
+            htmlFor="rememberDevice"
+            className="text-sm font-normal text-muted-foreground cursor-pointer"
+          >
+            Remember this device for 30 days
+          </Label>
         </div>
 
         <Button type="submit" className="w-full" disabled={isPending}>

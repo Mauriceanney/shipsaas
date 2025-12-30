@@ -1,8 +1,18 @@
 "use server";
 
+import { cookies, headers } from "next/headers";
+
 import { signIn } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { verifyTOTP, verifyBackupCode } from "@/lib/two-factor";
+import {
+  verifyTOTP,
+  verifyBackupCode,
+  generateDeviceToken,
+  hashDeviceToken,
+  getTrustedDeviceExpiry,
+  parseDeviceName,
+  TRUSTED_DEVICE_DURATION_DAYS,
+} from "@/lib/two-factor";
 import {
   rateLimiters,
   getClientIpFromHeaders,
@@ -11,6 +21,9 @@ import {
   verifyTwoFactorSchema,
   type VerifyTwoFactorInput,
 } from "@/lib/validations/auth";
+
+/** Cookie name for trusted device token */
+export const TRUSTED_DEVICE_COOKIE = "trusted_device";
 
 type VerifyResult =
   | { success: true }
@@ -96,6 +109,37 @@ export async function verifyTwoFactorAction(
 
     if (!isValid) {
       return { success: false, error: "Invalid verification code" };
+    }
+
+    // Handle trusted device if requested
+    const { rememberDevice } = validatedFields.data;
+    if (rememberDevice) {
+      const headersList = await headers();
+      const userAgent = headersList.get("user-agent");
+      const deviceName = parseDeviceName(userAgent);
+      const deviceToken = generateDeviceToken();
+      const tokenHash = await hashDeviceToken(deviceToken);
+      const expiresAt = getTrustedDeviceExpiry();
+
+      // Store trusted device in database
+      await db.trustedDevice.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          deviceName,
+          expiresAt,
+        },
+      });
+
+      // Set the trusted device cookie
+      const cookieStore = await cookies();
+      cookieStore.set(TRUSTED_DEVICE_COOKIE, deviceToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: TRUSTED_DEVICE_DURATION_DAYS * 24 * 60 * 60, // 30 days in seconds
+        path: "/",
+      });
     }
 
     // Create session using the two-factor provider

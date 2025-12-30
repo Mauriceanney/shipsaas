@@ -109,3 +109,71 @@ export async function verifyBackupCode(
 export function formatBackupCodes(codes: string[]): string[] {
   return codes.map((code) => `${code.slice(0, 4)}-${code.slice(4)}`);
 }
+
+// ============================================
+// TRUSTED DEVICE FUNCTIONS
+// ============================================
+
+/** Default trust duration: 30 days */
+export const TRUSTED_DEVICE_DURATION_DAYS = 30;
+
+/**
+ * Generate a secure device token for trusted device cookie
+ */
+export function generateDeviceToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+/**
+ * Hash a device token for storage
+ */
+export async function hashDeviceToken(token: string): Promise<string> {
+  // Use SHA-256 for device tokens (faster than bcrypt, still secure for random tokens)
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * Calculate expiry date for trusted device
+ */
+export function getTrustedDeviceExpiry(days: number = TRUSTED_DEVICE_DURATION_DAYS): Date {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + days);
+  return expiresAt;
+}
+
+/**
+ * Parse user agent string to get device name
+ */
+export function parseDeviceName(userAgent: string | null): string {
+  if (!userAgent) return "Unknown Device";
+
+  // Simple browser detection
+  let browser = "Unknown Browser";
+  let os = "Unknown OS";
+
+  // Detect browser
+  if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) {
+    browser = "Chrome";
+  } else if (userAgent.includes("Firefox")) {
+    browser = "Firefox";
+  } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
+    browser = "Safari";
+  } else if (userAgent.includes("Edg")) {
+    browser = "Edge";
+  }
+
+  // Detect OS
+  if (userAgent.includes("Windows")) {
+    os = "Windows";
+  } else if (userAgent.includes("Mac OS")) {
+    os = "macOS";
+  } else if (userAgent.includes("Linux")) {
+    os = "Linux";
+  } else if (userAgent.includes("iPhone") || userAgent.includes("iPad")) {
+    os = "iOS";
+  } else if (userAgent.includes("Android")) {
+    os = "Android";
+  }
+
+  return `${browser} on ${os}`;
+}

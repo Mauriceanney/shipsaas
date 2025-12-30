@@ -1,13 +1,18 @@
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 import { db } from "@/lib/db";
+import { hashDeviceToken } from "@/lib/two-factor";
 import { loginSchema } from "@/lib/validations/auth";
 
 import type { Role } from "@prisma/client";
 import type { NextAuthConfig } from "next-auth";
+
+/** Cookie name for trusted device token */
+const TRUSTED_DEVICE_COOKIE = "trusted_device";
 
 export const authConfig: NextAuthConfig = {
   pages: {
@@ -41,8 +46,36 @@ export const authConfig: NextAuthConfig = {
           return "/login?error=AccountDisabled";
         }
 
-        // If user has 2FA enabled, redirect to 2FA verification
+        // If user has 2FA enabled, check for trusted device first
         if (dbUser?.twoFactorEnabled) {
+          // Check for trusted device cookie
+          const cookieStore = await cookies();
+          const deviceToken = cookieStore.get(TRUSTED_DEVICE_COOKIE)?.value;
+
+          if (deviceToken) {
+            // Verify the device token
+            const tokenHash = await hashDeviceToken(deviceToken);
+            const trustedDevice = await db.trustedDevice.findFirst({
+              where: {
+                userId: dbUser.id,
+                tokenHash,
+                expiresAt: { gt: new Date() }, // Not expired
+              },
+            });
+
+            if (trustedDevice) {
+              // Update last used timestamp
+              await db.trustedDevice.update({
+                where: { id: trustedDevice.id },
+                data: { lastUsedAt: new Date() },
+              });
+
+              // Device is trusted, skip 2FA
+              return true;
+            }
+          }
+
+          // No valid trusted device, require 2FA
           return `/login/verify-2fa?userId=${dbUser.id}`;
         }
       }

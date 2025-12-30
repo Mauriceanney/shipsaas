@@ -79,6 +79,7 @@ export const verifyTwoFactorSchema = z.object({
     .max(10, "Code is too long") // Allow backup codes (8 chars + formatting)
     .transform((val) => val.replace(/[\s-]/g, "")), // Remove spaces and dashes
   userId: z.string().min(1, "User ID is required"),
+  rememberDevice: z.boolean().optional().default(false),
 });
 
 export const disableTwoFactorSchema = z.object({
