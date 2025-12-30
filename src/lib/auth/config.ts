@@ -227,6 +227,7 @@ export const authConfig: NextAuthConfig = {
             emailVerified: true,
             disabled: true,
             twoFactorEnabled: true,
+            password: true, // Check if user is OAuth-only
           },
         });
 
@@ -234,8 +235,15 @@ export const authConfig: NextAuthConfig = {
           return null;
         }
 
-        // Additional safety checks
-        if (!user.emailVerified || user.disabled) {
+        // Block disabled users
+        if (user.disabled) {
+          return null;
+        }
+
+        // OAuth users (no password) don't need email verification - OAuth provider verified it
+        // Credentials users must have verified their email
+        const isOAuthUser = !user.password;
+        if (!isOAuthUser && !user.emailVerified) {
           return null;
         }
 
