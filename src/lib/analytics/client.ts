@@ -11,6 +11,9 @@ import { analyticsConfig } from "./config";
 
 import type { Session } from "next-auth";
 
+// Module-level flag to prevent double initialization
+let isInitialized = false;
+
 /**
  * Initialize PostHog client
  * Called once in PostHogProvider
@@ -18,6 +21,10 @@ import type { Session } from "next-auth";
 export function initPostHog(): void {
   if (typeof window === "undefined") return;
   if (!analyticsConfig.posthogKey) return;
+
+  // Prevent double initialization using module-level flag
+  if (isInitialized) return;
+  isInitialized = true;
 
   posthog.init(analyticsConfig.posthogKey, {
     api_host: analyticsConfig.posthogHost,
