@@ -1,6 +1,8 @@
-import { Key, Shield } from "lucide-react";
+import { History, Key, Monitor, Shield } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { LoginHistoryList } from "@/components/settings/login-history-list";
+import { SessionsList } from "@/components/settings/sessions-list";
 import { TwoFactorSettings } from "@/components/settings/two-factor-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,23 +87,35 @@ export default async function SecurityPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sessions</CardTitle>
-          <CardDescription>
-            Manage your active sessions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between rounded-lg border p-4">
+          <div className="flex items-center gap-3">
+            <Monitor className="h-5 w-5 text-primary" />
             <div>
-              <p className="font-medium">Current Session</p>
-              <p className="text-sm text-muted-foreground">
-                Active now
-              </p>
-            </div>
-            <div className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-600">
-              Active
+              <CardTitle>Active Sessions</CardTitle>
+              <CardDescription>
+                Manage your active sessions across devices
+              </CardDescription>
             </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          <SessionsList />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <History className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Login History</CardTitle>
+              <CardDescription>
+                Recent login attempts to your account
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <LoginHistoryList />
         </CardContent>
       </Card>
     </div>

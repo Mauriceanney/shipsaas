@@ -33,6 +33,8 @@ model User {
   accounts               Account[]
   sessions               Session[]
   trustedDevices         TrustedDevice[]
+  userSessions           UserSession[]
+  loginHistory           LoginHistory[]
   subscription           Subscription?
   dataExportRequests     DataExportRequest[]
   accountDeletionRequest AccountDeletionRequest?
@@ -107,6 +109,51 @@ model TrustedDevice {
   @@index([userId])
   @@index([expiresAt])
   @@index([tokenHash])
+}
+
+// ============================================
+// SESSION MANAGEMENT MODELS
+// ============================================
+
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String    @unique // Links to Auth.js Session.sessionToken
+  ipAddress    String?
+  userAgent    String?
+  deviceName   String?   // Parsed from userAgent (e.g., "Chrome on macOS")
+  lastActiveAt DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime? // Null = active, set = revoked
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@index([lastActiveAt])
+}
+
+model LoginHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String?
+  userAgent  String?
+  deviceName String?  // Parsed from userAgent
+  success    Boolean
+  failReason String?  // "invalid_credentials", "account_disabled", "2fa_failed"
+  provider   String   // "credentials", "google", "github", "two-factor"
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([userId, success])
 }
 
 // ============================================
