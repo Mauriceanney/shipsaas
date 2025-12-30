@@ -25,8 +25,43 @@ export const authConfig: NextAuthConfig = {
     newUser: "/dashboard",
   },
   events: {
+    async createUser({ user }) {
+      // Create FREE subscription for new OAuth users
+      // (Email/password users get subscription created in registerAction)
+      if (user.id) {
+        // Check if subscription already exists (shouldn't, but be safe)
+        const existing = await db.subscription.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (!existing) {
+          await db.subscription.create({
+            data: {
+              userId: user.id,
+              plan: "FREE",
+              status: "ACTIVE",
+            },
+          });
+        }
+      }
+    },
     async signIn({ user, account }) {
       if (user.id && account?.provider) {
+        // Ensure user has a subscription (fallback for existing users)
+        const existing = await db.subscription.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (!existing) {
+          await db.subscription.create({
+            data: {
+              userId: user.id,
+              plan: "FREE",
+              status: "ACTIVE",
+            },
+          });
+        }
+
         // Record successful login
         await recordLoginAttempt({
           userId: user.id,
