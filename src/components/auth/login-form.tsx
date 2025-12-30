@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,30 @@ import { Separator } from "@/components/ui/separator";
 
 import { SocialLoginButtons } from "./social-login-buttons";
 
+const ERROR_MESSAGES: Record<string, string> = {
+  SessionRevoked: "Your session was ended from another device. Please sign in again.",
+  AccountDisabled: "Your account has been disabled. Contact support for help.",
+};
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const errorParam = searchParams.get("error");
 
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    errorParam ? ERROR_MESSAGES[errorParam] ?? null : null
+  );
+
+  // Clear error parameter from URL after reading it (so it doesn't persist on reload)
+  useEffect(() => {
+    if (errorParam && ERROR_MESSAGES[errorParam]) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [errorParam]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
