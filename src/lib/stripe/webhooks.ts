@@ -4,6 +4,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { trackServerEvent, SUBSCRIPTION_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail, sendPaymentFailedEmail, sendInvoiceReceiptEmail } from "@/lib/email";
 
@@ -75,6 +76,12 @@ export async function handleCheckoutCompleted(
   // Revalidate cached pages that display subscription data
   revalidatePath("/pricing");
   revalidatePath("/settings/billing");
+
+  // Track subscription created event
+  trackServerEvent(metadata.userId, SUBSCRIPTION_EVENTS.SUBSCRIPTION_CREATED, {
+    plan,
+    priceId,
+  });
 
   console.log(`Subscription created/updated for user: ${metadata.userId}`);
 
@@ -236,9 +243,21 @@ export async function handleSubscriptionUpdated(
 
   console.log(`Subscription updated: ${subscription.id}`);
 
+  // Track subscription update event
+  trackServerEvent(existingSubscription.userId, SUBSCRIPTION_EVENTS.SUBSCRIPTION_UPDATED, {
+    plan,
+    status: subscription.status,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+  });
+
   // Send cancellation email ONLY when cancel_at_period_end changes from false to true
   // This prevents duplicate emails when Stripe sends multiple update events
   if (isNewCancellation) {
+    // Track cancellation event
+    trackServerEvent(existingSubscription.userId, SUBSCRIPTION_EVENTS.SUBSCRIPTION_CANCELED, {
+      plan,
+    });
+
     console.log(`[handleSubscriptionUpdated] NEW cancellation detected for subscription ${subscription.id}`);
 
     try {
@@ -343,6 +362,11 @@ export async function handleInvoicePaid(
     await db.subscription.update({
       where: { id: pastDueSubscription.id },
       data: { status: "ACTIVE" },
+    });
+
+    // Track payment succeeded event
+    trackServerEvent(pastDueSubscription.userId, SUBSCRIPTION_EVENTS.PAYMENT_SUCCEEDED, {
+      recovered: true,
     });
 
     console.log(`Subscription reactivated after payment: ${subscriptionId}`);
@@ -457,6 +481,11 @@ export async function handleInvoicePaymentFailed(
   await db.subscription.update({
     where: { id: existingSubscription.id },
     data: { status: "PAST_DUE" },
+  });
+
+  // Track payment failed event
+  trackServerEvent(existingSubscription.userId, SUBSCRIPTION_EVENTS.PAYMENT_FAILED, {
+    plan: existingSubscription.plan,
   });
 
   console.log(`Subscription marked as past_due: ${existingSubscription.id}`);

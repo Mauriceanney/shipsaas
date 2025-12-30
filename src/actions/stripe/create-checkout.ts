@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { trackServerEvent, SUBSCRIPTION_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CHECKOUT_URLS, isValidPriceId, stripe } from "@/lib/stripe";
@@ -70,6 +71,11 @@ export async function createCheckoutAction(
     if (!checkoutSession.url) {
       return { success: false, error: "Failed to create checkout session" };
     }
+
+    // Track checkout started event
+    trackServerEvent(session.user.id, SUBSCRIPTION_EVENTS.CHECKOUT_STARTED, {
+      priceId,
+    });
 
     return { success: true, data: { url: checkoutSession.url } };
   } catch (error) {

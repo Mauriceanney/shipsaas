@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+import { optInAnalytics, optOutAnalytics } from "@/lib/analytics/client";
+
 export type CookieConsentStatus = "pending" | "accepted" | "rejected" | "customized";
 
 export interface CookiePreferences {
@@ -49,6 +51,17 @@ export function useCookieConsent() {
     setIsLoaded(true);
   }, []);
 
+  // Apply analytics preference when loaded
+  useEffect(() => {
+    if (!isLoaded || status === "pending") return;
+
+    if (preferences.analytics) {
+      optInAnalytics();
+    } else {
+      optOutAnalytics();
+    }
+  }, [isLoaded, status, preferences.analytics]);
+
   // Set cookie for server-side access
   const setCookieConsentCookie = useCallback((value: CookieConsentStatus) => {
     const maxAge = 365 * 24 * 60 * 60; // 1 year
@@ -68,6 +81,9 @@ export function useCookieConsent() {
     localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(newPreferences));
     setCookieConsentCookie("accepted");
+
+    // Enable analytics tracking
+    optInAnalytics();
   }, [setCookieConsentCookie]);
 
   // Reject non-essential cookies
@@ -83,6 +99,9 @@ export function useCookieConsent() {
     localStorage.setItem(COOKIE_CONSENT_KEY, "rejected");
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(newPreferences));
     setCookieConsentCookie("rejected");
+
+    // Disable analytics tracking
+    optOutAnalytics();
   }, [setCookieConsentCookie]);
 
   // Save custom preferences
@@ -98,6 +117,13 @@ export function useCookieConsent() {
     localStorage.setItem(COOKIE_CONSENT_KEY, "customized");
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(newPreferences));
     setCookieConsentCookie("customized");
+
+    // Enable or disable analytics based on preference
+    if (newPreferences.analytics) {
+      optInAnalytics();
+    } else {
+      optOutAnalytics();
+    }
   }, [setCookieConsentCookie]);
 
   // Reset consent (for testing or user request)

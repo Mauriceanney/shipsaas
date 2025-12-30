@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { verifyTOTP, verifyBackupCode } from "@/lib/two-factor";
@@ -87,6 +88,9 @@ export async function disableTwoFactorAction(
         twoFactorBackupCodes: [],
       },
     });
+
+    // Track 2FA disabled event
+    trackServerEvent(session.user.id, AUTH_EVENTS.TWO_FACTOR_DISABLED);
 
     return { success: true };
   } catch (error) {

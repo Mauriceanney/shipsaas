@@ -4,6 +4,7 @@ import crypto from "crypto";
 
 import bcrypt from "bcryptjs";
 
+import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/email";
 import {
@@ -75,6 +76,11 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
         plan: "FREE",
         status: "ACTIVE",
       },
+    });
+
+    // Track signup event
+    trackServerEvent(user.id, AUTH_EVENTS.SIGNUP_COMPLETED, {
+      plan: "FREE",
     });
 
     // Generate verification token
