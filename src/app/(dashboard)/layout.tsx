@@ -40,11 +40,13 @@ export default async function DashboardLayout({
       <SessionValidationProvider>
         <div className="flex h-screen overflow-hidden">
           <AppSidebar user={user} subscription={subscription} />
-          <main className="flex-1 overflow-y-auto p-6">
-            <Suspense fallback={null}>
-              <DunningBanner />
-            </Suspense>
-            {children}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            <div className="mx-auto max-w-7xl">
+              <Suspense fallback={null}>
+                <DunningBanner />
+              </Suspense>
+              {children}
+            </div>
           </main>
         </div>
       </SessionValidationProvider>

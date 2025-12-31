@@ -14,7 +14,9 @@ export default async function AdminLayout({
     <SessionValidationProvider>
       <div className="flex min-h-screen">
         <AdminSidebar />
-        <main className="flex-1 overflow-auto bg-background p-6">{children}</main>
+        <main className="flex-1 overflow-auto bg-background p-4 md:p-6">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
       </div>
     </SessionValidationProvider>
   );

@@ -4,7 +4,6 @@ import { format } from "date-fns";
 import { Check, Sparkles, Zap } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 import type { SubscriptionInfo } from "@/lib/stripe/types";
 
@@ -13,11 +12,11 @@ interface SubscriptionStatusProps {
 }
 
 const statusConfig = {
-  ACTIVE: { color: "bg-green-100 text-green-700", label: "Active" },
-  TRIALING: { color: "bg-blue-100 text-blue-700", label: "Trial" },
-  PAST_DUE: { color: "bg-yellow-100 text-yellow-700", label: "Past Due" },
-  CANCELED: { color: "bg-red-100 text-red-700", label: "Canceled" },
-  INACTIVE: { color: "bg-gray-100 text-gray-700", label: "Inactive" },
+  ACTIVE: { variant: "success" as const, label: "Active" },
+  TRIALING: { variant: "info" as const, label: "Trial" },
+  PAST_DUE: { variant: "warning" as const, label: "Past Due" },
+  CANCELED: { variant: "error" as const, label: "Canceled" },
+  INACTIVE: { variant: "secondary" as const, label: "Inactive" },
 };
 
 const FREE_PLAN_FEATURES = [
@@ -81,7 +80,7 @@ export function SubscriptionStatus({ subscription }: SubscriptionStatusProps) {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-lg">{planDisplayName} Plan</h3>
-            <Badge className={cn(status.color)}>
+            <Badge variant={status.variant}>
               {status.label}
             </Badge>
           </div>
