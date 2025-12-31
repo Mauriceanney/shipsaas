@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { rateLimiters } from "@/lib/rate-limit";
 
 /**
  * Data Export Actions
@@ -44,6 +45,15 @@ export async function requestDataExport(): Promise<ExportDataResult> {
   }
 
   const userId = session.user.id;
+
+  // Rate limiting - 3 requests per day
+  const rateLimitResult = await rateLimiters.dataExport(userId);
+  if (!rateLimitResult.success) {
+    return {
+      success: false,
+      error: "Too many export requests. Please try again later.",
+    };
+  }
 
   // Check for existing pending request
   const existingRequest = await db.dataExportRequest.findFirst({

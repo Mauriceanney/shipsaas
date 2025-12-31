@@ -341,6 +341,39 @@ export const rateLimiters = {
       limit: 5,
       window: 300, // 5 minutes
     }),
+
+  /**
+   * Forgot password: 5 requests per hour per email
+   * Prevents abuse while allowing legitimate retries
+   */
+  forgotPassword: (email: string) =>
+    rateLimit({
+      key: `forgot-pwd:${email}`,
+      limit: 5,
+      window: 3600, // 1 hour
+    }),
+
+  /**
+   * Data export: 3 requests per day per user
+   * GDPR compliance while preventing abuse
+   */
+  dataExport: (userId: string) =>
+    rateLimit({
+      key: `data-export:${userId}`,
+      limit: 3,
+      window: 86400, // 24 hours
+    }),
+
+  /**
+   * Retry payment: 3 requests per hour per user
+   * Prevents payment retry spam
+   */
+  retryPayment: (userId: string) =>
+    rateLimit({
+      key: `retry-payment:${userId}`,
+      limit: 3,
+      window: 3600, // 1 hour
+    }),
 };
 
 /**

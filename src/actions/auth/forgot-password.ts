@@ -5,10 +5,7 @@ import crypto from "crypto";
 import { db } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
-import {
-  rateLimiters,
-  getClientIpFromHeaders,
-} from "@/lib/rate-limit";
+import { rateLimiters } from "@/lib/rate-limit";
 import {
   forgotPasswordSchema,
   type ForgotPasswordInput,
@@ -24,16 +21,7 @@ export async function forgotPasswordAction(
     "If an account exists with this email, you will receive a reset link";
 
   try {
-    // Rate limiting - use stricter passwordReset limiter
-    const clientIp = await getClientIpFromHeaders();
-    const rateLimitResult = await rateLimiters.passwordReset(clientIp);
-
-    // Return success even when rate limited to prevent enumeration
-    if (!rateLimitResult.success) {
-      return { success: true, message: successMessage };
-    }
-
-    // Validate input
+    // Validate input first to get email for rate limiting
     const validatedFields = forgotPasswordSchema.safeParse(input);
 
     if (!validatedFields.success) {
@@ -42,6 +30,14 @@ export async function forgotPasswordAction(
     }
 
     const { email } = validatedFields.data;
+
+    // Rate limiting - 5 requests per hour per email
+    const rateLimitResult = await rateLimiters.forgotPassword(email);
+
+    // Return success even when rate limited to prevent enumeration
+    if (!rateLimitResult.success) {
+      return { success: true, message: successMessage };
+    }
 
     // Check if user exists
     const user = await db.user.findUnique({
