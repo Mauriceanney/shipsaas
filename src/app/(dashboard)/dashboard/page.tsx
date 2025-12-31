@@ -1,8 +1,12 @@
+import { Calendar, CreditCard, Layers, Zap } from "lucide-react";
+
+import { getUserDashboardMetrics } from "@/actions/dashboard/metrics";
+import { MetricsCard } from "@/components/dashboard/metrics-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { UpgradeBanner } from "@/components/feature-gate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatLimit, isUnlimited } from "@/lib/stripe/config";
 
 import type { Metadata } from "next";
 
@@ -32,11 +36,27 @@ export default async function DashboardPage() {
       })
     : null;
 
+  // Get dashboard metrics
+  const metricsResult = await getUserDashboardMetrics();
+  const metrics = metricsResult.success ? metricsResult.data : null;
+
   const showOnboarding = user && !user.onboardingCompleted;
   const hasSubscription =
     user?.subscription?.status === "ACTIVE" ||
     user?.subscription?.status === "TRIALING";
   const isFreePlan = !hasSubscription || user?.subscription?.plan === "FREE";
+
+  // Format member since date
+  const memberSince = metrics?.account.memberSince
+    ? new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(
+        new Date(metrics.account.memberSince)
+      )
+    : "—";
+
+  // Get plan display name
+  const planDisplayName = metrics?.subscription?.plan
+    ? metrics.subscription.plan.charAt(0) + metrics.subscription.plan.slice(1).toLowerCase()
+    : "Free";
 
   return (
     <div className="space-y-6">
@@ -66,53 +86,53 @@ export default async function DashboardPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$45,231.89</div>
-            <p className="text-xs text-muted-foreground">
-              +20.1% from last month
-            </p>
-          </CardContent>
-        </Card>
+        <MetricsCard
+          title="Current Plan"
+          value={planDisplayName}
+          description={
+            metrics?.subscription?.status === "ACTIVE"
+              ? "Active subscription"
+              : metrics?.subscription?.status === "TRIALING"
+                ? "Trial period"
+                : "No active subscription"
+          }
+          icon={CreditCard}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subscriptions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+2,350</div>
-            <p className="text-xs text-muted-foreground">
-              +180.1% from last month
-            </p>
-          </CardContent>
-        </Card>
+        <MetricsCard
+          title="API Calls"
+          value={
+            metrics?.usage.apiCalls
+              ? `${formatLimit(metrics.usage.apiCalls.used)} / ${formatLimit(metrics.usage.apiCalls.limit)}`
+              : "—"
+          }
+          description="This month's usage"
+          icon={Zap}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+12,234</div>
-            <p className="text-xs text-muted-foreground">
-              +19% from last month
-            </p>
-          </CardContent>
-        </Card>
+        <MetricsCard
+          title="Projects"
+          value={
+            metrics?.usage.projects
+              ? isUnlimited(metrics.usage.projects.limit)
+                ? `${metrics.usage.projects.used} (Unlimited)`
+                : `${metrics.usage.projects.used} / ${metrics.usage.projects.limit}`
+              : "—"
+          }
+          description="Active projects"
+          icon={Layers}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Now</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+573</div>
-            <p className="text-xs text-muted-foreground">
-              +201 since last hour
-            </p>
-          </CardContent>
-        </Card>
+        <MetricsCard
+          title="Member Since"
+          value={memberSince}
+          description={
+            metrics?.activity.recentLogins
+              ? `${metrics.activity.recentLogins} logins in last 30 days`
+              : "Welcome!"
+          }
+          icon={Calendar}
+        />
       </div>
     </div>
   );
