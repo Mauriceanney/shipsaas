@@ -1,11 +1,13 @@
 import { headers } from "next/headers";
 
+import { logger } from "@/lib/logger";
 import { getRedis } from "@/lib/redis";
 
 /**
- * Rate Limiting
+ * Rate Limiting with In-Memory Fallback
  *
  * Distributed rate limiting using Redis sorted sets for sliding window algorithm.
+ * Falls back to in-memory limiting when Redis is unavailable.
  * Protects API endpoints and server actions from abuse.
  */
 
@@ -23,13 +25,201 @@ export interface RateLimitResult {
 }
 
 /**
- * Sliding window rate limiter using Redis sorted sets
+ * In-Memory Rate Limiter Fallback
+ * Used when Redis is unavailable
+ */
+class InMemoryRateLimiter {
+  private cache = new Map<string, { timestamps: number[]; lastAccess: number }>();
+  private readonly MAX_ENTRIES = 10000;
+  private readonly FALLBACK_MULTIPLIER = 0.5; // Use 50% of configured limits
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
+  constructor() {
+    // Start automatic cleanup every 60 seconds
+    if (typeof globalThis !== "undefined") {
+      this.cleanupInterval = setInterval(() => this.cleanup(), 60000);
+    }
+  }
+
+  check(key: string, limit: number, window: number): RateLimitResult {
+    const now = Date.now();
+    const windowStart = now - window * 1000;
+    const conservativeLimit = Math.max(1, Math.floor(limit * this.FALLBACK_MULTIPLIER));
+
+    // Get or create entry
+    let entry = this.cache.get(key);
+    if (!entry) {
+      entry = { timestamps: [], lastAccess: now };
+      this.cache.set(key, entry);
+    }
+
+    // Enforce max entries (LRU eviction)
+    if (this.cache.size > this.MAX_ENTRIES) {
+      this.evictOldest();
+      logger.warn(
+        {
+          component: "rate-limit",
+          entriesCount: this.cache.size,
+        },
+        "Rate limiter fallback approaching memory limit, evicting oldest entries"
+      );
+    }
+
+    // Remove expired timestamps
+    entry.timestamps = entry.timestamps.filter((ts) => ts > windowStart);
+    entry.lastAccess = now;
+
+    const currentCount = entry.timestamps.length;
+    const success = currentCount < conservativeLimit;
+
+    // Add current request timestamp if allowed
+    if (success) {
+      entry.timestamps.push(now);
+    }
+
+    const remaining = Math.max(0, conservativeLimit - entry.timestamps.length);
+    const reset = Math.ceil((now + window * 1000) / 1000);
+
+    return {
+      success,
+      limit, // Return original limit (not conservative)
+      remaining,
+      reset,
+    };
+  }
+
+  private evictOldest(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Date.now();
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.lastAccess < oldestTime) {
+        oldestTime = entry.lastAccess;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+    }
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    const maxAge = 60 * 60 * 1000; // 1 hour
+
+    for (const [key, entry] of this.cache.entries()) {
+      // Remove entries that haven't been accessed in 1 hour
+      if (now - entry.lastAccess > maxAge) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  stop(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+}
+
+/**
+ * Circuit Breaker for Redis
+ * Tracks failures and switches to fallback
+ */
+class CircuitBreaker {
+  private consecutiveFailures = 0;
+  private lastFailureTime = 0;
+  private readonly FAILURE_THRESHOLD = 3;
+  private retryTimeout: number;
+  private fallbackActivatedAt: number | null = null;
+
+  constructor(retryTimeoutMs: number = 30000) {
+    this.retryTimeout = retryTimeoutMs;
+  }
+
+  recordFailure(): void {
+    this.consecutiveFailures++;
+    this.lastFailureTime = Date.now();
+
+    if (this.consecutiveFailures === this.FAILURE_THRESHOLD && !this.fallbackActivatedAt) {
+      this.fallbackActivatedAt = Date.now();
+      logger.warn(
+        {
+          component: "rate-limit",
+          event: "fallback_activated",
+          consecutiveFailures: this.consecutiveFailures,
+        },
+        "Rate limiter using in-memory fallback due to Redis failures"
+      );
+    }
+  }
+
+  recordSuccess(): void {
+    if (this.consecutiveFailures >= this.FAILURE_THRESHOLD && this.fallbackActivatedAt) {
+      const downtimeDuration = Math.floor((Date.now() - this.fallbackActivatedAt) / 1000);
+      logger.info(
+        {
+          component: "rate-limit",
+          event: "redis_recovered",
+          downtimeDuration: `${downtimeDuration}s`,
+        },
+        "Rate limiter resumed using Redis"
+      );
+    }
+    this.consecutiveFailures = 0;
+    this.fallbackActivatedAt = null;
+  }
+
+  shouldUseFallback(): boolean {
+    if (this.consecutiveFailures < this.FAILURE_THRESHOLD) {
+      return false;
+    }
+
+    // After threshold, attempt Redis again after timeout
+    const timeSinceFailure = Date.now() - this.lastFailureTime;
+    return timeSinceFailure < this.retryTimeout;
+  }
+}
+
+// Global singletons
+const globalForRateLimit = globalThis as unknown as {
+  inMemoryLimiter?: InMemoryRateLimiter;
+  circuitBreaker?: CircuitBreaker;
+};
+
+function getInMemoryLimiter(): InMemoryRateLimiter {
+  if (!globalForRateLimit.inMemoryLimiter) {
+    globalForRateLimit.inMemoryLimiter = new InMemoryRateLimiter();
+  }
+  return globalForRateLimit.inMemoryLimiter;
+}
+
+function getCircuitBreaker(): CircuitBreaker {
+  if (!globalForRateLimit.circuitBreaker) {
+    // Use 1 second timeout in test environment, 30 seconds in production
+    const timeout = process.env.NODE_ENV === 'test' ? 1000 : 30000;
+    globalForRateLimit.circuitBreaker = new CircuitBreaker(timeout);
+  }
+  return globalForRateLimit.circuitBreaker;
+}
+
+/**
+ * Sliding window rate limiter using Redis sorted sets with in-memory fallback
  *
  * Algorithm:
- * 1. Remove expired entries older than window start
- * 2. Count remaining entries
- * 3. Add current request with timestamp score
- * 4. Set TTL on the key
+ * 1. Check circuit breaker - use fallback if circuit is open
+ * 2. Try Redis:
+ *    - Remove expired entries older than window start
+ *    - Count remaining entries
+ *    - Add current request with timestamp score
+ *    - Set TTL on the key
+ * 3. On Redis failure - use in-memory fallback
  */
 export async function rateLimit(
   config: RateLimitConfig
@@ -38,6 +228,13 @@ export async function rateLimit(
   const now = Date.now();
   const windowStart = now - window * 1000;
   const redisKey = `ratelimit:${key}`;
+  const circuitBreaker = getCircuitBreaker();
+
+  // Check circuit breaker - skip Redis if circuit is open
+  if (circuitBreaker.shouldUseFallback()) {
+    const fallback = getInMemoryLimiter();
+    return fallback.check(key, limit, window);
+  }
 
   try {
     const redis = getRedis();
@@ -61,16 +258,28 @@ export async function rateLimit(
     const remaining = Math.max(0, limit - currentCount - 1);
     const reset = Math.ceil((now + window * 1000) / 1000);
 
+    // Record success
+    circuitBreaker.recordSuccess();
+
     return { success, limit, remaining, reset };
   } catch (error) {
-    // Fail open: allow request if Redis is unavailable
-    console.error("[RateLimit] Redis error, failing open:", error);
-    return {
-      success: true,
-      limit,
-      remaining: limit - 1,
-      reset: Math.ceil((now + window * 1000) / 1000),
-    };
+    // Record failure
+    circuitBreaker.recordFailure();
+
+    // Log error with context
+    logger.warn(
+      {
+        component: "rate-limit",
+        event: "fallback_used",
+        error: error instanceof Error ? error.message : "Unknown error",
+        key,
+      },
+      "Rate limiter using fallback due to Redis error"
+    );
+
+    // Use in-memory fallback
+    const fallback = getInMemoryLimiter();
+    return fallback.check(key, limit, window);
   }
 }
 
