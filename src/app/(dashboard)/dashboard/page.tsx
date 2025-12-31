@@ -1,5 +1,7 @@
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 import type { Metadata } from "next";
 
@@ -11,6 +13,28 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const session = await auth();
 
+  // Get user data for onboarding
+  const user = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          name: true,
+          image: true,
+          onboardingCompleted: true,
+          subscription: {
+            select: {
+              status: true,
+            },
+          },
+        },
+      })
+    : null;
+
+  const showOnboarding = user && !user.onboardingCompleted;
+  const hasSubscription =
+    user?.subscription?.status === "ACTIVE" ||
+    user?.subscription?.status === "TRIALING";
+
   return (
     <div className="space-y-6">
       <div>
@@ -19,6 +43,14 @@ export default async function DashboardPage() {
           Welcome back, {session?.user?.name ?? "User"}!
         </p>
       </div>
+
+      {/* Onboarding Checklist for new users */}
+      {showOnboarding && (
+        <OnboardingChecklist
+          user={{ name: user.name, image: user.image }}
+          hasSubscription={hasSubscription}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
