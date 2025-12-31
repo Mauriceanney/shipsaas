@@ -1,10 +1,20 @@
 version: "3.9"
 
+# =============================================================================
+# Logging Configuration (prevents disk exhaustion)
+# =============================================================================
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: ${PROJECT_NAME:-saas}-postgres
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -21,6 +31,7 @@ services:
     image: redis:7-alpine
     container_name: ${PROJECT_NAME:-saas}-redis
     restart: unless-stopped
+    logging: *default-logging
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_dev_password}
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_dev_password}
@@ -36,6 +47,7 @@ services:
     image: axllent/mailpit:latest
     container_name: ${PROJECT_NAME:-saas}-mailpit
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "1025:1025"   # SMTP
       - "8025:8025"   # Web UI
