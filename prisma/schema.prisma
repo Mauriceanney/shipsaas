@@ -37,6 +37,10 @@ model User {
   twoFactorEnabled     Boolean   @default(false)
   twoFactorBackupCodes String[]  // Hashed backup codes (bcrypt)
 
+  // Onboarding
+  onboardingCompleted    Boolean   @default(false)  // User finished or dismissed onboarding
+  onboardingDismissedAt  DateTime? // When user dismissed the onboarding
+
   accounts               Account[]
   sessions               Session[]
   trustedDevices         TrustedDevice[]
