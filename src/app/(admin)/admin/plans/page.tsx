@@ -4,6 +4,7 @@ import { getPlanConfigs } from "@/actions/admin/config";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { Spinner } from "@/components/ui/spinner";
 import { db } from "@/lib/db";
 
 import { PlanConfigForm } from "./plan-config-form";
@@ -116,7 +117,11 @@ export default function PlansPage() {
       />
 
       <Suspense
-        fallback={<div className="py-8 text-center">Loading plans...</div>}
+        fallback={
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="lg" />
+          </div>
+        }
       >
         <PlansContent />
       </Suspense>

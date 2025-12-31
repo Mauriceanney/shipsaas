@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MarketingMobileNav } from "@/components/marketing/marketing-mobile-nav";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 
@@ -17,7 +18,9 @@ export default async function MarketingLayout({
           <Link href="/" className="font-bold">
             SaaS Boilerplate
           </Link>
-          <nav className="flex items-center gap-6">
+
+          {/* Desktop navigation */}
+          <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/pricing"
               className="text-sm text-muted-foreground hover:text-foreground"
@@ -39,6 +42,9 @@ export default async function MarketingLayout({
               </div>
             )}
           </nav>
+
+          {/* Mobile navigation */}
+          <MarketingMobileNav isAuthenticated={!!session?.user} />
         </div>
       </header>
       <main className="flex-1">{children}</main>

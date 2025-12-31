@@ -39,8 +39,9 @@ export function UserTable({ users }: UserTableProps) {
   }
 
   return (
-    <Table>
-      <TableHeader>
+    <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+      <Table>
+        <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
@@ -91,6 +92,7 @@ export function UserTable({ users }: UserTableProps) {
           </TableRow>
         ))}
       </TableBody>
-    </Table>
+      </Table>
+    </div>
   );
 }
