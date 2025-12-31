@@ -13,7 +13,7 @@ import { UpgradePrompt } from "@/components/feature-gate";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatLimit, isUnlimited } from "@/lib/stripe/config";
-import { getUsagePercentage, isApproachingLimit } from "@/lib/usage";
+import { getUsagePercentage, isApproachingLimit } from "@/lib/usage/utils";
 
 import { UsageLimitModal, type UsageMetricKey } from "./usage-limit-modal";
 

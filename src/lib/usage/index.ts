@@ -4,8 +4,8 @@
  */
 
 import { db } from "@/lib/db";
-import { getPlanLimits, isUnlimited } from "@/lib/stripe/config";
 import { invalidateUserDashboard } from "@/lib/redis";
+import { getPlanLimits, isUnlimited } from "@/lib/stripe/config";
 
 import type { Plan } from "@prisma/client";
 
@@ -177,19 +177,5 @@ export async function canUseMetric(
   };
 }
 
-/**
- * Check if usage is approaching limit (80% threshold)
- */
-export function isApproachingLimit(used: number, limit: number): boolean {
-  if (isUnlimited(limit)) return false;
-  return used >= limit * 0.8;
-}
-
-/**
- * Calculate usage percentage
- */
-export function getUsagePercentage(used: number, limit: number): number {
-  if (isUnlimited(limit)) return 0;
-  if (limit === 0) return 100;
-  return Math.min(100, Math.round((used / limit) * 100));
-}
+// Re-export utility functions for convenience
+export { isApproachingLimit, getUsagePercentage } from "./utils";
