@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Home, Monitor, Moon, PanelLeftClose, PanelLeft, Settings, ChevronUp, LogOut, Sun, User } from "lucide-react";
+import { Home, Moon, PanelLeftClose, PanelLeft, Settings, ChevronUp, LogOut, Sun, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 import type { Route } from "next";
@@ -35,13 +36,17 @@ interface AppSidebarProps {
     email?: string | null;
     image?: string | null;
   };
+  subscription?: {
+    plan: string;
+    status: string;
+  };
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, subscription }: AppSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   // Load collapsed state from localStorage on mount
   useEffect(() => {
@@ -58,6 +63,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
     setIsCollapsed(newState);
     localStorage.setItem("sidebar-collapsed", String(newState));
   };
+
+  const toggleDarkMode = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
+
+  const isDark = resolvedTheme === "dark";
+  const showUpgradePrompt = subscription?.plan === "FREE";
 
   const initials = getInitials(user.name, user.email);
 
@@ -152,74 +164,41 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/settings/profile" className="flex w-full cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </Link>
-            </DropdownMenuItem>
+            {showUpgradePrompt && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/pricing"
+                    className="flex w-full cursor-pointer items-center bg-gradient-to-r from-primary/10 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Upgrade to Pro
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem asChild>
               <Link href="/settings" className="flex w-full cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings/billing" className="flex w-full cursor-pointer">
-                <CreditCard className="mr-2 h-4 w-4" />
-                Billing
-              </Link>
-            </DropdownMenuItem>
             {mounted && (
-              <div className="px-2 py-1.5">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">Theme</p>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setTheme("light")}
-                    className={cn(
-                      "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                      theme === "light"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                    aria-label="Light theme"
-                    aria-pressed={theme === "light"}
-                  >
-                    <Sun className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">Light</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTheme("dark")}
-                    className={cn(
-                      "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                      theme === "dark"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                    aria-label="Dark theme"
-                    aria-pressed={theme === "dark"}
-                  >
-                    <Moon className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">Dark</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTheme("system")}
-                    className={cn(
-                      "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                      theme === "system"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                    aria-label="System theme"
-                    aria-pressed={theme === "system"}
-                  >
-                    <Monitor className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">Auto</span>
-                  </button>
+              <div className="flex items-center justify-between px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  {isDark ? (
+                    <Moon className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Sun className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="text-sm">Dark mode</span>
                 </div>
+                <Switch
+                  checked={isDark}
+                  onCheckedChange={toggleDarkMode}
+                  aria-label="Toggle dark mode"
+                />
               </div>
             )}
             <DropdownMenuSeparator />

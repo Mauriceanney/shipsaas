@@ -30,11 +30,16 @@ export default async function DashboardLayout({
     image: session.user.image,
   };
 
+  const subscription = {
+    plan: session.subscription?.plan ?? "FREE",
+    status: session.subscription?.status ?? "INACTIVE",
+  };
+
   return (
     <SessionProvider session={session}>
       <SessionValidationProvider>
         <div className="flex h-screen overflow-hidden">
-          <AppSidebar user={user} />
+          <AppSidebar user={user} subscription={subscription} />
           <main className="flex-1 overflow-y-auto p-6">
             <Suspense fallback={null}>
               <DunningBanner />
