@@ -1,12 +1,24 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted for mock functions that need to be hoisted
-const { mockTokenFindFirst, mockTokenDelete, mockUserFindUnique, mockUserUpdate, mockSendPasswordChangedEmail } = vi.hoisted(() => ({
+const { 
+  mockTokenFindFirst, 
+  mockTokenDelete, 
+  mockUserFindUnique, 
+  mockUserUpdate, 
+  mockSendPasswordChangedEmail,
+  mockUserSessionUpdateMany,
+  mockSessionDeleteMany,
+  mockLoginHistoryCreate
+} = vi.hoisted(() => ({
   mockTokenFindFirst: vi.fn(),
   mockTokenDelete: vi.fn(),
   mockUserFindUnique: vi.fn(),
   mockUserUpdate: vi.fn(),
   mockSendPasswordChangedEmail: vi.fn(),
+  mockUserSessionUpdateMany: vi.fn(),
+  mockSessionDeleteMany: vi.fn(),
+  mockLoginHistoryCreate: vi.fn(),
 }));
 
 // Mock the database module
@@ -19,6 +31,15 @@ vi.mock("@/lib/db", () => ({
     verificationToken: {
       findFirst: mockTokenFindFirst,
       delete: mockTokenDelete,
+    },
+    userSession: {
+      updateMany: mockUserSessionUpdateMany,
+    },
+    session: {
+      deleteMany: mockSessionDeleteMany,
+    },
+    loginHistory: {
+      create: mockLoginHistoryCreate,
     },
   },
 }));
@@ -54,6 +75,9 @@ describe("resetPasswordAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSendPasswordChangedEmail.mockResolvedValue({ success: true });
+    mockUserSessionUpdateMany.mockResolvedValue({ count: 0 });
+    mockSessionDeleteMany.mockResolvedValue({ count: 0 });
+    mockLoginHistoryCreate.mockResolvedValue({});
   });
 
   describe("input validation", () => {
@@ -153,7 +177,7 @@ describe("resetPasswordAction", () => {
   describe("success path", () => {
     it("resets password successfully", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
@@ -171,7 +195,7 @@ describe("resetPasswordAction", () => {
 
     it("hashes new password with bcrypt", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
@@ -186,7 +210,7 @@ describe("resetPasswordAction", () => {
 
     it("updates user password in database", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
@@ -204,7 +228,7 @@ describe("resetPasswordAction", () => {
 
     it("deletes used token after password reset", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
@@ -226,7 +250,7 @@ describe("resetPasswordAction", () => {
 
     it("sends password changed email with user name", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
@@ -244,7 +268,7 @@ describe("resetPasswordAction", () => {
 
     it("sends password changed email with undefined name if user has no name", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: null });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: null });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
@@ -258,6 +282,106 @@ describe("resetPasswordAction", () => {
         "user@example.com",
         undefined
       );
+    });
+  });
+
+  describe("session invalidation", () => {
+    it("invalidates all user sessions after password reset", async () => {
+      mockTokenFindFirst.mockResolvedValue(validToken);
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
+      mockUserUpdate.mockResolvedValue({});
+      mockTokenDelete.mockResolvedValue({});
+      mockUserSessionUpdateMany.mockResolvedValue({ count: 3 });
+
+      await resetPasswordAction({
+        token: "valid-token",
+        password: "NewSecurePass123!",
+        confirmPassword: "NewSecurePass123!",
+      });
+
+      expect(mockUserSessionUpdateMany).toHaveBeenCalledWith({
+        where: { 
+          userId: "user-123",
+          revokedAt: null,
+        },
+        data: { 
+          revokedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it("deletes all auth.js sessions after password reset", async () => {
+      mockTokenFindFirst.mockResolvedValue(validToken);
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
+      mockUserUpdate.mockResolvedValue({});
+      mockTokenDelete.mockResolvedValue({});
+      mockSessionDeleteMany.mockResolvedValue({ count: 2 });
+
+      await resetPasswordAction({
+        token: "valid-token",
+        password: "NewSecurePass123!",
+        confirmPassword: "NewSecurePass123!",
+      });
+
+      expect(mockSessionDeleteMany).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
+      });
+    });
+
+    it("creates login history entry for session termination", async () => {
+      mockTokenFindFirst.mockResolvedValue(validToken);
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
+      mockUserUpdate.mockResolvedValue({});
+      mockTokenDelete.mockResolvedValue({});
+
+      await resetPasswordAction({
+        token: "valid-token",
+        password: "NewSecurePass123!",
+        confirmPassword: "NewSecurePass123!",
+      });
+
+      expect(mockLoginHistoryCreate).toHaveBeenCalledWith({
+        data: {
+          userId: "user-123",
+          success: true,
+          provider: "password-reset",
+          deviceName: "All sessions terminated",
+        },
+      });
+    });
+
+    it("succeeds even if no sessions exist to invalidate", async () => {
+      mockTokenFindFirst.mockResolvedValue(validToken);
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
+      mockUserUpdate.mockResolvedValue({});
+      mockTokenDelete.mockResolvedValue({});
+      mockUserSessionUpdateMany.mockResolvedValue({ count: 0 });
+      mockSessionDeleteMany.mockResolvedValue({ count: 0 });
+
+      const result = await resetPasswordAction({
+        token: "valid-token",
+        password: "NewSecurePass123!",
+        confirmPassword: "NewSecurePass123!",
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("succeeds even if session invalidation fails", async () => {
+      mockTokenFindFirst.mockResolvedValue(validToken);
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
+      mockUserUpdate.mockResolvedValue({});
+      mockTokenDelete.mockResolvedValue({});
+      mockUserSessionUpdateMany.mockRejectedValue(new Error("Session DB error"));
+
+      const result = await resetPasswordAction({
+        token: "valid-token",
+        password: "NewSecurePass123!",
+        confirmPassword: "NewSecurePass123!",
+      });
+
+      // Password reset should still succeed even if session invalidation fails
+      expect(result.success).toBe(true);
     });
   });
 
@@ -349,7 +473,7 @@ describe("resetPasswordAction", () => {
 
     it("succeeds even if confirmation email fails", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
       mockSendPasswordChangedEmail.mockRejectedValue(new Error("SMTP error"));
@@ -365,7 +489,7 @@ describe("resetPasswordAction", () => {
 
     it("returns error if user update fails", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockRejectedValue(new Error("Update failed"));
 
       const result = await resetPasswordAction({
@@ -409,7 +533,7 @@ describe("resetPasswordAction", () => {
         expires: new Date(Date.now() + 60 * 60 * 1000),
       };
       mockTokenFindFirst.mockResolvedValue(tokenWithDomain);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
@@ -444,7 +568,7 @@ describe("resetPasswordAction", () => {
 
     it("handles password with various special characters", async () => {
       mockTokenFindFirst.mockResolvedValue(validToken);
-      mockUserFindUnique.mockResolvedValue({ name: "Test User" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-123", name: "Test User" });
       mockUserUpdate.mockResolvedValue({});
       mockTokenDelete.mockResolvedValue({});
 
