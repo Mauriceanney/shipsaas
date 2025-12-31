@@ -198,55 +198,29 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Copy stack files to server
+      - name: Copy stack files and deploy script to server
         uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94571 # v0.1.7
         with:
           host: ${{ secrets.PREPROD_HOST }}
           username: ${{ secrets.PREPROD_USERNAME }}
           key: ${{ secrets.PREPROD_SSH_KEY }}
-          source: "docker-compose.yml,docker-compose.preprod.yml"
+          source: "docker-compose.yml,docker-compose.preprod.yml,scripts/ci-deploy.sh"
           target: "/opt/preprod"
 
       - name: Deploy to Pre-Production
         uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         with:
           host: ${{ secrets.PREPROD_HOST }}
           username: ${{ secrets.PREPROD_USERNAME }}
           key: ${{ secrets.PREPROD_SSH_KEY }}
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
-            set -e
             cd /opt/preprod
-
-            # Login to Docker Hub
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-            # Save current tag for rollback
-            [ -f .current_image_tag ] && cp .current_image_tag .previous_image_tag
-            echo "${{ github.sha }}" > .current_image_tag
-
-            # Pull new image
-            docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-
-            # Deploy stack
-            export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
-            export IMAGE_TAG=${{ github.sha }}
-            docker stack deploy -c docker-compose.yml -c docker-compose.preprod.yml preprod --with-registry-auth
-
-            # Wait for services
-            sleep 20
-
-            # Run migrations
-            CONTAINER=$(docker ps -q -f "name=preprod_app" | head -1)
-            [ -n "$CONTAINER" ] && docker exec $CONTAINER npx prisma migrate deploy || true
-
-            # Health check
-            for i in 1 2 3 4 5; do
-              sleep 5
-              curl -sf http://localhost:3000/api/health && echo "Health OK" && break
-              [ $i -eq 5 ] && echo "Health check failed" && exit 1
-            done
-
-            docker image prune -f
+            chmod +x scripts/ci-deploy.sh
+            ./scripts/ci-deploy.sh deploy preprod docker-compose.preprod.yml ${{ env.DOCKER_IMAGE }} ${{ github.sha }}
 
   # ===========================================================================
   # Deploy to Production
@@ -263,55 +237,29 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Copy stack files to server
+      - name: Copy stack files and deploy script to server
         uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94571 # v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          source: "docker-compose.yml,docker-compose.prod.yml"
+          source: "docker-compose.yml,docker-compose.prod.yml,scripts/ci-deploy.sh"
           target: "/opt/saas"
 
       - name: Deploy to Production
         uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
-            set -e
             cd /opt/saas
-
-            # Login to Docker Hub
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-            # Save current tag for rollback
-            [ -f .current_image_tag ] && cp .current_image_tag .previous_image_tag
-            echo "${{ github.sha }}" > .current_image_tag
-
-            # Pull new image
-            docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-
-            # Deploy stack
-            export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
-            export IMAGE_TAG=${{ github.sha }}
-            docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml saas --with-registry-auth
-
-            # Wait for services
-            sleep 20
-
-            # Run migrations
-            CONTAINER=$(docker ps -q -f "name=saas_app" | head -1)
-            [ -n "$CONTAINER" ] && docker exec $CONTAINER npx prisma migrate deploy || true
-
-            # Health check
-            for i in 1 2 3 4 5; do
-              sleep 5
-              curl -sf http://localhost:3000/api/health && echo "Health OK" && break
-              [ $i -eq 5 ] && echo "Health check failed" && exit 1
-            done
-
-            docker image prune -f
+            chmod +x scripts/ci-deploy.sh
+            ./scripts/ci-deploy.sh deploy saas docker-compose.prod.yml ${{ env.DOCKER_IMAGE }} ${{ github.sha }}
 
   # ===========================================================================
   # Scale (works for both environments)
@@ -336,28 +284,38 @@ jobs:
           fi
 
       - name: Scale Pre-Production
-        if: ${{ needs.setup.outputs.environment == 'preprod' }}
+        if: needs.setup.outputs.environment == 'preprod'
         uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
         with:
           host: ${{ secrets.PREPROD_HOST }}
           username: ${{ secrets.PREPROD_USERNAME }}
           key: ${{ secrets.PREPROD_SSH_KEY }}
           script: |
-            docker service scale preprod_app=${{ inputs.replicas }}
-            sleep 10
-            docker service ls --filter "name=preprod_app"
+            cd /opt/preprod
+            if [ -f scripts/ci-deploy.sh ]; then
+              ./scripts/ci-deploy.sh scale ${{ needs.setup.outputs.stack_name }} ${{ inputs.replicas }}
+            else
+              docker service scale ${{ needs.setup.outputs.stack_name }}_app=${{ inputs.replicas }}
+              sleep 10
+              docker service ls --filter "name=${{ needs.setup.outputs.stack_name }}_app"
+            fi
 
       - name: Scale Production
-        if: ${{ needs.setup.outputs.environment == 'production' }}
+        if: needs.setup.outputs.environment == 'production'
         uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            docker service scale saas_app=${{ inputs.replicas }}
-            sleep 10
-            docker service ls --filter "name=saas_app"
+            cd /opt/saas
+            if [ -f scripts/ci-deploy.sh ]; then
+              ./scripts/ci-deploy.sh scale ${{ needs.setup.outputs.stack_name }} ${{ inputs.replicas }}
+            else
+              docker service scale ${{ needs.setup.outputs.stack_name }}_app=${{ inputs.replicas }}
+              sleep 10
+              docker service ls --filter "name=${{ needs.setup.outputs.stack_name }}_app"
+            fi
 
   # ===========================================================================
   # Rollback (works for both environments)
@@ -370,7 +328,7 @@ jobs:
 
     steps:
       - name: Rollback Pre-Production
-        if: ${{ needs.setup.outputs.environment == 'preprod' }}
+        if: needs.setup.outputs.environment == 'preprod'
         uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
         env:
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
@@ -380,22 +338,22 @@ jobs:
           key: ${{ secrets.PREPROD_SSH_KEY }}
           envs: DOCKER_IMAGE
           script: |
-            set -e
             cd /opt/preprod
-            if [ ! -f .previous_image_tag ]; then
-              echo "ERROR: No rollback information"
-              exit 1
+            if [ -f scripts/ci-deploy.sh ]; then
+              ./scripts/ci-deploy.sh rollback ${{ needs.setup.outputs.stack_name }} ${{ needs.setup.outputs.compose_file }} "$DOCKER_IMAGE"
+            else
+              set -e
+              [ ! -f .previous_image_tag ] && echo "ERROR: No rollback information" && exit 1
+              PREVIOUS_TAG=$(cat .previous_image_tag)
+              echo "Rolling back to: $PREVIOUS_TAG"
+              export IMAGE_TAG="$PREVIOUS_TAG"
+              docker stack deploy -c docker-compose.yml -c ${{ needs.setup.outputs.compose_file }} ${{ needs.setup.outputs.stack_name }} --with-registry-auth
+              sleep 15
+              curl -f http://localhost:3000/api/health && echo "Rollback successful!"
             fi
-            PREVIOUS_TAG=$(cat .previous_image_tag)
-            echo "Rolling back to: $PREVIOUS_TAG"
-            export IMAGE_TAG="$PREVIOUS_TAG"
-            export DOCKER_IMAGE="${DOCKER_IMAGE}"
-            docker stack deploy -c docker-compose.yml -c docker-compose.preprod.yml preprod --with-registry-auth
-            sleep 15
-            curl -f http://localhost:3000/api/health && echo "Rollback successful!"
 
       - name: Rollback Production
-        if: ${{ needs.setup.outputs.environment == 'production' }}
+        if: needs.setup.outputs.environment == 'production'
         uses: appleboy/ssh-action@2ead5e36573ae651b5424da2c7eb09573c5f6c54 # v1
         env:
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
@@ -405,16 +363,16 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           envs: DOCKER_IMAGE
           script: |
-            set -e
             cd /opt/saas
-            if [ ! -f .previous_image_tag ]; then
-              echo "ERROR: No rollback information"
-              exit 1
+            if [ -f scripts/ci-deploy.sh ]; then
+              ./scripts/ci-deploy.sh rollback ${{ needs.setup.outputs.stack_name }} ${{ needs.setup.outputs.compose_file }} "$DOCKER_IMAGE"
+            else
+              set -e
+              [ ! -f .previous_image_tag ] && echo "ERROR: No rollback information" && exit 1
+              PREVIOUS_TAG=$(cat .previous_image_tag)
+              echo "Rolling back to: $PREVIOUS_TAG"
+              export IMAGE_TAG="$PREVIOUS_TAG"
+              docker stack deploy -c docker-compose.yml -c ${{ needs.setup.outputs.compose_file }} ${{ needs.setup.outputs.stack_name }} --with-registry-auth
+              sleep 15
+              curl -f http://localhost:3000/api/health && echo "Rollback successful!"
             fi
-            PREVIOUS_TAG=$(cat .previous_image_tag)
-            echo "Rolling back to: $PREVIOUS_TAG"
-            export IMAGE_TAG="$PREVIOUS_TAG"
-            export DOCKER_IMAGE="${DOCKER_IMAGE}"
-            docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml saas --with-registry-auth
-            sleep 15
-            curl -f http://localhost:3000/api/health && echo "Rollback successful!"
