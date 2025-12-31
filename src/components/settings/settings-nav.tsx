@@ -5,7 +5,7 @@
  * Left sidebar navigation for settings pages
  */
 
-import { CreditCard, FileText, Monitor, Shield, User } from "lucide-react";
+import { Bell, CreditCard, FileText, Monitor, Shield, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -35,6 +35,11 @@ const navItems: NavItem[] = [
     title: "Security",
     href: "/settings/security" as Route,
     icon: Shield,
+  },
+  {
+    title: "Notifications",
+    href: "/settings/notifications" as Route,
+    icon: Bell,
   },
   {
     title: "Billing",

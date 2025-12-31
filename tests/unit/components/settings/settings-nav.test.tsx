@@ -31,6 +31,7 @@ describe("SettingsNav", () => {
       expect(screen.getByRole("link", { name: /general/i })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /profile/i })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /security/i })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /notifications/i })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /billing/i })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /privacy/i })).toBeInTheDocument();
     });
@@ -41,6 +42,7 @@ describe("SettingsNav", () => {
       expect(screen.getByRole("link", { name: /general/i })).toHaveAttribute("href", "/settings");
       expect(screen.getByRole("link", { name: /profile/i })).toHaveAttribute("href", "/settings/profile");
       expect(screen.getByRole("link", { name: /security/i })).toHaveAttribute("href", "/settings/security");
+      expect(screen.getByRole("link", { name: /notifications/i })).toHaveAttribute("href", "/settings/notifications");
       expect(screen.getByRole("link", { name: /billing/i })).toHaveAttribute("href", "/settings/billing");
       expect(screen.getByRole("link", { name: /privacy/i })).toHaveAttribute("href", "/settings/privacy");
     });
@@ -69,6 +71,14 @@ describe("SettingsNav", () => {
 
       const securityLink = screen.getByRole("link", { name: /security/i });
       expect(securityLink).toHaveClass("bg-accent");
+    });
+
+    it("highlights Notifications when on /settings/notifications", () => {
+      mockUsePathname.mockReturnValue("/settings/notifications");
+      render(<SettingsNav />);
+
+      const notificationsLink = screen.getByRole("link", { name: /notifications/i });
+      expect(notificationsLink).toHaveClass("bg-accent");
     });
 
     it("highlights Billing when on /settings/billing", () => {
