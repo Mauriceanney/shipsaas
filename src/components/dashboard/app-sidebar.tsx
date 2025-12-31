@@ -52,32 +52,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
     setMounted(true);
   }, []);
 
-  const cycleTheme = () => {
-    if (theme === "light") {
-      setTheme("dark");
-    } else if (theme === "dark") {
-      setTheme("system");
-    } else {
-      setTheme("light");
-    }
-  };
-
-  const getThemeIcon = () => {
-    if (theme === "dark") {
-      return <Moon className="mr-2 h-4 w-4" />;
-    }
-    if (theme === "system") {
-      return <Monitor className="mr-2 h-4 w-4" />;
-    }
-    return <Sun className="mr-2 h-4 w-4" />;
-  };
-
-  const getThemeLabel = () => {
-    if (theme === "dark") return "Dark";
-    if (theme === "system") return "System";
-    return "Light";
-  };
-
   // Save collapsed state to localStorage
   const toggleCollapsed = () => {
     const newState = !isCollapsed;
@@ -197,10 +171,56 @@ export function AppSidebar({ user }: AppSidebarProps) {
               </Link>
             </DropdownMenuItem>
             {mounted && (
-              <DropdownMenuItem className="cursor-pointer" onSelect={cycleTheme}>
-                {getThemeIcon()}
-                Theme: {getThemeLabel()}
-              </DropdownMenuItem>
+              <div className="px-2 py-1.5">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Theme</p>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setTheme("light")}
+                    className={cn(
+                      "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                      theme === "light"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    aria-label="Light theme"
+                    aria-pressed={theme === "light"}
+                  >
+                    <Sun className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only">Light</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme("dark")}
+                    className={cn(
+                      "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                      theme === "dark"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    aria-label="Dark theme"
+                    aria-pressed={theme === "dark"}
+                  >
+                    <Moon className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only">Dark</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme("system")}
+                    className={cn(
+                      "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                      theme === "system"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    aria-label="System theme"
+                    aria-pressed={theme === "system"}
+                  >
+                    <Monitor className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only">Auto</span>
+                  </button>
+                </div>
+              </div>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem

@@ -59,54 +59,22 @@ describe("AppSidebar", () => {
   });
 
   describe("theme toggle in sidebar dropdown", () => {
-    it("shows theme toggle in user menu dropdown", async () => {
+    it("shows theme toggle buttons in user menu dropdown", async () => {
       render(<AppSidebar user={mockUser} />);
 
       // Click on user menu button (shows initials when collapsed)
       const userButton = screen.getByRole("button", { name: /JD/i });
       await user.click(userButton);
 
-      // Wait for dropdown and theme option
+      // Wait for dropdown and theme buttons
       await waitFor(() => {
-        expect(screen.getByText(/Theme: Light/)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /light theme/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /dark theme/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /system theme/i })).toBeInTheDocument();
       });
     });
 
-    it("shows dark theme label when dark mode is active", async () => {
-      mockUseTheme.mockReturnValue({
-        theme: "dark",
-        setTheme: mockSetTheme,
-        systemTheme: "dark",
-      });
-
-      render(<AppSidebar user={mockUser} />);
-
-      const userButton = screen.getByRole("button", { name: /JD/i });
-      await user.click(userButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Theme: Dark/)).toBeInTheDocument();
-      });
-    });
-
-    it("shows system theme label when system mode is active", async () => {
-      mockUseTheme.mockReturnValue({
-        theme: "system",
-        setTheme: mockSetTheme,
-        systemTheme: "light",
-      });
-
-      render(<AppSidebar user={mockUser} />);
-
-      const userButton = screen.getByRole("button", { name: /JD/i });
-      await user.click(userButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Theme: System/)).toBeInTheDocument();
-      });
-    });
-
-    it("cycles theme when clicked", async () => {
+    it("highlights light theme button when light mode is active", async () => {
       mockUseTheme.mockReturnValue({
         theme: "light",
         setTheme: mockSetTheme,
@@ -119,12 +87,108 @@ describe("AppSidebar", () => {
       await user.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Theme: Light/)).toBeInTheDocument();
+        const lightButton = screen.getByRole("button", { name: /light theme/i });
+        expect(lightButton).toHaveAttribute("aria-pressed", "true");
+      });
+    });
+
+    it("highlights dark theme button when dark mode is active", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "dark",
+        setTheme: mockSetTheme,
+        systemTheme: "dark",
       });
 
-      await user.click(screen.getByText(/Theme: Light/));
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        const darkButton = screen.getByRole("button", { name: /dark theme/i });
+        expect(darkButton).toHaveAttribute("aria-pressed", "true");
+      });
+    });
+
+    it("highlights system theme button when system mode is active", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "system",
+        setTheme: mockSetTheme,
+        systemTheme: "light",
+      });
+
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        const systemButton = screen.getByRole("button", { name: /system theme/i });
+        expect(systemButton).toHaveAttribute("aria-pressed", "true");
+      });
+    });
+
+    it("sets dark theme when dark button is clicked", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "light",
+        setTheme: mockSetTheme,
+        systemTheme: "light",
+      });
+
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /dark theme/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /dark theme/i }));
 
       expect(mockSetTheme).toHaveBeenCalledWith("dark");
+    });
+
+    it("sets light theme when light button is clicked", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "dark",
+        setTheme: mockSetTheme,
+        systemTheme: "dark",
+      });
+
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /light theme/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /light theme/i }));
+
+      expect(mockSetTheme).toHaveBeenCalledWith("light");
+    });
+
+    it("sets system theme when system button is clicked", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "light",
+        setTheme: mockSetTheme,
+        systemTheme: "light",
+      });
+
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /system theme/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /system theme/i }));
+
+      expect(mockSetTheme).toHaveBeenCalledWith("system");
     });
   });
 
