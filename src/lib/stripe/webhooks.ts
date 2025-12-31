@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { trackServerEvent, SUBSCRIPTION_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail, sendPaymentFailedEmail, sendInvoiceReceiptEmail, sendPaymentRecoveryEmail } from "@/lib/email";
+import { invalidateUserDashboard, invalidateAdminDashboard } from "@/lib/redis";
 
 import { stripe } from "./client";
 import { extractCustomerId, extractPriceId, extractSubscriptionId, getPlanFromPriceId, mapStripeStatus, unixToDate, validateCheckoutMetadata } from "./utils";
@@ -89,6 +90,10 @@ export async function handleCheckoutCompleted(
   // Revalidate cached pages that display subscription data
   revalidatePath("/pricing");
   revalidatePath("/settings/billing");
+
+  // Invalidate dashboard cache
+  await invalidateUserDashboard(metadata.userId);
+  await invalidateAdminDashboard();
 
   // Track subscription created event
   trackServerEvent(metadata.userId, SUBSCRIPTION_EVENTS.SUBSCRIPTION_CREATED, {
@@ -257,6 +262,10 @@ export async function handleSubscriptionUpdated(
   revalidatePath("/pricing");
   revalidatePath("/settings/billing");
 
+  // Invalidate dashboard cache
+  await invalidateUserDashboard(existingSubscription.userId);
+  await invalidateAdminDashboard();
+
   console.log(`Subscription updated: ${subscription.id}`);
 
   // Track subscription update event
@@ -342,6 +351,10 @@ export async function handleSubscriptionDeleted(
   // Revalidate cached pages that display subscription data
   revalidatePath("/pricing");
   revalidatePath("/settings/billing");
+
+  // Invalidate dashboard cache
+  await invalidateUserDashboard(existingSubscription.userId);
+  await invalidateAdminDashboard();
 
   console.log(`Subscription deleted: ${subscription.id}`);
   // Note: Cancellation email is sent in handleSubscriptionUpdated when cancel_at_period_end is set
