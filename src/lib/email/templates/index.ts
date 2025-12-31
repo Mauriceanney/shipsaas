@@ -82,6 +82,10 @@ import {
   type PaymentFailedEmailProps,
 } from "./payment-failed";
 import {
+  PaymentRecoveryEmail,
+  type PaymentRecoveryEmailProps,
+} from "./payment-recovery";
+import {
   SubscriptionCancelledEmail,
   type SubscriptionCancelledEmailProps,
 } from "./subscription-cancelled";
@@ -90,18 +94,14 @@ import {
   type SubscriptionConfirmEmailProps,
 } from "./subscription-confirm";
 import {
+  SubscriptionSuspendedEmail,
+  type SubscriptionSuspendedEmailProps,
+} from "./subscription-suspended";
+import {
   VerifyEmailTemplate,
   type VerifyEmailTemplateProps,
 } from "./verify-email";
 import { WelcomeEmail, type WelcomeEmailProps } from "./welcome";
-import {
-  PaymentRecoveryEmail,
-  type PaymentRecoveryEmailProps,
-} from "./payment-recovery";
-import {
-  SubscriptionSuspendedEmail,
-  type SubscriptionSuspendedEmailProps,
-} from "./subscription-suspended";
 
 // ============================================
 // RENDER FUNCTIONS

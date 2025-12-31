@@ -1,7 +1,8 @@
 "use client";
 
-import { CreditCard, LogOut, Settings, User } from "lucide-react";
+import { CreditCard, LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 
 import { logoutAction } from "@/actions/auth/logout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +26,33 @@ export interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
   const initials = getInitials(user.name, user.email);
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
+  };
+
+  const getThemeIcon = () => {
+    if (theme === "dark") {
+      return <Moon className="mr-2 h-4 w-4" />;
+    }
+    if (theme === "system") {
+      return <Monitor className="mr-2 h-4 w-4" />;
+    }
+    return <Sun className="mr-2 h-4 w-4" />;
+  };
+
+  const getThemeLabel = () => {
+    if (theme === "dark") return "Dark";
+    if (theme === "system") return "System";
+    return "Light";
+  };
 
   return (
     <DropdownMenu>
@@ -65,6 +93,10 @@ export function UserMenu({ user }: UserMenuProps) {
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer" onSelect={cycleTheme}>
+            {getThemeIcon()}
+            <span>Theme: {getThemeLabel()}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
