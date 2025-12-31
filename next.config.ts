@@ -38,7 +38,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.posthog.com https://*.i.posthog.com",
+      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.posthog.com https://*.i.posthog.com https://*.ingest.sentry.io",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
@@ -55,6 +55,7 @@ const nextConfig: NextConfig = {
   experimental: {
     typedRoutes: true,
   },
+  productionBrowserSourceMaps: true,
   async headers() {
     return [
       {

@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 
 import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
+import { SentryProvider } from "@/components/providers/sentry-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
@@ -93,11 +94,13 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <PostHogProvider>
-          {children}
-          <Toaster />
-          <CookieConsentBanner />
-        </PostHogProvider>
+        <SentryProvider>
+          <PostHogProvider>
+            {children}
+            <Toaster />
+            <CookieConsentBanner />
+          </PostHogProvider>
+        </SentryProvider>
       </body>
     </html>
   );
