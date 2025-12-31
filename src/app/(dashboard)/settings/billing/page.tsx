@@ -43,7 +43,8 @@ export default async function BillingPage() {
 
   const hasActiveSubscription = subscription?.stripeCustomerId != null;
   const isFreePlan = !subscription || subscription.plan === "FREE";
-  const isPro = subscription?.plan === "PLUS";
+  const isPlus = subscription?.plan === "PLUS";
+  const isPro = subscription?.plan === "PRO";
 
   return (
     <div className="space-y-6">
@@ -63,11 +64,11 @@ export default async function BillingPage() {
         />
       )}
 
-      {/* Upgrade Banner for PRO users to Enterprise */}
-      {isPro && (
+      {/* Upgrade Banner for PLUS users to Pro */}
+      {isPlus && (
         <UpgradeBanner
           requiredPlan="PRO"
-          title="Scale with Enterprise"
+          title="Scale with Pro"
           description="Get dedicated support, custom integrations, and SLA guarantees."
           variant="subtle"
         />
@@ -86,8 +87,8 @@ export default async function BillingPage() {
           <div className="flex flex-wrap gap-4">
             <ManageSubscriptionButton hasSubscription={hasActiveSubscription} />
 
-            {/* Show upgrade button for all plans except ENTERPRISE (highest plan) */}
-            {subscription?.plan !== "PRO" && (
+            {/* Show upgrade button for all plans except PRO (highest plan) */}
+            {!isPro && (
               <Button asChild>
                 <Link href="/pricing">Upgrade Plan</Link>
               </Button>
