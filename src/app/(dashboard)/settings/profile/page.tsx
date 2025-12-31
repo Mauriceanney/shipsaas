@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { auth } from "@/lib/auth";
+import { ProfileForm } from "@/components/settings/profile-form";
 
 import type { Metadata } from "next";
 
@@ -54,20 +55,12 @@ export default async function ProfilePage() {
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>
-            Your basic account information
+            Update your profile details
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              defaultValue={user.name || ""}
-              disabled
-              className="max-w-md"
-            />
-          </div>
-          <div className="grid gap-2">
+          <ProfileForm defaultName={user.name} />
+          <div className="grid gap-2 pt-4 border-t">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -76,10 +69,10 @@ export default async function ProfilePage() {
               disabled
               className="max-w-md"
             />
+            <p className="text-sm text-muted-foreground">
+              Email address is managed through your authentication provider.
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Profile information is managed through your authentication provider.
-          </p>
         </CardContent>
       </Card>
     </div>
