@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ManageSubscriptionButton, SubscriptionStatus } from "@/components/billing";
+import { UpgradeBanner } from "@/components/feature-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
@@ -40,6 +41,8 @@ export default async function BillingPage() {
     : null;
 
   const hasActiveSubscription = subscription?.stripeCustomerId != null;
+  const isFreePlan = !subscription || subscription.plan === "FREE";
+  const isPro = subscription?.plan === "PRO";
 
   return (
     <div className="space-y-6">
@@ -49,6 +52,25 @@ export default async function BillingPage() {
           Manage your subscription and billing details
         </p>
       </div>
+
+      {/* Upgrade Banner for FREE users */}
+      {isFreePlan && (
+        <UpgradeBanner
+          title="Unlock Premium Features"
+          description="Get priority support, advanced analytics, and unlimited access with Pro."
+          variant="gradient"
+        />
+      )}
+
+      {/* Upgrade Banner for PRO users to Enterprise */}
+      {isPro && (
+        <UpgradeBanner
+          requiredPlan="ENTERPRISE"
+          title="Scale with Enterprise"
+          description="Get dedicated support, custom integrations, and SLA guarantees."
+          variant="subtle"
+        />
+      )}
 
       <Card>
         <CardHeader>
