@@ -45,8 +45,11 @@ export function ProfileForm({ defaultName, defaultEmail, isCredentialUser }: Pro
     });
   }
 
+  // Key forces form to remount when default values change (after successful update)
+  const formKey = `${defaultName}-${defaultEmail}`;
+
   return (
-    <form action={handleSubmit} className="space-y-4">
+    <form key={formKey} action={handleSubmit} className="space-y-4">
       <div className="grid gap-2">
         <Label htmlFor="name">Name</Label>
         <Input
