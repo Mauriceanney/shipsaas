@@ -48,10 +48,21 @@ export async function createCheckoutAction(
     // Determine if user is eligible for trial
     // Only new customers (no previous subscription) get trials
     const isEligibleForTrial = !subscription?.stripeSubscriptionId;
-    
+
     // Get plan from price ID to determine trial period
     const plan = getPlanFromPriceId(priceId);
     const trialDays = isEligibleForTrial ? getTrialDays(plan) : 0;
+
+    // Debug logging for trial eligibility
+    console.log("[createCheckoutAction] Trial eligibility check:", {
+      userId: session.user.id,
+      priceId,
+      plan,
+      hasExistingSubscription: !!subscription,
+      stripeSubscriptionId: subscription?.stripeSubscriptionId || null,
+      isEligibleForTrial,
+      trialDays,
+    });
 
     // Build subscription data
     const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {

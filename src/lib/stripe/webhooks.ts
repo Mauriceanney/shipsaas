@@ -51,6 +51,17 @@ export async function handleCheckoutCompleted(
   const priceId = extractPriceId(stripeSubscription);
   const plan = priceId ? getPlanFromPriceId(priceId) : "FREE";
 
+  // Debug logging for trial period
+  console.log("[handleCheckoutCompleted] Subscription details from Stripe:", {
+    subscriptionId,
+    status: stripeSubscription.status,
+    trialEnd: stripeSubscription.trial_end,
+    trialEndDate: stripeSubscription.trial_end ? unixToDate(stripeSubscription.trial_end) : null,
+    currentPeriodEnd: unixToDate(stripeSubscription.current_period_end),
+    priceId,
+    plan,
+  });
+
   // Upsert subscription in database
   await db.subscription.upsert({
     where: { userId: metadata.userId },
