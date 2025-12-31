@@ -69,7 +69,8 @@ export function AppSidebar({ user, subscription }: AppSidebarProps) {
   };
 
   const isDark = resolvedTheme === "dark";
-  const showUpgradePrompt = subscription?.plan === "FREE";
+  // Show upgrade prompt for all plans except ENTERPRISE (the highest plan)
+  const showUpgradePrompt = subscription?.plan !== "ENTERPRISE";
 
   const initials = getInitials(user.name, user.email);
 

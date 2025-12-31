@@ -47,6 +47,11 @@ const mockProSubscription = {
   status: "ACTIVE",
 };
 
+const mockEnterpriseSubscription = {
+  plan: "ENTERPRISE",
+  status: "ACTIVE",
+};
+
 describe("AppSidebar", () => {
   const user = userEvent.setup();
 
@@ -172,6 +177,17 @@ describe("AppSidebar", () => {
       });
     });
 
+    it("shows upgrade prompt for PRO plan users (can upgrade to ENTERPRISE)", async () => {
+      render(<AppSidebar user={mockUser} subscription={mockProSubscription} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
+      });
+    });
+
     it("upgrade prompt links to pricing page", async () => {
       render(<AppSidebar user={mockUser} subscription={mockFreeSubscription} />);
 
@@ -184,8 +200,8 @@ describe("AppSidebar", () => {
       });
     });
 
-    it("does not show upgrade prompt for PRO plan users", async () => {
-      render(<AppSidebar user={mockUser} subscription={mockProSubscription} />);
+    it("does not show upgrade prompt for ENTERPRISE plan users (highest plan)", async () => {
+      render(<AppSidebar user={mockUser} subscription={mockEnterpriseSubscription} />);
 
       const userButton = screen.getByRole("button", { name: /JD/i });
       await user.click(userButton);
@@ -197,17 +213,15 @@ describe("AppSidebar", () => {
       expect(screen.queryByText("Upgrade to Pro")).not.toBeInTheDocument();
     });
 
-    it("does not show upgrade prompt when no subscription provided", async () => {
+    it("shows upgrade prompt when no subscription provided", async () => {
       render(<AppSidebar user={mockUser} />);
 
       const userButton = screen.getByRole("button", { name: /JD/i });
       await user.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Settings")).toBeInTheDocument();
+        expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
       });
-
-      expect(screen.queryByText("Upgrade to Pro")).not.toBeInTheDocument();
     });
   });
 
