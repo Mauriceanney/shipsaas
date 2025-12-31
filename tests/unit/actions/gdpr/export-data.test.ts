@@ -90,7 +90,7 @@ describe("Data Export Actions", () => {
         name: "Test User",
         createdAt: new Date("2024-01-01"),
         accounts: [{ provider: "google", createdAt: new Date("2024-01-01") }],
-        subscription: { plan: "PRO", status: "ACTIVE", createdAt: new Date("2024-01-01") },
+        subscription: { plan: "PLUS", status: "ACTIVE", createdAt: new Date("2024-01-01") },
       } as never);
 
       const { generateUserDataExport } = await import("@/actions/gdpr/export-data");

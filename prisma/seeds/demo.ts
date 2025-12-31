@@ -20,7 +20,7 @@ async function seedDemo() {
       subscription: {
         create: {
           status: "ACTIVE",
-          plan: Plan.PRO,
+          plan: Plan.PLUS,
         },
       },
     },
@@ -41,7 +41,7 @@ async function seedDemo() {
       subscription: {
         create: {
           status: "ACTIVE",
-          plan: Plan.ENTERPRISE,
+          plan: Plan.PRO,
         },
       },
     },

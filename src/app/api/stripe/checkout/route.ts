@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { CHECKOUT_URLS, isValidPriceId, stripe } from "@/lib/stripe";
+import { CHECKOUT_URLS, getTrialDays, isValidPriceId, stripe } from "@/lib/stripe";
+import { getPlanFromPriceId } from "@/lib/stripe/utils";
 
 import type { CheckoutRequestBody, CheckoutResponse, StripeApiError } from "@/lib/stripe/types";
 import type { NextRequest } from "next/server";
@@ -45,7 +46,47 @@ export async function POST(request: NextRequest) {
       where: { userId: session.user.id },
     });
 
+    // Determine if user is eligible for trial
+    // Only new customers (no previous subscription) get trials
+    const isEligibleForTrial = !subscription?.stripeSubscriptionId;
+
+    // Get plan from price ID to determine trial period
+    const plan = getPlanFromPriceId(priceId);
+    const trialDays = isEligibleForTrial ? getTrialDays(plan) : 0;
+
+    // Debug logging for trial eligibility
+    console.log("[/api/stripe/checkout] Trial eligibility check:", {
+      userId: session.user.id,
+      priceId,
+      plan,
+      hasExistingSubscription: !!subscription,
+      stripeSubscriptionId: subscription?.stripeSubscriptionId || null,
+      isEligibleForTrial,
+      trialDays,
+      willAddTrial: trialDays > 0,
+    });
+
+    // Warn if plan detection failed
+    if (plan === "FREE" && isEligibleForTrial) {
+      console.warn("[/api/stripe/checkout] WARNING: Plan detected as FREE but user is eligible for trial. Check STRIPE_PRICE_ID_* env vars match the priceId:", priceId);
+    }
+
     const baseUrl = process.env["NEXT_PUBLIC_APP_URL"] || "http://localhost:3000";
+
+    // Build subscription data with trial period if eligible
+    const subscriptionData: {
+      metadata: { userId: string };
+      trial_period_days?: number;
+    } = {
+      metadata: {
+        userId: session.user.id,
+      },
+    };
+
+    // Add trial period if eligible
+    if (trialDays > 0) {
+      subscriptionData.trial_period_days = trialDays;
+    }
 
     // Create checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -68,12 +109,8 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: session.user.id,
       },
-      // Subscription metadata
-      subscription_data: {
-        metadata: {
-          userId: session.user.id,
-        },
-      },
+      // Subscription data with trial period
+      subscription_data: subscriptionData,
       // Allow promotion codes
       allow_promotion_codes: true,
       // Collect billing address

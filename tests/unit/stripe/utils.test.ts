@@ -8,13 +8,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // Mock the config module
 vi.mock("@/lib/stripe/config", () => ({
   STRIPE_PRICE_IDS: {
+    PLUS: {
+      monthly: "price_plus_monthly_test",
+      yearly: "price_plus_yearly_test",
+    },
     PRO: {
       monthly: "price_pro_monthly_test",
       yearly: "price_pro_yearly_test",
-    },
-    ENTERPRISE: {
-      monthly: "price_enterprise_monthly_test",
-      yearly: "price_enterprise_yearly_test",
     },
   },
 }));
@@ -68,20 +68,20 @@ describe("Stripe Utils", () => {
   });
 
   describe("getPlanFromPriceId", () => {
+    it("returns PLUS for plus monthly price", () => {
+      expect(getPlanFromPriceId("price_plus_monthly_test")).toBe("PLUS");
+    });
+
+    it("returns PLUS for plus yearly price", () => {
+      expect(getPlanFromPriceId("price_plus_yearly_test")).toBe("PLUS");
+    });
+
     it("returns PRO for pro monthly price", () => {
       expect(getPlanFromPriceId("price_pro_monthly_test")).toBe("PRO");
     });
 
     it("returns PRO for pro yearly price", () => {
       expect(getPlanFromPriceId("price_pro_yearly_test")).toBe("PRO");
-    });
-
-    it("returns ENTERPRISE for enterprise monthly price", () => {
-      expect(getPlanFromPriceId("price_enterprise_monthly_test")).toBe("ENTERPRISE");
-    });
-
-    it("returns ENTERPRISE for enterprise yearly price", () => {
-      expect(getPlanFromPriceId("price_enterprise_yearly_test")).toBe("ENTERPRISE");
     });
 
     it("returns FREE for unknown price", () => {
@@ -98,12 +98,12 @@ describe("Stripe Utils", () => {
       expect(isPaidPlan("FREE")).toBe(false);
     });
 
-    it("returns true for PRO", () => {
-      expect(isPaidPlan("PRO")).toBe(true);
+    it("returns true for PLUS", () => {
+      expect(isPaidPlan("PLUS")).toBe(true);
     });
 
-    it("returns true for ENTERPRISE", () => {
-      expect(isPaidPlan("ENTERPRISE")).toBe(true);
+    it("returns true for PRO", () => {
+      expect(isPaidPlan("PRO")).toBe(true);
     });
   });
 

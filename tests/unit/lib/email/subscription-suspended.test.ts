@@ -9,7 +9,7 @@ import { renderSubscriptionSuspendedEmail } from "@/lib/email/templates";
 describe("renderSubscriptionSuspendedEmail", () => {
   const baseProps = {
     name: "John Doe",
-    planName: "PRO",
+    planName: "PLUS",
     daysOverdue: 10,
     appName: "SaaS Boilerplate",
     appUrl: "http://localhost:3000",
@@ -22,9 +22,9 @@ describe("renderSubscriptionSuspendedEmail", () => {
     expect(result).toHaveProperty("html");
     expect(result).toHaveProperty("text");
     expect(result.html).toContain("John Doe");
-    expect(result.html).toContain("PRO");
+    expect(result.html).toContain("PLUS");
     expect(result.text).toContain("John Doe");
-    expect(result.text).toContain("PRO");
+    expect(result.text).toContain("PLUS");
   });
 
   it("includes suspension message", async () => {
@@ -55,7 +55,7 @@ describe("renderSubscriptionSuspendedEmail", () => {
   it("includes all required props", async () => {
     const result = await renderSubscriptionSuspendedEmail(baseProps);
 
-    expect(result.html).toContain("PRO");
+    expect(result.html).toContain("PLUS");
     expect(result.html).toContain("10");
     expect(result.html).toContain("SaaS Boilerplate");
   });

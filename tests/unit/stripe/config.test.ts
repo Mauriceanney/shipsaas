@@ -5,10 +5,10 @@
 import { describe, expect, it, vi, beforeEach, beforeAll } from "vitest";
 
 // Set environment variables before any imports
+process.env["STRIPE_PRICE_ID_PLUS_MONTHLY"] = "price_plus_monthly_test";
+process.env["STRIPE_PRICE_ID_PLUS_YEARLY"] = "price_plus_yearly_test";
 process.env["STRIPE_PRICE_ID_PRO_MONTHLY"] = "price_pro_monthly_test";
 process.env["STRIPE_PRICE_ID_PRO_YEARLY"] = "price_pro_yearly_test";
-process.env["STRIPE_PRICE_ID_ENTERPRISE_MONTHLY"] = "price_enterprise_monthly_test";
-process.env["STRIPE_PRICE_ID_ENTERPRISE_YEARLY"] = "price_enterprise_yearly_test";
 
 // Need to reset modules since config is loaded with these env vars
 beforeAll(async () => {
@@ -45,20 +45,20 @@ describe("Stripe Config", () => {
   });
 
   describe("STRIPE_PRICE_IDS", () => {
+    it("has PLUS monthly price", () => {
+      expect(STRIPE_PRICE_IDS.PLUS.monthly).toBe("price_plus_monthly_test");
+    });
+
+    it("has PLUS yearly price", () => {
+      expect(STRIPE_PRICE_IDS.PLUS.yearly).toBe("price_plus_yearly_test");
+    });
+
     it("has PRO monthly price", () => {
       expect(STRIPE_PRICE_IDS.PRO.monthly).toBe("price_pro_monthly_test");
     });
 
     it("has PRO yearly price", () => {
       expect(STRIPE_PRICE_IDS.PRO.yearly).toBe("price_pro_yearly_test");
-    });
-
-    it("has ENTERPRISE monthly price", () => {
-      expect(STRIPE_PRICE_IDS.ENTERPRISE.monthly).toBe("price_enterprise_monthly_test");
-    });
-
-    it("has ENTERPRISE yearly price", () => {
-      expect(STRIPE_PRICE_IDS.ENTERPRISE.yearly).toBe("price_enterprise_yearly_test");
     });
   });
 
@@ -68,44 +68,44 @@ describe("Stripe Config", () => {
       expect(PLAN_FEATURES.FREE.length).toBeGreaterThan(0);
     });
 
+    it("has features for PLUS plan", () => {
+      expect(PLAN_FEATURES.PLUS).toBeInstanceOf(Array);
+      expect(PLAN_FEATURES.PLUS.length).toBeGreaterThan(0);
+    });
+
     it("has features for PRO plan", () => {
       expect(PLAN_FEATURES.PRO).toBeInstanceOf(Array);
       expect(PLAN_FEATURES.PRO.length).toBeGreaterThan(0);
     });
 
-    it("has features for ENTERPRISE plan", () => {
-      expect(PLAN_FEATURES.ENTERPRISE).toBeInstanceOf(Array);
-      expect(PLAN_FEATURES.ENTERPRISE.length).toBeGreaterThan(0);
+    it("PLUS has more features than FREE", () => {
+      expect(PLAN_FEATURES.PLUS.length).toBeGreaterThan(PLAN_FEATURES.FREE.length);
     });
 
-    it("PRO has more features than FREE", () => {
-      expect(PLAN_FEATURES.PRO.length).toBeGreaterThan(PLAN_FEATURES.FREE.length);
-    });
-
-    it("ENTERPRISE has more features than PRO", () => {
-      expect(PLAN_FEATURES.ENTERPRISE.length).toBeGreaterThan(PLAN_FEATURES.PRO.length);
+    it("PRO has more features than PLUS", () => {
+      expect(PLAN_FEATURES.PRO.length).toBeGreaterThan(PLAN_FEATURES.PLUS.length);
     });
   });
 
   describe("PLAN_PRICING", () => {
+    it("has PLUS pricing", () => {
+      expect(PLAN_PRICING.PLUS.monthly).toBeGreaterThan(0);
+      expect(PLAN_PRICING.PLUS.yearly).toBeGreaterThan(0);
+    });
+
     it("has PRO pricing", () => {
       expect(PLAN_PRICING.PRO.monthly).toBeGreaterThan(0);
       expect(PLAN_PRICING.PRO.yearly).toBeGreaterThan(0);
     });
 
-    it("has ENTERPRISE pricing", () => {
-      expect(PLAN_PRICING.ENTERPRISE.monthly).toBeGreaterThan(0);
-      expect(PLAN_PRICING.ENTERPRISE.yearly).toBeGreaterThan(0);
+    it("yearly is less than 12 * monthly for PLUS (savings)", () => {
+      const monthlyTotal = PLAN_PRICING.PLUS.monthly * 12;
+      expect(PLAN_PRICING.PLUS.yearly).toBeLessThan(monthlyTotal);
     });
 
     it("yearly is less than 12 * monthly for PRO (savings)", () => {
       const monthlyTotal = PLAN_PRICING.PRO.monthly * 12;
       expect(PLAN_PRICING.PRO.yearly).toBeLessThan(monthlyTotal);
-    });
-
-    it("yearly is less than 12 * monthly for ENTERPRISE (savings)", () => {
-      const monthlyTotal = PLAN_PRICING.ENTERPRISE.monthly * 12;
-      expect(PLAN_PRICING.ENTERPRISE.yearly).toBeLessThan(monthlyTotal);
     });
   });
 
@@ -120,17 +120,17 @@ describe("Stripe Config", () => {
       expect(freePlan?.name).toBe("Free");
     });
 
-    it("includes PRO plan with highlighted flag", () => {
-      const proPlan = PLAN_CONFIGS.find((p: any) => p.id === "PRO");
+    it("includes PLUS plan with highlighted flag", () => {
+      const proPlan = PLAN_CONFIGS.find((p: any) => p.id === "PLUS");
       expect(proPlan).toBeDefined();
       expect(proPlan?.highlighted).toBe(true);
       expect(proPlan?.badge).toBe("Popular");
     });
 
-    it("includes ENTERPRISE plan", () => {
-      const enterprisePlan = PLAN_CONFIGS.find((p: any) => p.id === "ENTERPRISE");
+    it("includes PRO plan", () => {
+      const enterprisePlan = PLAN_CONFIGS.find((p: any) => p.id === "PRO");
       expect(enterprisePlan).toBeDefined();
-      expect(enterprisePlan?.name).toBe("Enterprise");
+      expect(enterprisePlan?.name).toBe("Pro");
     });
   });
 
@@ -157,16 +157,16 @@ describe("Stripe Config", () => {
       expect(config?.id).toBe("FREE");
     });
 
+    it("returns config for PLUS plan", () => {
+      const config = getPlanConfig("PLUS");
+      expect(config).toBeDefined();
+      expect(config?.id).toBe("PLUS");
+    });
+
     it("returns config for PRO plan", () => {
       const config = getPlanConfig("PRO");
       expect(config).toBeDefined();
       expect(config?.id).toBe("PRO");
-    });
-
-    it("returns config for ENTERPRISE plan", () => {
-      const config = getPlanConfig("ENTERPRISE");
-      expect(config).toBeDefined();
-      expect(config?.id).toBe("ENTERPRISE");
     });
 
     it("returns undefined for invalid plan", () => {
@@ -181,20 +181,20 @@ describe("Stripe Config", () => {
       expect(getPriceId("FREE", "yearly")).toBeNull();
     });
 
+    it("returns monthly price for PLUS", () => {
+      expect(getPriceId("PLUS", "monthly")).toBe("price_plus_monthly_test");
+    });
+
+    it("returns yearly price for PLUS", () => {
+      expect(getPriceId("PLUS", "yearly")).toBe("price_plus_yearly_test");
+    });
+
     it("returns monthly price for PRO", () => {
       expect(getPriceId("PRO", "monthly")).toBe("price_pro_monthly_test");
     });
 
     it("returns yearly price for PRO", () => {
       expect(getPriceId("PRO", "yearly")).toBe("price_pro_yearly_test");
-    });
-
-    it("returns monthly price for ENTERPRISE", () => {
-      expect(getPriceId("ENTERPRISE", "monthly")).toBe("price_enterprise_monthly_test");
-    });
-
-    it("returns yearly price for ENTERPRISE", () => {
-      expect(getPriceId("ENTERPRISE", "yearly")).toBe("price_enterprise_yearly_test");
     });
   });
 
@@ -205,27 +205,27 @@ describe("Stripe Config", () => {
       expect(priceIds.length).toBe(4);
     });
 
-    it("includes all PRO and ENTERPRISE prices", () => {
+    it("includes all PLUS and PRO prices", () => {
       const priceIds = getAllPriceIds();
+      expect(priceIds).toContain("price_plus_monthly_test");
+      expect(priceIds).toContain("price_plus_yearly_test");
       expect(priceIds).toContain("price_pro_monthly_test");
       expect(priceIds).toContain("price_pro_yearly_test");
-      expect(priceIds).toContain("price_enterprise_monthly_test");
-      expect(priceIds).toContain("price_enterprise_yearly_test");
     });
   });
 
   describe("isValidPriceId", () => {
-    it("returns true for valid PRO monthly price", () => {
+    it("returns true for valid PLUS monthly price", () => {
+      expect(isValidPriceId("price_plus_monthly_test")).toBe(true);
+    });
+
+    it("returns true for valid PLUS yearly price", () => {
+      expect(isValidPriceId("price_plus_yearly_test")).toBe(true);
+    });
+
+    it("returns true for valid PRO prices", () => {
       expect(isValidPriceId("price_pro_monthly_test")).toBe(true);
-    });
-
-    it("returns true for valid PRO yearly price", () => {
       expect(isValidPriceId("price_pro_yearly_test")).toBe(true);
-    });
-
-    it("returns true for valid ENTERPRISE prices", () => {
-      expect(isValidPriceId("price_enterprise_monthly_test")).toBe(true);
-      expect(isValidPriceId("price_enterprise_yearly_test")).toBe(true);
     });
 
     it("returns false for invalid price ID", () => {

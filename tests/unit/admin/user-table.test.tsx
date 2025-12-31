@@ -23,7 +23,7 @@ const mockUsers = [
     role: "ADMIN" as const,
     createdAt: new Date("2024-02-20"),
     subscription: {
-      plan: "PRO" as const,
+      plan: "PLUS" as const,
       status: "active" as const,
     },
   },
@@ -59,7 +59,7 @@ describe("UserTable", () => {
   it("renders subscription plan", () => {
     render(<UserTable users={mockUsers} />);
 
-    expect(screen.getByText("PRO")).toBeInTheDocument();
+    expect(screen.getByText("PLUS")).toBeInTheDocument();
     expect(screen.getByText("Free")).toBeInTheDocument();
   });
 

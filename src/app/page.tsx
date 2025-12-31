@@ -201,7 +201,7 @@ const faqItems: FAQItem[] = [
   {
     question: "Is there a free tier?",
     answer:
-      "Yes! You can use the boilerplate for free. The Pro plan includes additional features like priority support, private Discord access, and future updates.",
+      "Yes! You can use the boilerplate for free. The Plus plan includes additional features like priority support, private Discord access, and future updates.",
   },
   {
     question: "Can I use this for commercial projects?",

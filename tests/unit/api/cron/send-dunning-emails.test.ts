@@ -138,7 +138,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
           userId: "user-1",
           status: "PAST_DUE",
           statusChangedAt: threeDaysAgo,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "user@example.com",
             name: "John Doe",
@@ -157,7 +157,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
       expect(data.day3Sent).toBe(1);
       expect(sendDunningReminderEmail).toHaveBeenCalledWith("user@example.com", {
         name: "John Doe",
-        planName: "PRO",
+        planName: "PLUS",
         daysSinceFailed: 3,
       });
       expect(db.dunningEmail.create).toHaveBeenCalledWith({
@@ -185,7 +185,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
           userId: "user-1",
           status: "PAST_DUE",
           statusChangedAt: fourDaysAgo,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "user@example.com",
             name: "John Doe",
@@ -218,7 +218,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
           userId: "user-1",
           status: "PAST_DUE",
           statusChangedAt: fourDaysAgo,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "user@example.com",
             name: "John Doe",
@@ -251,7 +251,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
           userId: "user-1",
           status: "PAST_DUE",
           statusChangedAt: twoDaysAgo,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "user@example.com",
             name: "John Doe",
@@ -282,7 +282,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
           userId: "user-1",
           status: "PAST_DUE",
           statusChangedAt: threeDaysAgo,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "user@example.com",
             name: "John Doe",
@@ -329,7 +329,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
           userId: "user-1",
           status: "PAST_DUE",
           statusChangedAt: sevenDaysAgo,
-          plan: "ENTERPRISE",
+          plan: "PLUS",
           user: {
             email: "user@example.com",
             name: "Jane Smith",
@@ -350,7 +350,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
       expect(data.day7Sent).toBe(1);
       expect(sendDunningFinalWarningEmail).toHaveBeenCalledWith("user@example.com", {
         name: "Jane Smith",
-        planName: "ENTERPRISE",
+        planName: "PRO",
         daysSinceFailed: 7,
         suspensionDate: expect.stringMatching(/\w+ \d+, \d{4}/),
       });
@@ -371,7 +371,7 @@ describe("GET /api/cron/send-dunning-emails", () => {
           userId: "user-1",
           status: "PAST_DUE",
           statusChangedAt: eightDaysAgo,
-          plan: "ENTERPRISE",
+          plan: "PLUS",
           user: {
             email: "user@example.com",
             name: "Jane Smith",

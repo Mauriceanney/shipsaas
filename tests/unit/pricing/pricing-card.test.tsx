@@ -21,14 +21,14 @@ vi.mock("next/navigation", () => ({
 // Mock Stripe config
 vi.mock("@/lib/stripe/config", () => ({
   PLAN_PRICING: {
-    PRO: { monthly: 19, yearly: 190 },
-    ENTERPRISE: { monthly: 99, yearly: 990 },
+    PLUS: { monthly: 19, yearly: 190 },
+    PRO: { monthly: 99, yearly: 990 },
   },
 }));
 
 describe("PricingCard", () => {
   const proPlan: PlanConfig = {
-    id: "PRO",
+    id: "PLUS",
     name: "Pro",
     description: "For professionals and small teams",
     prices: { monthly: "price_pro_monthly", yearly: "price_pro_yearly" },
@@ -46,7 +46,7 @@ describe("PricingCard", () => {
   };
 
   const enterprisePlan: PlanConfig = {
-    id: "ENTERPRISE",
+    id: "PRO",
     name: "Enterprise",
     description: "For large organizations",
     prices: {
@@ -183,7 +183,7 @@ describe("PricingCard", () => {
     });
 
     it("shows Current Plan button when plan matches", () => {
-      render(<PricingCard {...defaultProps} currentPlan="PRO" />);
+      render(<PricingCard {...defaultProps} currentPlan="PLUS" />);
 
       expect(
         screen.getByRole("button", { name: "Current Plan" })
@@ -198,8 +198,8 @@ describe("PricingCard", () => {
       ).toBeInTheDocument();
     });
 
-    it("shows Downgrade button when downgrading from ENTERPRISE to PRO", () => {
-      render(<PricingCard {...defaultProps} currentPlan="ENTERPRISE" />);
+    it("shows Downgrade button when downgrading from PRO to PLUS", () => {
+      render(<PricingCard {...defaultProps} currentPlan="PRO" />);
 
       expect(
         screen.getByRole("button", { name: "Downgrade" })
@@ -207,7 +207,7 @@ describe("PricingCard", () => {
     });
 
     it("disables button when current plan", () => {
-      render(<PricingCard {...defaultProps} currentPlan="PRO" />);
+      render(<PricingCard {...defaultProps} currentPlan="PLUS" />);
 
       expect(screen.getByRole("button", { name: "Current Plan" })).toBeDisabled();
     });
@@ -255,7 +255,7 @@ describe("PricingCard", () => {
       render(
         <PricingCard
           {...defaultProps}
-          currentPlan="PRO"
+          currentPlan="PLUS"
           onSubscribe={onSubscribe}
         />
       );

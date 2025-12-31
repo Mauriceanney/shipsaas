@@ -173,8 +173,8 @@ export async function seedDefaultPlanConfigs(): Promise<void> {
       sortOrder: 0,
     },
     {
-      plan: "PRO" as const,
-      name: "Pro",
+      plan: "PLUS" as const,
+      name: "Plus",
       description: "Perfect for professionals",
       monthlyPrice: 2900, // $29.00
       yearlyPrice: 29000, // $290.00
@@ -187,13 +187,13 @@ export async function seedDefaultPlanConfigs(): Promise<void> {
       sortOrder: 1,
     },
     {
-      plan: "ENTERPRISE" as const,
-      name: "Enterprise",
+      plan: "PLUS" as const,
+      name: "Pro",
       description: "For large organizations",
       monthlyPrice: 9900, // $99.00
       yearlyPrice: 99000, // $990.00
       features: [
-        "All Pro features",
+        "All Plus features",
         "Custom integrations",
         "Dedicated support",
         "SLA guarantee",

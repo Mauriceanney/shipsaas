@@ -13,12 +13,12 @@ describe("UpgradeBanner", () => {
   const user = userEvent.setup();
 
   describe("rendering", () => {
-    it("renders default PRO upgrade content", () => {
+    it("renders default PLUS upgrade content", () => {
       render(<UpgradeBanner />);
 
       expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
       expect(
-        screen.getByText(/Get access to premium features with our Pro plan/)
+        screen.getByText(/Get access to premium features with our Plus plan/)
       ).toBeInTheDocument();
     });
 
@@ -40,25 +40,25 @@ describe("UpgradeBanner", () => {
       expect(screen.getByText("Unlock Advanced Analytics")).toBeInTheDocument();
     });
 
-    it("renders ENTERPRISE upgrade when specified", () => {
-      render(<UpgradeBanner requiredPlan="ENTERPRISE" />);
+    it("renders PRO upgrade when specified", () => {
+      render(<UpgradeBanner requiredPlan="PRO" />);
 
       expect(
-        screen.getByText(/Get access to premium features with our Enterprise plan/)
+        screen.getByText(/Get access to premium features with our Pro plan/)
       ).toBeInTheDocument();
     });
   });
 
   describe("link behavior", () => {
-    it("upgrade button links to pricing page with PRO plan", () => {
+    it("upgrade button links to pricing page with PLUS plan", () => {
       render(<UpgradeBanner />);
 
       const link = screen.getByRole("link", { name: /upgrade/i });
       expect(link).toHaveAttribute("href", "/pricing?source=upgrade_banner&plan=PRO");
     });
 
-    it("upgrade button links to pricing page with ENTERPRISE plan", () => {
-      render(<UpgradeBanner requiredPlan="ENTERPRISE" />);
+    it("upgrade button links to pricing page with PLUS plan", () => {
+      render(<UpgradeBanner requiredPlan="PRO" />);
 
       const link = screen.getByRole("link", { name: /upgrade/i });
       expect(link).toHaveAttribute("href", "/pricing?source=upgrade_banner&plan=ENTERPRISE");

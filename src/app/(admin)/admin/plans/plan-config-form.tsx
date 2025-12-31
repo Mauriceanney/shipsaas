@@ -32,9 +32,9 @@ interface FormData {
 
 const defaultPlans = [
   { plan: "FREE" as const, name: "Free", monthlyPrice: 0, yearlyPrice: 0 },
-  { plan: "PRO" as const, name: "Pro", monthlyPrice: 2900, yearlyPrice: 29000 },
+  { plan: "PLUS" as const, name: "Pro", monthlyPrice: 2900, yearlyPrice: 29000 },
   {
-    plan: "ENTERPRISE" as const,
+    plan: "PLUS" as const,
     name: "Enterprise",
     monthlyPrice: 9900,
     yearlyPrice: 99000,
@@ -82,7 +82,7 @@ export function PlanConfigForm({ configs }: PlanConfigFormProps) {
 
     startTransition(async () => {
       try {
-        await updatePlanConfig(editingPlan as "FREE" | "PRO" | "ENTERPRISE", {
+        await updatePlanConfig(editingPlan as "FREE" | "PLUS" | "PRO", {
           name: formData.name,
           monthlyPriceId: formData.monthlyPriceId || undefined,
           yearlyPriceId: formData.yearlyPriceId || undefined,
@@ -106,7 +106,7 @@ export function PlanConfigForm({ configs }: PlanConfigFormProps) {
     const newState = config?.isActive === false;
     startTransition(async () => {
       try {
-        await updatePlanConfig(plan as "FREE" | "PRO" | "ENTERPRISE", {
+        await updatePlanConfig(plan as "FREE" | "PLUS" | "PRO", {
           isActive: newState,
         });
         toast.success(`Plan "${plan}" ${newState ? "enabled" : "disabled"}`);

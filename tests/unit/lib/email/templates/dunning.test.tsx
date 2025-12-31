@@ -11,7 +11,7 @@ import { DunningFinalWarningEmail } from "@/lib/email/templates/dunning-final-wa
 describe("DunningReminderEmail", () => {
   const defaultProps = {
     name: "John Doe",
-    planName: "PRO",
+    planName: "PLUS",
     daysSinceFailed: 3,
     updatePaymentUrl: "https://example.com/portal",
     appName: "Test App",
@@ -22,7 +22,7 @@ describe("DunningReminderEmail", () => {
     const html = await render(<DunningReminderEmail {...defaultProps} />);
 
     expect(html).toContain("John Doe");
-    expect(html).toContain("PRO");
+    expect(html).toContain("PLUS");
     expect(html).toContain("3 days ago");
     expect(html).toContain("https://example.com/portal");
   });
@@ -51,7 +51,7 @@ describe("DunningReminderEmail", () => {
     const text = await render(<DunningReminderEmail {...defaultProps} />, { plainText: true });
 
     expect(text).toContain("John Doe");
-    expect(text).toContain("PRO");
+    expect(text).toContain("PLUS");
     expect(text).toContain("https://example.com/portal");
   });
 
@@ -65,7 +65,7 @@ describe("DunningReminderEmail", () => {
 describe("DunningFinalWarningEmail", () => {
   const defaultProps = {
     name: "Jane Smith",
-    planName: "ENTERPRISE",
+    planName: "PRO",
     daysSinceFailed: 7,
     suspensionDate: "January 10, 2025",
     updatePaymentUrl: "https://example.com/portal",
@@ -77,7 +77,7 @@ describe("DunningFinalWarningEmail", () => {
     const html = await render(<DunningFinalWarningEmail {...defaultProps} />);
 
     expect(html).toContain("Jane Smith");
-    expect(html).toContain("ENTERPRISE");
+    expect(html).toContain("PRO");
     expect(html).toContain("7 days ago");
     expect(html).toContain("January 10, 2025");
     expect(html).toContain("https://example.com/portal");
@@ -113,7 +113,7 @@ describe("DunningFinalWarningEmail", () => {
     const text = await render(<DunningFinalWarningEmail {...defaultProps} />, { plainText: true });
 
     expect(text).toContain("Jane Smith");
-    expect(text).toContain("ENTERPRISE");
+    expect(text).toContain("PRO");
     expect(text).toContain("January 10, 2025");
     expect(text).toContain("https://example.com/portal");
   });

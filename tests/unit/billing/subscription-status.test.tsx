@@ -12,8 +12,9 @@ import type { SubscriptionInfo } from "@/lib/stripe/types";
 describe("SubscriptionStatus", () => {
   const baseSubscription: SubscriptionInfo = {
     status: "ACTIVE",
-    plan: "PRO",
+    plan: "PLUS",
     currentPeriodEnd: new Date("2024-12-31"),
+    trialEnd: null,
     cancelAtPeriodEnd: false,
     stripeCustomerId: "cus_123",
     stripeSubscriptionId: "sub_123",
@@ -174,10 +175,10 @@ describe("SubscriptionStatus", () => {
       expect(screen.getByText("FREE Plan")).toBeInTheDocument();
     });
 
-    it("renders ENTERPRISE plan correctly", () => {
+    it("renders PRO plan correctly", () => {
       const enterprisePlan: SubscriptionInfo = {
         ...baseSubscription,
-        plan: "ENTERPRISE",
+        plan: "PLUS",
       };
 
       render(<SubscriptionStatus subscription={enterprisePlan} />);

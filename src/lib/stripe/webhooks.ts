@@ -51,6 +51,17 @@ export async function handleCheckoutCompleted(
   const priceId = extractPriceId(stripeSubscription);
   const plan = priceId ? getPlanFromPriceId(priceId) : "FREE";
 
+  // Debug logging for trial period
+  console.log("[handleCheckoutCompleted] Subscription details from Stripe:", {
+    subscriptionId,
+    status: stripeSubscription.status,
+    trialEnd: stripeSubscription.trial_end,
+    trialEndDate: stripeSubscription.trial_end ? unixToDate(stripeSubscription.trial_end) : null,
+    currentPeriodEnd: unixToDate(stripeSubscription.current_period_end),
+    priceId,
+    plan,
+  });
+
   // Upsert subscription in database
   await db.subscription.upsert({
     where: { userId: metadata.userId },
@@ -60,6 +71,7 @@ export async function handleCheckoutCompleted(
       stripeSubscriptionId: subscriptionId,
       stripePriceId: priceId,
       stripeCurrentPeriodEnd: unixToDate(stripeSubscription.current_period_end),
+      stripeTrialEnd: stripeSubscription.trial_end ? unixToDate(stripeSubscription.trial_end) : null,
       status: mapStripeStatus(stripeSubscription.status),
       plan,
     },
@@ -68,6 +80,7 @@ export async function handleCheckoutCompleted(
       stripeSubscriptionId: subscriptionId,
       stripePriceId: priceId,
       stripeCurrentPeriodEnd: unixToDate(stripeSubscription.current_period_end),
+      stripeTrialEnd: stripeSubscription.trial_end ? unixToDate(stripeSubscription.trial_end) : null,
       status: mapStripeStatus(stripeSubscription.status),
       plan,
     },
@@ -153,6 +166,7 @@ export async function handleSubscriptionCreated(
       stripeSubscriptionId: subscription.id,
       stripePriceId: priceId,
       stripeCurrentPeriodEnd: unixToDate(subscription.current_period_end),
+      stripeTrialEnd: subscription.trial_end ? unixToDate(subscription.trial_end) : null,
       status: mapStripeStatus(subscription.status),
       plan,
     },
@@ -161,6 +175,7 @@ export async function handleSubscriptionCreated(
       stripeSubscriptionId: subscription.id,
       stripePriceId: priceId,
       stripeCurrentPeriodEnd: unixToDate(subscription.current_period_end),
+      stripeTrialEnd: subscription.trial_end ? unixToDate(subscription.trial_end) : null,
       status: mapStripeStatus(subscription.status),
       plan,
     },
@@ -231,6 +246,7 @@ export async function handleSubscriptionUpdated(
     data: {
       stripePriceId: priceId,
       stripeCurrentPeriodEnd: unixToDate(subscription.current_period_end),
+      stripeTrialEnd: subscription.trial_end ? unixToDate(subscription.trial_end) : null,
       status: mapStripeStatus(subscription.status),
       plan,
       cancelAtPeriodEnd: subscription.cancel_at_period_end,

@@ -123,7 +123,7 @@ Quick reference for Full-Stack Engineer and UI Engineer implementing feature gat
 
 ```typescript
 // Plan hierarchy (higher = more access)
-PLAN_HIERARCHY = { FREE: 0, PRO: 1, ENTERPRISE: 2 }
+PLAN_HIERARCHY = { FREE: 0, PLUS: 1, PRO: 2 }
 
 // Grace period for PAST_DUE
 PAST_DUE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000 // 7 days in ms
@@ -152,7 +152,7 @@ ACTIVE_STATUSES = ["ACTIVE", "TRIALING"]
 ```typescript
 export async function myAction() {
   // ALWAYS start with requirePlan()
-  const result = await requirePlan("PRO");
+  const result = await requirePlan("PLUS");
   
   if (!result.success) {
     return { success: false, error: result.error };
@@ -173,7 +173,7 @@ export default async function MyPage() {
       <BasicFeature />
 
       {/* Premium feature - gated */}
-      <FeatureGate plan="PRO">
+      <FeatureGate plan="PLUS">
         <PremiumFeature />
       </FeatureGate>
     </div>
@@ -184,7 +184,7 @@ export default async function MyPage() {
 ### Conditional Button Pattern
 
 ```typescript
-<FeatureGate plan="PRO" fallback={null}>
+<FeatureGate plan="PLUS" fallback={null}>
   <Button onClick={exportData}>Export</Button>
 </FeatureGate>
 ```

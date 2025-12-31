@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type UpgradeBannerProps = {
-  requiredPlan?: "PRO" | "ENTERPRISE";
+  requiredPlan?: "PLUS" | "PRO";
   title?: string;
   description?: string;
   feature?: string;
@@ -38,7 +38,7 @@ type UpgradeBannerProps = {
  * ```
  */
 export function UpgradeBanner({
-  requiredPlan = "PRO",
+  requiredPlan = "PLUS",
   title,
   description,
   feature,
@@ -50,7 +50,7 @@ export function UpgradeBanner({
 
   if (!isVisible) return null;
 
-  const planDisplayName = requiredPlan === "PRO" ? "Pro" : "Enterprise";
+  const planDisplayName = requiredPlan === "PLUS" ? "Pro" : "Enterprise";
   const displayTitle = title ?? (feature ? `Unlock ${feature}` : `Upgrade to ${planDisplayName}`);
   const displayDescription =
     description ??

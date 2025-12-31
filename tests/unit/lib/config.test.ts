@@ -61,7 +61,7 @@ const mockPlanConfigData: PlanConfig[] = [
   },
   {
     id: "plan_2",
-    plan: "PRO",
+    plan: "PLUS",
     name: "Pro",
     description: "Perfect for professionals",
     monthlyPrice: 2900,
@@ -76,14 +76,14 @@ const mockPlanConfigData: PlanConfig[] = [
   },
   {
     id: "plan_3",
-    plan: "ENTERPRISE",
+    plan: "PLUS",
     name: "Enterprise",
     description: "For large organizations",
     monthlyPrice: 9900,
     yearlyPrice: 99000,
     monthlyPriceId: null,
     yearlyPriceId: null,
-    features: ["All Pro features", "Custom integrations"],
+    features: ["All Plus features", "Custom integrations"],
     isActive: false, // Inactive plan
     sortOrder: 2,
     createdAt: new Date("2024-01-01"),
@@ -287,10 +287,10 @@ describe("Configuration Service", () => {
     it("returns specific plan by plan identifier", async () => {
       mockPlanConfig.findMany.mockResolvedValue(mockPlanConfigData);
 
-      const config = await getPlanConfig("PRO");
+      const config = await getPlanConfig("PLUS");
 
       expect(config).not.toBeNull();
-      expect(config?.plan).toBe("PRO");
+      expect(config?.plan).toBe("PLUS");
       expect(config?.name).toBe("Pro");
     });
 
@@ -306,8 +306,8 @@ describe("Configuration Service", () => {
       mockPlanConfig.findMany.mockResolvedValue(mockPlanConfigData);
 
       await getPlanConfig("FREE");
+      await getPlanConfig("PLUS");
       await getPlanConfig("PRO");
-      await getPlanConfig("ENTERPRISE");
 
       expect(mockPlanConfig.findMany).toHaveBeenCalledTimes(1);
     });
@@ -315,7 +315,7 @@ describe("Configuration Service", () => {
     it("returns inactive plans when queried directly", async () => {
       mockPlanConfig.findMany.mockResolvedValue(mockPlanConfigData);
 
-      const config = await getPlanConfig("ENTERPRISE");
+      const config = await getPlanConfig("PRO");
 
       expect(config).not.toBeNull();
       expect(config?.isActive).toBe(false);
@@ -534,8 +534,8 @@ describe("Configuration Service", () => {
       expect(mockPlanConfig.createMany).toHaveBeenCalledWith({
         data: expect.arrayContaining([
           expect.objectContaining({ plan: "FREE", name: "Free" }),
-          expect.objectContaining({ plan: "PRO", name: "Pro" }),
-          expect.objectContaining({ plan: "ENTERPRISE", name: "Enterprise" }),
+          expect.objectContaining({ plan: "PLUS", name: "Pro" }),
+          expect.objectContaining({ plan: "PLUS", name: "Enterprise" }),
         ]),
       });
     });
@@ -571,12 +571,12 @@ describe("Configuration Service", () => {
             yearlyPrice: 0,
           }),
           expect.objectContaining({
-            plan: "PRO",
+            plan: "PLUS",
             monthlyPrice: 2900,
             yearlyPrice: 29000,
           }),
           expect.objectContaining({
-            plan: "ENTERPRISE",
+            plan: "PLUS",
             monthlyPrice: 9900,
             yearlyPrice: 99000,
           }),
@@ -593,8 +593,8 @@ describe("Configuration Service", () => {
       expect(mockPlanConfig.createMany).toHaveBeenCalledWith({
         data: expect.arrayContaining([
           expect.objectContaining({ plan: "FREE", sortOrder: 0 }),
-          expect.objectContaining({ plan: "PRO", sortOrder: 1 }),
-          expect.objectContaining({ plan: "ENTERPRISE", sortOrder: 2 }),
+          expect.objectContaining({ plan: "PLUS", sortOrder: 1 }),
+          expect.objectContaining({ plan: "PLUS", sortOrder: 2 }),
         ]),
       });
     });

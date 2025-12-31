@@ -283,7 +283,7 @@ export interface CreateUserInput {
 export interface CreateSubscriptionInput {
   userId: string;
   status?: "ACTIVE" | "INACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING";
-  plan?: "FREE" | "PRO" | "ENTERPRISE";
+  plan?: "FREE" | "PLUS" | "PRO";
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
 }
@@ -1468,7 +1468,7 @@ model VerificationToken {
 | `User.emailVerified` | Verification filtering | `WHERE emailVerified IS NOT NULL` |
 | `Session.expires` | Session cleanup | `WHERE expires < NOW()` |
 | `Subscription.status` | Status filtering | `WHERE status = 'ACTIVE'` |
-| `Subscription.plan` | Plan filtering | `WHERE plan = 'PRO'` |
+| `Subscription.plan` | Plan filtering | `WHERE plan = 'PLUS'` |
 
 ---
 
@@ -1704,7 +1704,7 @@ async function seedDemo() {
       subscription: {
         create: {
           status: SubscriptionStatus.ACTIVE,
-          plan: Plan.PRO,
+          plan: Plan.PLUS,
           stripeCustomerId: uniqueStripeCustomerId(),
           stripeSubscriptionId: uniqueStripeSubscriptionId(),
           stripeCurrentPeriodEnd: daysFromNow(30),
@@ -1729,7 +1729,7 @@ async function seedDemo() {
       subscription: {
         create: {
           status: SubscriptionStatus.ACTIVE,
-          plan: Plan.ENTERPRISE,
+          plan: Plan.PRO,
           stripeCustomerId: uniqueStripeCustomerId(),
           stripeSubscriptionId: uniqueStripeSubscriptionId(),
           stripeCurrentPeriodEnd: daysFromNow(365),
@@ -1754,7 +1754,7 @@ async function seedDemo() {
       subscription: {
         create: {
           status: SubscriptionStatus.PAST_DUE,
-          plan: Plan.PRO,
+          plan: Plan.PLUS,
           stripeCustomerId: uniqueStripeCustomerId(),
           stripeSubscriptionId: uniqueStripeSubscriptionId(),
           stripeCurrentPeriodEnd: daysAgo(5),
@@ -1779,7 +1779,7 @@ async function seedDemo() {
       subscription: {
         create: {
           status: SubscriptionStatus.TRIALING,
-          plan: Plan.PRO,
+          plan: Plan.PLUS,
           stripeCustomerId: uniqueStripeCustomerId(),
           stripeSubscriptionId: uniqueStripeSubscriptionId(),
           stripeCurrentPeriodEnd: daysFromNow(14),
@@ -1819,7 +1819,7 @@ async function seedDemo() {
       subscription: {
         create: {
           status: SubscriptionStatus.ACTIVE,
-          plan: Plan.ENTERPRISE,
+          plan: Plan.PRO,
         },
       },
     },
@@ -1835,8 +1835,8 @@ async function seedDemo() {
   console.log("");
   console.log("  Demo accounts:");
   console.log("  📧 free@demo.local / free123! (Free plan)");
-  console.log("  📧 pro@demo.local / pro123! (Pro plan)");
-  console.log("  📧 enterprise@demo.local / enterprise123! (Enterprise plan)");
+  console.log("  📧 pro@demo.local / pro123! (Plus plan)");
+  console.log("  📧 enterprise@demo.local / enterprise123! (Pro plan)");
   console.log("  📧 pastdue@demo.local / pastdue123! (Past due)");
   console.log("  📧 trial@demo.local / trial123! (Trialing)");
   console.log("  📧 unverified@demo.local / unverified123! (Email not verified)");
@@ -1936,12 +1936,12 @@ async function seedTest() {
     plan: Plan;
   }> = [
     { suffix: "active-free", status: SubscriptionStatus.ACTIVE, plan: Plan.FREE },
-    { suffix: "active-pro", status: SubscriptionStatus.ACTIVE, plan: Plan.PRO },
-    { suffix: "active-enterprise", status: SubscriptionStatus.ACTIVE, plan: Plan.ENTERPRISE },
+    { suffix: "active-pro", status: SubscriptionStatus.ACTIVE, plan: Plan.PLUS },
+    { suffix: "active-enterprise", status: SubscriptionStatus.ACTIVE, plan: Plan.PRO },
     { suffix: "inactive", status: SubscriptionStatus.INACTIVE, plan: Plan.FREE },
-    { suffix: "past-due", status: SubscriptionStatus.PAST_DUE, plan: Plan.PRO },
-    { suffix: "canceled", status: SubscriptionStatus.CANCELED, plan: Plan.PRO },
-    { suffix: "trialing", status: SubscriptionStatus.TRIALING, plan: Plan.PRO },
+    { suffix: "past-due", status: SubscriptionStatus.PAST_DUE, plan: Plan.PLUS },
+    { suffix: "canceled", status: SubscriptionStatus.CANCELED, plan: Plan.PLUS },
+    { suffix: "trialing", status: SubscriptionStatus.TRIALING, plan: Plan.PLUS },
   ];
 
   for (const { suffix, status, plan } of subscriptionStates) {
@@ -2251,7 +2251,7 @@ export async function createProSubscription(
   return createTestSubscription(prisma, {
     userId,
     status: SubscriptionStatus.ACTIVE,
-    plan: Plan.PRO,
+    plan: Plan.PLUS,
   });
 }
 
@@ -2265,7 +2265,7 @@ export async function createEnterpriseSubscription(
   return createTestSubscription(prisma, {
     userId,
     status: SubscriptionStatus.ACTIVE,
-    plan: Plan.ENTERPRISE,
+    plan: Plan.PRO,
   });
 }
 
@@ -2294,11 +2294,11 @@ export function subscriptionFactory(prisma: PrismaClient, userId: string) {
       return this;
     },
     asPro() {
-      defaults.plan = Plan.PRO;
+      defaults.plan = Plan.PLUS;
       return this;
     },
     asEnterprise() {
-      defaults.plan = Plan.ENTERPRISE;
+      defaults.plan = Plan.PRO;
       return this;
     },
     async create(): Promise<FactoryResult<Subscription>> {
@@ -2466,7 +2466,7 @@ export async function GET(request: NextRequest) {
 import { db, withTransaction } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
-export async function upgradeSubscription(plan: "PRO" | "ENTERPRISE") {
+export async function upgradeSubscription(plan: "PLUS" | "PRO") {
   const session = await auth();
   if (!session?.user) {
     return { success: false, error: "Unauthorized" };

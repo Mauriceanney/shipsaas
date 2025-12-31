@@ -14,13 +14,13 @@ import type { Plan } from "@prisma/client";
  */
 function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
   const priceIds = {
+    PLUS: {
+      monthly: process.env["STRIPE_PRICE_ID_PLUS_MONTHLY"] ?? "",
+      yearly: process.env["STRIPE_PRICE_ID_PLUS_YEARLY"] ?? "",
+    },
     PRO: {
       monthly: process.env["STRIPE_PRICE_ID_PRO_MONTHLY"] ?? "",
       yearly: process.env["STRIPE_PRICE_ID_PRO_YEARLY"] ?? "",
-    },
-    ENTERPRISE: {
-      monthly: process.env["STRIPE_PRICE_ID_ENTERPRISE_MONTHLY"] ?? "",
-      yearly: process.env["STRIPE_PRICE_ID_ENTERPRISE_YEARLY"] ?? "",
     },
   };
 
@@ -28,13 +28,13 @@ function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
   if (process.env.NODE_ENV === "production") {
     const missing: string[] = [];
 
+    if (!priceIds.PLUS.monthly) missing.push("STRIPE_PRICE_ID_PLUS_MONTHLY");
+    if (!priceIds.PLUS.yearly) missing.push("STRIPE_PRICE_ID_PLUS_YEARLY");
     if (!priceIds.PRO.monthly) missing.push("STRIPE_PRICE_ID_PRO_MONTHLY");
     if (!priceIds.PRO.yearly) missing.push("STRIPE_PRICE_ID_PRO_YEARLY");
-    if (!priceIds.ENTERPRISE.monthly) missing.push("STRIPE_PRICE_ID_ENTERPRISE_MONTHLY");
-    if (!priceIds.ENTERPRISE.yearly) missing.push("STRIPE_PRICE_ID_ENTERPRISE_YEARLY");
 
     if (missing.length > 0) {
-      throw new Error(`Missing Stripe price IDs: ${missing.join(", ")}`);
+      throw new Error("Missing Stripe price IDs: " + missing.join(", "));
     }
   }
 
@@ -45,6 +45,33 @@ function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
  * Stripe price IDs from environment
  */
 export const STRIPE_PRICE_IDS = getStripePriceIds();
+
+// ============================================
+// TRIAL PERIOD CONFIGURATION
+// ============================================
+
+/**
+ * Trial period configuration (in days)
+ */
+export const TRIAL_DAYS: Partial<Record<Plan, number>> = {
+  PLUS: 14,
+  PRO: 14,
+  // FREE plan has no trial
+} as const;
+
+/**
+ * Get trial days for a plan
+ */
+export function getTrialDays(plan: Plan): number {
+  return TRIAL_DAYS[plan] ?? 0;
+}
+
+/**
+ * Check if a plan has a trial period
+ */
+export function hasTrialPeriod(plan: Plan): boolean {
+  return getTrialDays(plan) > 0;
+}
 
 // ============================================
 // PLAN CONFIGURATIONS
@@ -60,7 +87,7 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
     "1 project",
     "5GB storage",
   ],
-  PRO: [
+  PLUS: [
     "All Free features",
     "Priority email support",
     "Unlimited projects",
@@ -69,8 +96,8 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
     "API access",
     "Custom integrations",
   ],
-  ENTERPRISE: [
-    "All Pro features",
+  PRO: [
+    "All Plus features",
     "24/7 dedicated support",
     "Unlimited storage",
     "Custom SLA",
@@ -85,11 +112,11 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
  * Plan pricing (in dollars)
  */
 export const PLAN_PRICING: Record<Exclude<Plan, "FREE">, { monthly: number; yearly: number }> = {
-  PRO: {
+  PLUS: {
     monthly: 19,
     yearly: 190, // ~17% savings
   },
-  ENTERPRISE: {
+  PRO: {
     monthly: 99,
     yearly: 990, // ~17% savings
   },
@@ -113,13 +140,13 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     storageBytes: 5 * 1024 * 1024 * 1024, // 5GB
     teamMembers: 1,           // Just yourself
   },
-  PRO: {
+  PLUS: {
     apiCalls: 50000,          // 50,000 API calls/month
     projects: -1,             // Unlimited
     storageBytes: 50 * 1024 * 1024 * 1024, // 50GB
     teamMembers: 10,          // Up to 10 team members
   },
-  ENTERPRISE: {
+  PRO: {
     apiCalls: -1,             // Unlimited
     projects: -1,             // Unlimited
     storageBytes: -1,         // Unlimited
@@ -151,11 +178,11 @@ export function formatLimit(value: number, type: "count" | "bytes" = "count"): s
 
   if (type === "bytes") {
     const gb = value / (1024 * 1024 * 1024);
-    return `${gb}GB`;
+    return gb + "GB";
   }
 
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(0)}K`;
+    return (value / 1000).toFixed(0) + "K";
   }
 
   return value.toString();
@@ -173,20 +200,22 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     features: PLAN_FEATURES.FREE,
   },
   {
-    id: "PRO",
-    name: "Pro",
+    id: "PLUS",
+    name: "Plus",
     description: "For professionals and small teams",
-    prices: STRIPE_PRICE_IDS.PRO,
-    features: PLAN_FEATURES.PRO,
+    prices: STRIPE_PRICE_IDS.PLUS,
+    features: PLAN_FEATURES.PLUS,
     highlighted: true,
     badge: "Popular",
+    trialDays: TRIAL_DAYS.PLUS,
   },
   {
-    id: "ENTERPRISE",
-    name: "Enterprise",
+    id: "PRO",
+    name: "Pro",
     description: "For large organizations",
-    prices: STRIPE_PRICE_IDS.ENTERPRISE,
-    features: PLAN_FEATURES.ENTERPRISE,
+    prices: STRIPE_PRICE_IDS.PRO,
+    features: PLAN_FEATURES.PRO,
+    trialDays: TRIAL_DAYS.PRO,
   },
 ];
 
@@ -214,10 +243,10 @@ export function getPriceId(plan: Plan, interval: BillingInterval): string | null
  */
 export function getAllPriceIds(): string[] {
   return [
+    STRIPE_PRICE_IDS.PLUS.monthly,
+    STRIPE_PRICE_IDS.PLUS.yearly,
     STRIPE_PRICE_IDS.PRO.monthly,
     STRIPE_PRICE_IDS.PRO.yearly,
-    STRIPE_PRICE_IDS.ENTERPRISE.monthly,
-    STRIPE_PRICE_IDS.ENTERPRISE.yearly,
   ].filter(Boolean);
 }
 

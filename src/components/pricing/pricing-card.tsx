@@ -75,7 +75,7 @@ export function PricingCard({
     if (isFree) return "Get Started";
     if (!isAuthenticated) return "Sign up";
     if (currentPlan === "FREE") return "Upgrade";
-    if (currentPlan === "ENTERPRISE" && plan.id === "PRO") return "Downgrade";
+    if (currentPlan === "PRO" && plan.id === "PLUS") return "Downgrade";
     return "Subscribe";
   };
 

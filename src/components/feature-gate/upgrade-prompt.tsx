@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type UpgradePromptProps = {
-  requiredPlan?: "PRO" | "ENTERPRISE";
+  requiredPlan?: "PLUS" | "PRO";
   message?: string;
   variant?: "default" | "subtle" | "highlight";
   size?: "sm" | "md";
@@ -35,13 +35,13 @@ type UpgradePromptProps = {
  * ```
  */
 export function UpgradePrompt({
-  requiredPlan = "PRO",
+  requiredPlan = "PLUS",
   message,
   variant = "default",
   size = "md",
   className,
 }: UpgradePromptProps) {
-  const planDisplayName = requiredPlan === "PRO" ? "Pro" : "Enterprise";
+  const planDisplayName = requiredPlan === "PLUS" ? "Pro" : "Enterprise";
   const displayMessage = message ?? `Upgrade to ${planDisplayName}`;
   const pricingUrl = `/pricing?source=upgrade_prompt&plan=${requiredPlan}`;
 

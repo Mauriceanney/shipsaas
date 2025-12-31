@@ -450,11 +450,11 @@ import type { PlanConfig, PlanPrices, BillingInterval } from "./types";
  */
 function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
   const priceIds = {
-    PRO: {
+    PLUS: {
       monthly: process.env.STRIPE_PRICE_ID_PRO_MONTHLY ?? "",
       yearly: process.env.STRIPE_PRICE_ID_PRO_YEARLY ?? "",
     },
-    ENTERPRISE: {
+    PRO: {
       monthly: process.env.STRIPE_PRICE_ID_ENTERPRISE_MONTHLY ?? "",
       yearly: process.env.STRIPE_PRICE_ID_ENTERPRISE_YEARLY ?? "",
     },
@@ -498,7 +498,7 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
     "1 project",
     "5GB storage",
   ],
-  PRO: [
+  PLUS: [
     "All Free features",
     "Priority email support",
     "Unlimited projects",
@@ -507,8 +507,8 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
     "API access",
     "Custom integrations",
   ],
-  ENTERPRISE: [
-    "All Pro features",
+  PRO: [
+    "All Plus features",
     "24/7 dedicated support",
     "Unlimited storage",
     "Custom SLA",
@@ -523,11 +523,11 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
  * Plan pricing (in dollars)
  */
 export const PLAN_PRICING: Record<Exclude<Plan, "FREE">, { monthly: number; yearly: number }> = {
-  PRO: {
+  PLUS: {
     monthly: 19,
     yearly: 190, // ~17% savings
   },
-  ENTERPRISE: {
+  PRO: {
     monthly: 99,
     yearly: 990, // ~17% savings
   },
@@ -545,7 +545,7 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     features: PLAN_FEATURES.FREE,
   },
   {
-    id: "PRO",
+    id: "PLUS",
     name: "Pro",
     description: "For professionals and small teams",
     prices: STRIPE_PRICE_IDS.PRO,
@@ -554,7 +554,7 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     badge: "Popular",
   },
   {
-    id: "ENTERPRISE",
+    id: "PRO",
     name: "Enterprise",
     description: "For large organizations",
     prices: STRIPE_PRICE_IDS.ENTERPRISE,
@@ -671,7 +671,7 @@ export function getPlanFromPriceId(priceId: string): Plan {
     priceId === STRIPE_PRICE_IDS.PRO.monthly ||
     priceId === STRIPE_PRICE_IDS.PRO.yearly
   ) {
-    return "PRO";
+    return "PLUS";
   }
 
   // Check Enterprise prices
@@ -679,7 +679,7 @@ export function getPlanFromPriceId(priceId: string): Plan {
     priceId === STRIPE_PRICE_IDS.ENTERPRISE.monthly ||
     priceId === STRIPE_PRICE_IDS.ENTERPRISE.yearly
   ) {
-    return "ENTERPRISE";
+    return "PRO";
   }
 
   // Default to FREE for unknown prices
@@ -1762,7 +1762,7 @@ export function PricingCard({
     if (isFree) return "Get Started";
     if (!isAuthenticated) return "Sign up";
     if (currentPlan === "FREE") return "Upgrade";
-    if (currentPlan === "ENTERPRISE" && plan.id === "PRO") return "Downgrade";
+    if (currentPlan === "PRO" && plan.id === "PLUS") return "Downgrade";
     return "Subscribe";
   };
 
@@ -2329,7 +2329,7 @@ describe("getPlanFromPriceId", () => {
   it("returns PRO for pro monthly price", () => {
     const priceId = process.env.STRIPE_PRICE_ID_PRO_MONTHLY;
     if (priceId) {
-      expect(getPlanFromPriceId(priceId)).toBe("PRO");
+      expect(getPlanFromPriceId(priceId)).toBe("PLUS");
     }
   });
 
@@ -2344,11 +2344,11 @@ describe("isPaidPlan", () => {
   });
 
   it("returns true for PRO", () => {
-    expect(isPaidPlan("PRO")).toBe(true);
+    expect(isPaidPlan("PLUS")).toBe(true);
   });
 
   it("returns true for ENTERPRISE", () => {
-    expect(isPaidPlan("ENTERPRISE")).toBe(true);
+    expect(isPaidPlan("PRO")).toBe(true);
   });
 });
 

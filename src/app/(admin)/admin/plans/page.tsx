@@ -45,7 +45,7 @@ async function PlansContent() {
     {} as Record<string, (typeof configs)[0]>
   );
 
-  const plans = ["FREE", "PRO", "ENTERPRISE"] as const;
+  const plans = ["FREE", "PLUS", "PRO"] as const;
 
   return (
     <div className="space-y-6">

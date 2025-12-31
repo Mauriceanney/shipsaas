@@ -19,11 +19,14 @@ export {
   PLAN_CONFIGS,
   CHECKOUT_URLS,
   PORTAL_RETURN_URL,
+  TRIAL_DAYS,
   getPlanConfig,
   getPriceId,
   getAllPriceIds,
   isValidPriceId,
   calculateYearlySavings,
+  getTrialDays,
+  hasTrialPeriod,
 } from "./config";
 
 // Utilities

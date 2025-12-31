@@ -33,6 +33,7 @@ export interface PlanConfig {
   features: string[];
   highlighted?: boolean;
   badge?: string;
+  trialDays?: number; // Trial period in days
 }
 
 /**
@@ -104,6 +105,7 @@ export interface SubscriptionInfo {
   status: SubscriptionStatus;
   plan: Plan;
   currentPeriodEnd: Date | null;
+  trialEnd: Date | null; // Trial end date
   cancelAtPeriodEnd: boolean;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;

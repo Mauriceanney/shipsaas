@@ -250,7 +250,7 @@ describe("onboarding actions", () => {
           onboardingDismissedAt: null,
           name: "John Doe",
           image: null,
-          subscription: { status: "ACTIVE", plan: "PRO" },
+          subscription: { status: "ACTIVE", plan: "PLUS" },
         });
 
         const result = await getOnboardingStatus();
@@ -268,7 +268,7 @@ describe("onboarding actions", () => {
           onboardingDismissedAt: null,
           name: "John Doe",
           image: null,
-          subscription: { status: "TRIALING", plan: "PRO" },
+          subscription: { status: "TRIALING", plan: "PLUS" },
         });
 
         const result = await getOnboardingStatus();
@@ -286,7 +286,7 @@ describe("onboarding actions", () => {
           onboardingDismissedAt: null,
           name: "John Doe",
           image: null,
-          subscription: { status: "CANCELED", plan: "PRO" },
+          subscription: { status: "CANCELED", plan: "PLUS" },
         });
 
         const result = await getOnboardingStatus();

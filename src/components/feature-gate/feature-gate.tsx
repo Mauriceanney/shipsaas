@@ -8,7 +8,7 @@ import type { Plan, SubscriptionStatus } from "@prisma/client";
 import type { ReactNode } from "react";
 
 type FeatureGateProps = {
-  plan: "PRO" | "ENTERPRISE";
+  plan: "PLUS" | "PRO";
   fallback?: ReactNode;
   children: ReactNode;
 };
@@ -19,8 +19,8 @@ type FeatureGateProps = {
  */
 const PLAN_HIERARCHY: Record<Plan, number> = {
   FREE: 0,
-  PRO: 1,
-  ENTERPRISE: 2,
+  PLUS: 1,
+  PRO: 2,
 };
 
 /**
@@ -39,7 +39,7 @@ const VALID_STATUSES: SubscriptionStatus[] = ["ACTIVE", "TRIALING"];
  */
 export function hasClientAccess(
   subscription: { plan: Plan; status: SubscriptionStatus } | null | undefined,
-  requiredPlan: "PRO" | "ENTERPRISE"
+  requiredPlan: "PLUS" | "PRO"
 ): boolean {
   // No subscription means FREE plan (no access to paid features)
   if (!subscription) {
@@ -66,7 +66,7 @@ export function hasClientAccess(
  *
  * @example
  * ```tsx
- * <FeatureGate plan="PRO">
+ * <FeatureGate plan="PLUS">
  *   <AdvancedAnalyticsDashboard />
  * </FeatureGate>
  * ```

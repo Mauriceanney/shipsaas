@@ -236,7 +236,7 @@ export const authConfig: NextAuthConfig = {
       }
 
       session.subscription = token["subscription"] as {
-        plan: "FREE" | "PRO" | "ENTERPRISE";
+        plan: "FREE" | "PLUS" | "PRO";
         status: "ACTIVE" | "INACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING";
         stripeCurrentPeriodEnd: Date | null;
         statusChangedAt: Date | null;

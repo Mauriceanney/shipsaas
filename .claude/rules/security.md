@@ -112,7 +112,7 @@ export async function premiumAction() {
     where: {
       userId: session.user.id,
       status: "ACTIVE",
-      plan: { in: ["PRO", "ENTERPRISE"] },
+      plan: { in: ["PLUS", "PRO"] },
     },
   });
 

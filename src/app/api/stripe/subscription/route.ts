@@ -53,6 +53,7 @@ export async function GET() {
       status: subscription.status,
       plan: subscription.plan,
       currentPeriodEnd: subscription.stripeCurrentPeriodEnd,
+      trialEnd: subscription.stripeTrialEnd,
       cancelAtPeriodEnd,
       stripeCustomerId: subscription.stripeCustomerId,
       stripeSubscriptionId: subscription.stripeSubscriptionId,

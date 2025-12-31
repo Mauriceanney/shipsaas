@@ -6,9 +6,11 @@ import { trackServerEvent, SUBSCRIPTION_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { CHECKOUT_URLS, isValidPriceId, stripe } from "@/lib/stripe";
+import { CHECKOUT_URLS, getTrialDays, isValidPriceId, stripe } from "@/lib/stripe";
+import { getPlanFromPriceId } from "@/lib/stripe/utils";
 
 import type { Result } from "@/types";
+import type Stripe from "stripe";
 
 export interface CreateCheckoutInput {
   priceId: string;
@@ -43,6 +45,43 @@ export async function createCheckoutAction(
       where: { userId: session.user.id },
     });
 
+    // Determine if user is eligible for trial
+    // Only new customers (no previous subscription) get trials
+    const isEligibleForTrial = !subscription?.stripeSubscriptionId;
+
+    // Get plan from price ID to determine trial period
+    const plan = getPlanFromPriceId(priceId);
+    const trialDays = isEligibleForTrial ? getTrialDays(plan) : 0;
+
+    // Debug logging for trial eligibility
+    console.log("[createCheckoutAction] Trial eligibility check:", {
+      userId: session.user.id,
+      priceId,
+      plan,
+      hasExistingSubscription: !!subscription,
+      stripeSubscriptionId: subscription?.stripeSubscriptionId || null,
+      isEligibleForTrial,
+      trialDays,
+      willAddTrial: trialDays > 0,
+    });
+
+    // Warn if plan detection failed
+    if (plan === "FREE" && isEligibleForTrial) {
+      console.warn("[createCheckoutAction] WARNING: Plan detected as FREE but user is eligible for trial. Check STRIPE_PRICE_ID_* env vars match the priceId:", priceId);
+    }
+
+    // Build subscription data
+    const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {
+      metadata: {
+        userId: session.user.id,
+      },
+    };
+
+    // Add trial period if eligible
+    if (trialDays > 0) {
+      subscriptionData.trial_period_days = trialDays;
+    }
+
     // Create checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -61,11 +100,7 @@ export async function createCheckoutAction(
       metadata: {
         userId: session.user.id,
       },
-      subscription_data: {
-        metadata: {
-          userId: session.user.id,
-        },
-      },
+      subscription_data: subscriptionData,
       allow_promotion_codes: true,
     });
 
@@ -76,6 +111,7 @@ export async function createCheckoutAction(
     // Track checkout started event
     trackServerEvent(session.user.id, SUBSCRIPTION_EVENTS.CHECKOUT_STARTED, {
       priceId,
+      trialDays,
     });
 
     return { success: true, data: { url: checkoutSession.url } };
