@@ -1,4 +1,5 @@
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { UpgradeBanner } from "@/components/feature-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const session = await auth();
 
-  // Get user data for onboarding
+  // Get user data for onboarding and subscription
   const user = session?.user?.id
     ? await db.user.findUnique({
         where: { id: session.user.id },
@@ -24,6 +25,7 @@ export default async function DashboardPage() {
           subscription: {
             select: {
               status: true,
+              plan: true,
             },
           },
         },
@@ -34,6 +36,7 @@ export default async function DashboardPage() {
   const hasSubscription =
     user?.subscription?.status === "ACTIVE" ||
     user?.subscription?.status === "TRIALING";
+  const isFreePlan = !hasSubscription || user?.subscription?.plan === "FREE";
 
   return (
     <div className="space-y-6">
@@ -49,6 +52,16 @@ export default async function DashboardPage() {
         <OnboardingChecklist
           user={{ name: user.name, image: user.image }}
           hasSubscription={hasSubscription}
+        />
+      )}
+
+      {/* Upgrade Banner for FREE users (show only if not in onboarding) */}
+      {!showOnboarding && isFreePlan && (
+        <UpgradeBanner
+          feature="Advanced Analytics"
+          description="Get detailed insights, custom reports, and real-time metrics with Pro."
+          dismissible
+          variant="gradient"
         />
       )}
 
