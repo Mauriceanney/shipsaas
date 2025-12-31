@@ -106,6 +106,11 @@ pnpm db:seed                   # Seed base data
 pnpm db:seed:demo              # Seed demo data
 pnpm db:studio                 # Open Prisma Studio
 
+# Database Backup & Restore
+./scripts/backup.sh            # Create local backup
+./scripts/restore.sh <file>    # Restore from backup
+# See docs/database-backup.md for production backups
+
 # Testing
 pnpm test                      # Run unit tests
 pnpm test:coverage             # Run tests with coverage
@@ -153,7 +158,12 @@ tests/
 └── e2e/              # E2E tests (Playwright)
 
 scripts/
+├── backup.sh         # Database backup script
+├── restore.sh        # Database restore script
 └── setup-server.sh   # Server provisioning script
+
+docs/
+└── database-backup.md # Comprehensive backup documentation
 ```
 
 ## Coding Standards
@@ -296,3 +306,60 @@ docker service scale saas_app=5
 | `docker-compose.dev.yml` | Development overrides (exposed ports) |
 | `docker-compose.preprod.yml` | Pre-production Swarm stack |
 | `docker-compose.prod.yml` | Production Swarm stack |
+
+## Database Backup Strategy
+
+### Automated Backups (Production/Preprod)
+
+Both production and preprod environments include an automated backup service that runs daily at midnight UTC.
+
+**Retention Policy:**
+- Daily backups: Last 7 days
+- Weekly backups: Last 4 weeks
+- Monthly backups: Last 6 months
+
+**Backup locations:**
+- Production: `/opt/saas/data/backups/`
+- Preprod: `/opt/preprod/data/backups/`
+
+### Manual Backups
+
+**Local development:**
+```bash
+./scripts/backup.sh
+```
+
+**Production server:**
+```bash
+ssh deploy@production
+cd /opt/saas
+./scripts/backup.sh production
+```
+
+### Restore from Backup
+
+**Local:**
+```bash
+./scripts/restore.sh ./backups/saas_20240131_143022.sql.gz
+```
+
+**Production:**
+```bash
+# Scale down app first
+docker service scale saas_app=0
+
+# Restore
+./scripts/restore.sh /opt/saas/data/backups/saas_20240131_143022.sql.gz production
+
+# Scale back up
+docker service scale saas_app=3
+```
+
+### Comprehensive Documentation
+
+See [docs/database-backup.md](docs/database-backup.md) for:
+- Remote backup setup (S3/DigitalOcean Spaces)
+- Disaster recovery procedures
+- Backup testing strategies
+- Monitoring and alerts
+- Troubleshooting guide
