@@ -2,9 +2,9 @@ import { AlertCircle } from "lucide-react";
 
 import { getDunningStatus } from "@/actions/billing/get-dunning-status";
 import { redirectToPortal } from "@/actions/stripe/create-portal";
+import { RetryPaymentButton } from "@/components/billing/retry-payment-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { RetryPaymentButton } from "@/components/billing/retry-payment-button";
 
 /**
  * Server Component that displays a warning banner when payment fails
