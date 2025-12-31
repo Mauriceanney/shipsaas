@@ -10,18 +10,8 @@ import {
   revokeAllOtherSessions,
   type UserSessionData,
 } from "@/actions/session";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 
 // No props needed - current session is determined server-side
@@ -158,8 +148,8 @@ export function SessionsList() {
               </div>
             </div>
             {!session.isCurrent && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+              <ConfirmDialog
+                trigger={
                   <Button
                     variant="ghost"
                     size="sm"
@@ -171,30 +161,20 @@ export function SessionsList() {
                       <LogOut className="h-4 w-4" />
                     )}
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Revoke Session</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will sign out this device. Are you sure you want to continue?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleRevokeSession(session.id)}>
-                      Revoke
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                }
+                title="Revoke Session"
+                description="This will sign out this device. Are you sure you want to continue?"
+                confirmText="Revoke"
+                onConfirm={() => handleRevokeSession(session.id)}
+              />
             )}
           </div>
         );
       })}
 
       {hasOtherSessions && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+        <ConfirmDialog
+          trigger={
             <Button variant="outline" className="w-full" disabled={isPending}>
               {isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -203,23 +183,13 @@ export function SessionsList() {
               )}
               Sign Out All Other Devices
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Sign Out All Other Devices</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will sign out all devices except this one. You will need to sign
-                in again on those devices.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleRevokeAllOther}>
-                Sign Out All
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          }
+          title="Sign Out All Other Devices"
+          description="This will sign out all devices except this one. You will need to sign in again on those devices."
+          confirmText="Sign Out All"
+          onConfirm={handleRevokeAllOther}
+          disabled={isPending}
+        />
       )}
     </div>
   );
