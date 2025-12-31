@@ -2,9 +2,8 @@ import { redirect } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { ProfileForm } from "@/components/settings/profile-form";
 
 import type { Metadata } from "next";
@@ -17,12 +16,19 @@ export const metadata: Metadata = {
 export default async function ProfilePage() {
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect("/login");
   }
 
+  // Fetch user to check if credential user (has password)
+  const dbUser = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { password: true },
+  });
+
   const user = session.user;
   const initials = getInitials(user.name, user.email);
+  const isCredentialUser = !!dbUser?.password;
 
   return (
     <div className="space-y-6">
@@ -55,24 +61,17 @@ export default async function ProfilePage() {
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>
-            Update your profile details
+            {isCredentialUser
+              ? "Update your profile details"
+              : "Update your name (email is managed by your auth provider)"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <ProfileForm defaultName={user.name} />
-          <div className="grid gap-2 pt-4 border-t">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              defaultValue={user.email || ""}
-              disabled
-              className="max-w-md"
-            />
-            <p className="text-sm text-muted-foreground">
-              Email address is managed through your authentication provider.
-            </p>
-          </div>
+        <CardContent>
+          <ProfileForm
+            defaultName={user.name}
+            defaultEmail={user.email}
+            isCredentialUser={isCredentialUser}
+          />
         </CardContent>
       </Card>
     </div>

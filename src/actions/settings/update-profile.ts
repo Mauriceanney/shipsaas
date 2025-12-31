@@ -24,15 +24,54 @@ export async function updateProfile(input: UpdateProfileInput) {
     } as const;
   }
 
-  // 3. Update user profile
+  // 3. Build update data
+  const updateData: { name: string; email?: string } = {
+    name: parsed.data.name,
+  };
+
+  // 4. Handle email update (only for credential users)
+  if (parsed.data.email) {
+    // Check if user is a credential user (has password)
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { password: true, email: true },
+    });
+
+    if (!user?.password) {
+      return {
+        success: false,
+        error: "Email can only be changed for credential accounts",
+      } as const;
+    }
+
+    // Check if email is already taken by another user
+    if (parsed.data.email !== user.email) {
+      const existingUser = await db.user.findUnique({
+        where: { email: parsed.data.email },
+      });
+
+      if (existingUser) {
+        return {
+          success: false,
+          error: "Email is already in use",
+        } as const;
+      }
+
+      updateData.email = parsed.data.email;
+    }
+  }
+
+  // 5. Update user profile
   try {
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
-      data: { name: parsed.data.name },
+      data: updateData,
+      select: { id: true, name: true, email: true },
     });
 
-    // 4. Revalidate profile page
+    // 6. Revalidate profile page
     revalidatePath("/settings/profile");
+    revalidatePath("/dashboard");
 
     return { success: true, data: updatedUser } as const;
   } catch (error) {
