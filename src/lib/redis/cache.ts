@@ -11,6 +11,7 @@ import { redis, safeRedisOperation } from "./client";
 export const CACHE_KEYS = {
   userDashboard: (userId: string) => `dashboard:user:${userId}:metrics`,
   adminDashboard: () => "dashboard:admin:metrics",
+  adminAnalytics: () => "analytics:admin:metrics",
 } as const;
 
 /**
@@ -19,6 +20,7 @@ export const CACHE_KEYS = {
 export const CACHE_TTL = {
   userDashboard: 300, // 5 minutes
   adminDashboard: 60, // 1 minute
+  adminAnalytics: 60, // 1 minute
 } as const;
 
 /**
