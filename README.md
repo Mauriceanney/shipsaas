@@ -86,6 +86,15 @@ pnpm dev
 | `./scripts/dev.sh reset` | Reset database |
 | `./scripts/dev.sh logs` | View logs |
 
+## Database Backup & Restore
+
+| Command | Description |
+|---------|-------------|
+| `./scripts/backup.sh` | Create database backup |
+| `./scripts/restore.sh <file>` | Restore from backup |
+
+See [Database Backup Documentation](docs/database-backup.md) for comprehensive backup strategies, automated backups, remote storage, and disaster recovery procedures.
+
 ## Project Structure
 
 ```
