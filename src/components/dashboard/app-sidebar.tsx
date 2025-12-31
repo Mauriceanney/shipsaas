@@ -1,9 +1,10 @@
 "use client";
 
-import { CreditCard, Home, PanelLeftClose, PanelLeft, Settings, ChevronUp, LogOut, User } from "lucide-react";
+import { CreditCard, Home, Monitor, Moon, PanelLeftClose, PanelLeft, Settings, ChevronUp, LogOut, Sun, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 import { logoutAction } from "@/actions/auth/logout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,6 +40,8 @@ interface AppSidebarProps {
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   // Load collapsed state from localStorage on mount
   useEffect(() => {
@@ -46,7 +49,34 @@ export function AppSidebar({ user }: AppSidebarProps) {
     if (saved !== null) {
       setIsCollapsed(saved === "true");
     }
+    setMounted(true);
   }, []);
+
+  const cycleTheme = () => {
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
+  };
+
+  const getThemeIcon = () => {
+    if (theme === "dark") {
+      return <Moon className="mr-2 h-4 w-4" />;
+    }
+    if (theme === "system") {
+      return <Monitor className="mr-2 h-4 w-4" />;
+    }
+    return <Sun className="mr-2 h-4 w-4" />;
+  };
+
+  const getThemeLabel = () => {
+    if (theme === "dark") return "Dark";
+    if (theme === "system") return "System";
+    return "Light";
+  };
 
   // Save collapsed state to localStorage
   const toggleCollapsed = () => {
@@ -166,6 +196,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 Billing
               </Link>
             </DropdownMenuItem>
+            {mounted && (
+              <DropdownMenuItem className="cursor-pointer" onSelect={cycleTheme}>
+                {getThemeIcon()}
+                Theme: {getThemeLabel()}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-destructive focus:text-destructive"

@@ -7,11 +7,18 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const cycleTheme = () => {
     if (theme === "light") {
@@ -38,6 +45,15 @@ export function ThemeToggle() {
     if (theme === "system") return "System theme";
     return "Light mode";
   };
+
+  // Show placeholder during SSR to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" aria-label="Toggle theme">
+        <Sun className="h-4 w-4" aria-hidden="true" />
+      </Button>
+    );
+  }
 
   return (
     <Button
