@@ -65,10 +65,10 @@ export async function resetPasswordAction(
     // Extract email from identifier
     const email = verificationToken.identifier.replace("password-reset:", "");
 
-    // Fetch user to get their name for email
+    // Fetch user to get their ID and name
     const user = await db.user.findUnique({
       where: { email },
-      select: { name: true },
+      select: { id: true, name: true },
     });
 
     // Hash new password
@@ -90,6 +90,42 @@ export async function resetPasswordAction(
       },
     });
 
+    // Invalidate all sessions for this user (security requirement)
+    // This prevents account takeover if an attacker had an active session
+    if (user?.id) {
+      try {
+        // Revoke all UserSession records
+        await db.userSession.updateMany({
+          where: { 
+            userId: user.id,
+            revokedAt: null, // Only revoke active sessions
+          },
+          data: { 
+            revokedAt: new Date(),
+          },
+        });
+
+        // Delete all Auth.js Session records
+        await db.session.deleteMany({
+          where: { userId: user.id },
+        });
+
+        // Log session termination in login history
+        await db.loginHistory.create({
+          data: {
+            userId: user.id,
+            success: true,
+            provider: "password-reset",
+            deviceName: "All sessions terminated",
+          },
+        });
+      } catch (sessionError) {
+        // Log error but don't fail the password reset
+        // Password security is more important than session cleanup
+        console.error("Failed to invalidate sessions:", sessionError);
+      }
+    }
+
     // Send password changed confirmation email (graceful degradation)
     try {
       await sendPasswordChangedEmail(email, user?.name ?? undefined);
@@ -97,9 +133,6 @@ export async function resetPasswordAction(
       console.error("Failed to send password changed email:", emailError);
       // Don't throw - password was changed successfully
     }
-
-    // TODO: Invalidate all sessions for this user (future enhancement)
-    // This would require storing sessions in the database
 
     return {
       success: true,
