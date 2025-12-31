@@ -14,6 +14,9 @@ import { sendDunningReminderEmail, sendDunningFinalWarningEmail } from "@/lib/em
  * at regular intervals (e.g., daily).
  *
  * Security: Protected by CRON_SECRET header verification.
+ *
+ * Performance: Uses optimized database queries to filter by date range
+ * and exclude already-sent emails at the database level.
  */
 export async function GET() {
   try {
@@ -28,31 +31,80 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Find all PAST_DUE subscriptions with user data
-    const pastDueSubscriptions = await db.subscription.findMany({
+    const now = new Date();
+    const errors: { subscriptionId: string; error: string }[] = [];
+
+    // Calculate date thresholds
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // ============================================
+    // OPTIMIZED: Day 3 Reminder Query
+    // Fetch only subscriptions that:
+    // - Are PAST_DUE
+    // - Status changed 3-7 days ago
+    // - Have NOT received DAY_3_REMINDER email
+    // ============================================
+    const day3Candidates = await db.subscription.findMany({
       where: {
         status: "PAST_DUE",
-        statusChangedAt: { not: null },
+        statusChangedAt: {
+          lte: threeDaysAgo,
+          gt: sevenDaysAgo,
+        },
+        dunningEmails: {
+          none: { emailType: "DAY_3_REMINDER" },
+        },
       },
-      include: {
+      select: {
+        id: true,
+        plan: true,
+        statusChangedAt: true,
         user: {
           select: {
             email: true,
             name: true,
           },
         },
+      },
+    });
+
+    // ============================================
+    // OPTIMIZED: Day 7 Final Warning Query
+    // Fetch only subscriptions that:
+    // - Are PAST_DUE
+    // - Status changed 7+ days ago
+    // - Have NOT received DAY_7_FINAL_WARNING email
+    // ============================================
+    const day7Candidates = await db.subscription.findMany({
+      where: {
+        status: "PAST_DUE",
+        statusChangedAt: {
+          lte: sevenDaysAgo,
+        },
         dunningEmails: {
+          none: { emailType: "DAY_7_FINAL_WARNING" },
+        },
+      },
+      select: {
+        id: true,
+        plan: true,
+        statusChangedAt: true,
+        user: {
           select: {
-            emailType: true,
+            email: true,
+            name: true,
           },
         },
       },
     });
 
-    if (pastDueSubscriptions.length === 0) {
+    const totalCandidates = day3Candidates.length + day7Candidates.length;
+
+    if (totalCandidates === 0) {
       return NextResponse.json({
         success: true,
-        message: "No past due subscriptions",
+        message: "No dunning emails to send",
         day3Sent: 0,
         day7Sent: 0,
       });
@@ -60,128 +112,108 @@ export async function GET() {
 
     let day3Sent = 0;
     let day7Sent = 0;
-    const errors: { subscriptionId: string; error: string }[] = [];
 
-    const now = new Date();
+    // Process Day 3 reminders
+    for (const subscription of day3Candidates) {
+      try {
+        const result = await sendDunningReminderEmail(subscription.user.email, {
+          name: subscription.user.name ?? undefined,
+          planName: subscription.plan,
+          daysSinceFailed: 3,
+        });
 
-    for (const subscription of pastDueSubscriptions) {
-      if (!subscription.statusChangedAt) continue;
+        await db.dunningEmail.create({
+          data: {
+            subscriptionId: subscription.id,
+            emailType: "DAY_3_REMINDER",
+            recipientEmail: subscription.user.email,
+            emailStatus: result.success ? "SENT" : "FAILED",
+            errorMessage: result.success ? undefined : result.error,
+          },
+        });
 
-      // Calculate days since status changed to PAST_DUE
-      const daysSinceFailed = Math.floor(
-        (now.getTime() - subscription.statusChangedAt.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      // Check if Day 3 reminder should be sent
-      const hasDay3Email = subscription.dunningEmails.some(
-        (e) => e.emailType === "DAY_3_REMINDER"
-      );
-
-      if (daysSinceFailed >= 3 && !hasDay3Email) {
-        try {
-          const result = await sendDunningReminderEmail(subscription.user.email, {
-            name: subscription.user.name ?? undefined,
-            planName: subscription.plan,
-            daysSinceFailed: 3,
+        if (result.success) {
+          day3Sent++;
+          console.log(
+            `[cron/send-dunning-emails] Day 3 reminder sent for subscription ${subscription.id}`
+          );
+        } else {
+          errors.push({
+            subscriptionId: subscription.id,
+            error: result.error ?? "Unknown error",
           });
-
-          await db.dunningEmail.create({
-            data: {
-              subscriptionId: subscription.id,
-              emailType: "DAY_3_REMINDER",
-              recipientEmail: subscription.user.email,
-              emailStatus: result.success ? "SENT" : "FAILED",
-              errorMessage: result.success ? undefined : result.error,
-            },
-          });
-
-          if (result.success) {
-            day3Sent++;
-            console.log(
-              `[cron/send-dunning-emails] Day 3 reminder sent for subscription ${subscription.id}`
-            );
-          } else {
-            errors.push({
-              subscriptionId: subscription.id,
-              error: result.error ?? "Unknown error",
-            });
-            console.error(
-              `[cron/send-dunning-emails] Failed to send Day 3 email for ${subscription.id}:`,
-              result.error
-            );
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          errors.push({ subscriptionId: subscription.id, error: errorMessage });
           console.error(
-            `[cron/send-dunning-emails] Error sending Day 3 email for ${subscription.id}:`,
-            error
+            `[cron/send-dunning-emails] Failed to send Day 3 email for ${subscription.id}:`,
+            result.error
           );
         }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        errors.push({ subscriptionId: subscription.id, error: errorMessage });
+        console.error(
+          `[cron/send-dunning-emails] Error sending Day 3 email for ${subscription.id}:`,
+          error
+        );
       }
+    }
 
-      // Check if Day 7 final warning should be sent
-      const hasDay7Email = subscription.dunningEmails.some(
-        (e) => e.emailType === "DAY_7_FINAL_WARNING"
-      );
+    // Process Day 7 final warnings
+    for (const subscription of day7Candidates) {
+      try {
+        // Calculate suspension date (e.g., 3 days from now)
+        const suspensionDate = new Date();
+        suspensionDate.setDate(suspensionDate.getDate() + 3);
+        const formattedSuspensionDate = suspensionDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
 
-      if (daysSinceFailed >= 7 && !hasDay7Email) {
-        try {
-          // Calculate suspension date (e.g., 3 days from now)
-          const suspensionDate = new Date();
-          suspensionDate.setDate(suspensionDate.getDate() + 3);
-          const formattedSuspensionDate = suspensionDate.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
+        const result = await sendDunningFinalWarningEmail(subscription.user.email, {
+          name: subscription.user.name ?? undefined,
+          planName: subscription.plan,
+          daysSinceFailed: 7,
+          suspensionDate: formattedSuspensionDate,
+        });
+
+        await db.dunningEmail.create({
+          data: {
+            subscriptionId: subscription.id,
+            emailType: "DAY_7_FINAL_WARNING",
+            recipientEmail: subscription.user.email,
+            emailStatus: result.success ? "SENT" : "FAILED",
+            errorMessage: result.success ? undefined : result.error,
+          },
+        });
+
+        if (result.success) {
+          day7Sent++;
+          console.log(
+            `[cron/send-dunning-emails] Day 7 final warning sent for subscription ${subscription.id}`
+          );
+        } else {
+          errors.push({
+            subscriptionId: subscription.id,
+            error: result.error ?? "Unknown error",
           });
-
-          const result = await sendDunningFinalWarningEmail(subscription.user.email, {
-            name: subscription.user.name ?? undefined,
-            planName: subscription.plan,
-            daysSinceFailed: 7,
-            suspensionDate: formattedSuspensionDate,
-          });
-
-          await db.dunningEmail.create({
-            data: {
-              subscriptionId: subscription.id,
-              emailType: "DAY_7_FINAL_WARNING",
-              recipientEmail: subscription.user.email,
-              emailStatus: result.success ? "SENT" : "FAILED",
-              errorMessage: result.success ? undefined : result.error,
-            },
-          });
-
-          if (result.success) {
-            day7Sent++;
-            console.log(
-              `[cron/send-dunning-emails] Day 7 final warning sent for subscription ${subscription.id}`
-            );
-          } else {
-            errors.push({
-              subscriptionId: subscription.id,
-              error: result.error ?? "Unknown error",
-            });
-            console.error(
-              `[cron/send-dunning-emails] Failed to send Day 7 email for ${subscription.id}:`,
-              result.error
-            );
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          errors.push({ subscriptionId: subscription.id, error: errorMessage });
           console.error(
-            `[cron/send-dunning-emails] Error sending Day 7 email for ${subscription.id}:`,
-            error
+            `[cron/send-dunning-emails] Failed to send Day 7 email for ${subscription.id}:`,
+            result.error
           );
         }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        errors.push({ subscriptionId: subscription.id, error: errorMessage });
+        console.error(
+          `[cron/send-dunning-emails] Error sending Day 7 email for ${subscription.id}:`,
+          error
+        );
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Processed ${pastDueSubscriptions.length} past due subscriptions`,
+      message: `Processed ${totalCandidates} dunning candidates`,
       day3Sent,
       day7Sent,
       errors: errors.length > 0 ? errors : undefined,
