@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 
 import { getUsers } from "@/actions/admin/users";
-import { UserFilters, UserTable } from "@/components/admin";
+import { UserFilters, UsersWithSelection } from "@/components/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
+import { auth } from "@/lib/auth";
 
 import type { Metadata } from "next";
 
@@ -34,7 +35,18 @@ async function UsersTableContent({
   const role = params.role as "USER" | "ADMIN" | undefined;
   const status = params.status as "all" | "active" | "disabled" | undefined;
 
-  const { users, pagination } = await getUsers({ page, search, role, status });
+  const [{ users, pagination }, session] = await Promise.all([
+    getUsers({ page, search, role, status }),
+    auth(),
+  ]);
+
+  const currentAdminId = session?.user?.id ?? "";
+
+  // Ensure disabled field exists (default to false if not present)
+  const usersWithDisabled = users.map((user) => ({
+    ...user,
+    disabled: user.disabled ?? false,
+  }));
 
   // Build query string for pagination links
   const queryParts: string[] = [];
@@ -45,7 +57,10 @@ async function UsersTableContent({
 
   return (
     <>
-      <UserTable users={users} />
+      <UsersWithSelection
+        users={usersWithDisabled}
+        currentAdminId={currentAdminId}
+      />
       {pagination.totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <span>
