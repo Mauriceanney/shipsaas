@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  BarChart3,
   CreditCard,
   LayoutDashboard,
   Menu,
@@ -36,6 +37,11 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     href: "/admin" as Route,
     icon: LayoutDashboard,
+  },
+  {
+    title: "Analytics",
+    href: "/admin/analytics" as Route,
+    icon: BarChart3,
   },
   {
     title: "Users",
