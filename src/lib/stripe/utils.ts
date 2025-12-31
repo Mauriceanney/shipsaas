@@ -41,19 +41,25 @@ export function mapStripeStatus(
 export function getPlanFromPriceId(priceId: string): Plan {
   // Check Plus prices
   if (
-    priceId === STRIPE_PRICE_IDS.PLUS.monthly ||
-    priceId === STRIPE_PRICE_IDS.PLUS.yearly
+    STRIPE_PRICE_IDS.PLUS.monthly && priceId === STRIPE_PRICE_IDS.PLUS.monthly ||
+    STRIPE_PRICE_IDS.PLUS.yearly && priceId === STRIPE_PRICE_IDS.PLUS.yearly
   ) {
     return "PLUS";
   }
 
   // Check Pro prices
   if (
-    priceId === STRIPE_PRICE_IDS.PRO.monthly ||
-    priceId === STRIPE_PRICE_IDS.PRO.yearly
+    STRIPE_PRICE_IDS.PRO.monthly && priceId === STRIPE_PRICE_IDS.PRO.monthly ||
+    STRIPE_PRICE_IDS.PRO.yearly && priceId === STRIPE_PRICE_IDS.PRO.yearly
   ) {
     return "PRO";
   }
+
+  // Log warning for unmapped price IDs (helps debug configuration issues)
+  console.warn(`[getPlanFromPriceId] Unknown price ID: ${priceId}. Configured IDs:`, {
+    PLUS: { monthly: STRIPE_PRICE_IDS.PLUS.monthly || "(not set)", yearly: STRIPE_PRICE_IDS.PLUS.yearly || "(not set)" },
+    PRO: { monthly: STRIPE_PRICE_IDS.PRO.monthly || "(not set)", yearly: STRIPE_PRICE_IDS.PRO.yearly || "(not set)" },
+  });
 
   // Default to FREE for unknown prices
   return "FREE";
