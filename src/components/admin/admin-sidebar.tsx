@@ -6,6 +6,7 @@ import {
   CreditCard,
   LayoutDashboard,
   Settings,
+  Tag,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -42,6 +43,11 @@ const navItems: NavItem[] = [
     title: "Plans",
     href: "/admin/plans" as Route,
     icon: CreditCard,
+  },
+  {
+    title: "Promo Codes",
+    href: "/admin/coupons" as Route,
+    icon: Tag,
   },
   {
     title: "Settings",

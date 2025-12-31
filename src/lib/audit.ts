@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
 interface AuditLogParams {
-  entityType: "PlanConfig" | "AppConfig" | "User";
+  entityType: "PlanConfig" | "AppConfig" | "User" | "PromotionCode";
   entityId: string;
   action: "CREATE" | "UPDATE" | "DELETE";
   changes: Record<string, { old: unknown; new: unknown }>;
