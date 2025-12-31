@@ -1,4 +1,7 @@
+import { BookOpen } from "lucide-react";
+
 import { PostCard } from "@/components/blog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getAllPosts } from "@/lib/blog";
 
 import type { Metadata } from "next";
@@ -27,9 +30,13 @@ export default function BlogPage() {
         </div>
 
         {posts.length === 0 ? (
-          <p className="text-center text-muted-foreground">No posts yet. Check back soon!</p>
+          <EmptyState
+            icon={BookOpen}
+            title="No posts yet"
+            description="Check back soon for articles about SaaS development, best practices, and tutorials."
+          />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 md:gap-6 md:grid-cols-2">
             {posts.map((post) => (
               <PostCard key={post.slug} post={post} />
             ))}

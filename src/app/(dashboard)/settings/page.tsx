@@ -1,5 +1,6 @@
 import { ThemeSwitcher } from "@/components/settings/theme-switcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 import type { Metadata } from "next";
 
@@ -11,11 +12,16 @@ export const metadata: Metadata = {
 export default function GeneralSettingsPage() {
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="General Settings"
+        description="Customize your application experience"
+      />
+
       <Card>
         <CardHeader>
-          <CardTitle>General Settings</CardTitle>
+          <CardTitle>Appearance</CardTitle>
           <CardDescription>
-            Customize your application experience
+            Customize the look and feel of the application
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { getUsers } from "@/actions/admin/users";
 import { UserFilters, UserTable } from "@/components/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Spinner } from "@/components/ui/spinner";
 
 interface UsersPageProps {
   searchParams: Promise<{
@@ -70,12 +72,10 @@ async function UsersTableContent({
 export default async function UsersPage(props: UsersPageProps) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-        <p className="text-muted-foreground">
-          Manage users, roles, and subscriptions.
-        </p>
-      </div>
+      <PageHeader
+        title="User Management"
+        description="Manage users, roles, and subscriptions."
+      />
 
       <Card>
         <CardHeader>
@@ -84,7 +84,11 @@ export default async function UsersPage(props: UsersPageProps) {
         <CardContent className="space-y-4">
           <UserFilters />
           <Suspense
-            fallback={<div className="py-8 text-center">Loading users...</div>}
+            fallback={
+              <div className="flex items-center justify-center py-8">
+                <Spinner size="lg" />
+              </div>
+            }
           >
             <UsersTableContent searchParams={props.searchParams} />
           </Suspense>

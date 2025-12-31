@@ -4,6 +4,7 @@ import { getUserDashboardMetrics } from "@/actions/dashboard/metrics";
 import { MetricsCard } from "@/components/dashboard/metrics-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { UpgradeBanner } from "@/components/feature-gate";
+import { PageHeader } from "@/components/ui/page-header";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatLimit, isUnlimited } from "@/lib/stripe/config";
@@ -60,12 +61,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, {session?.user?.name ?? "User"}!
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description={`Welcome back, ${session?.user?.name ?? "User"}!`}
+      />
 
       {/* Onboarding Checklist for new users */}
       {showOnboarding && (

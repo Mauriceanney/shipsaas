@@ -6,6 +6,8 @@ import {
   getFeatureFlags,
 } from "@/actions/admin/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Spinner } from "@/components/ui/spinner";
 
 import { AppConfigForm } from "./app-config-form";
 import { AuditLogTable } from "./audit-log-table";
@@ -56,15 +58,17 @@ async function SettingsContent() {
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">App Settings</h1>
-        <p className="text-muted-foreground">
-          Configure application settings and feature flags.
-        </p>
-      </div>
+      <PageHeader
+        title="App Settings"
+        description="Configure application settings and feature flags."
+      />
 
       <Suspense
-        fallback={<div className="py-8 text-center">Loading settings...</div>}
+        fallback={
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="lg" />
+          </div>
+        }
       >
         <SettingsContent />
       </Suspense>

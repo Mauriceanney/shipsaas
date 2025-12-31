@@ -5,6 +5,7 @@ import { ManageSubscriptionButton, SubscriptionStatus, UsageMeter } from "@/comp
 import { UpgradeBanner } from "@/components/feature-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -48,12 +49,10 @@ export default async function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Billing</h1>
-        <p className="text-muted-foreground">
-          Manage your subscription and billing details
-        </p>
-      </div>
+      <PageHeader
+        title="Billing"
+        description="Manage your subscription and billing details"
+      />
 
       {/* Upgrade Banner for FREE users */}
       {isFreePlan && (

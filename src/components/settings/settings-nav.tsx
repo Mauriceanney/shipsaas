@@ -9,6 +9,7 @@ import { Bell, CreditCard, FileText, Monitor, Shield, User } from "lucide-react"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ICON_SIZES } from "@/lib/constants/ui";
 import { cn } from "@/lib/utils";
 
 import type { LucideIcon } from "lucide-react";
@@ -108,7 +109,7 @@ export function SettingsNav() {
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  <Icon className={ICON_SIZES.sm} aria-hidden="true" />
                   <span>{item.title}</span>
                 </Link>
               );

@@ -2,6 +2,7 @@ import { CreditCard, TrendingUp, UserPlus, Users } from "lucide-react";
 
 import { getAdminDashboardMetrics } from "@/actions/dashboard/metrics";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { PLAN_PRICING } from "@/lib/stripe/config";
 
 // Force dynamic rendering - this page requires database access
@@ -13,12 +14,10 @@ export default async function AdminDashboardPage() {
   if (!metricsResult.success) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground text-red-500">
-            Failed to load metrics: {metricsResult.error}
-          </p>
-        </div>
+        <PageHeader
+          title="Admin Dashboard"
+          description={`Failed to load metrics: ${metricsResult.error}`}
+        />
       </div>
     );
   }
@@ -32,12 +31,10 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground">
-          Overview of your application metrics.
-        </p>
-      </div>
+      <PageHeader
+        title="Admin Dashboard"
+        description="Overview of your application metrics."
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

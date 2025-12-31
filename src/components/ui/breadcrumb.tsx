@@ -1,11 +1,14 @@
 import { ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 
+import { ICON_SIZES } from "@/lib/constants/ui";
 import { cn } from "@/lib/utils";
+
+import type { Route } from "next";
 
 export interface BreadcrumbItem {
   label: string;
-  href?: string;
+  href?: Route;
 }
 
 interface BreadcrumbProps {
@@ -20,7 +23,7 @@ export function Breadcrumb({
   className,
 }: BreadcrumbProps) {
   const allItems = showHome
-    ? [{ label: "Home", href: "/dashboard" }, ...items]
+    ? [{ label: "Home", href: "/dashboard" as Route }, ...items]
     : items;
 
   return (
@@ -38,12 +41,12 @@ export function Breadcrumb({
                     href={item.href}
                     className="flex items-center hover:text-foreground transition-colors"
                   >
-                    <Home className="h-4 w-4" aria-hidden="true" />
+                    <Home className={ICON_SIZES.sm} aria-hidden="true" />
                     <span className="sr-only">{item.label}</span>
                   </Link>
                 ) : (
                   <span className="flex items-center">
-                    <Home className="h-4 w-4" aria-hidden="true" />
+                    <Home className={ICON_SIZES.sm} aria-hidden="true" />
                     <span className="sr-only">{item.label}</span>
                   </span>
                 )
@@ -66,7 +69,7 @@ export function Breadcrumb({
               )}
               {!isLast && (
                 <ChevronRight
-                  className="h-4 w-4 text-muted-foreground/50"
+                  className={cn(ICON_SIZES.sm, "text-muted-foreground/50")}
                   aria-hidden="true"
                 />
               )}

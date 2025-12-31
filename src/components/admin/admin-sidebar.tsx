@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ICON_SIZES } from "@/lib/constants/ui";
 import { cn } from "@/lib/utils";
 
 import type { Route } from "next";
@@ -66,7 +67,7 @@ export function AdminSidebar() {
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className={ICON_SIZES.sm} />
               {item.title}
             </Link>
           );
@@ -78,7 +79,7 @@ export function AdminSidebar() {
           href="/dashboard"
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className={ICON_SIZES.sm} />
           Back to Dashboard
         </Link>
       </div>
