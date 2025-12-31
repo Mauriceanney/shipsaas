@@ -1,6 +1,5 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
@@ -19,6 +18,7 @@ import {
   getUserFriendlyMessage,
   shouldShowTechnicalDetails,
 } from "@/lib/errors/messages";
+import { captureExceptionLazy } from "@/lib/sentry/lazy";
 
 export default function AdminError({
   error,
@@ -28,7 +28,7 @@ export default function AdminError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    captureExceptionLazy(error);
     console.error("[Admin Error]", error);
   }, [error]);
 
