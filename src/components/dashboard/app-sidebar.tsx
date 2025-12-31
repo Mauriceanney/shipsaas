@@ -173,7 +173,7 @@ export function AppSidebar({ user, subscription }: AppSidebarProps) {
                     className="flex w-full cursor-pointer items-center bg-gradient-to-r from-primary/10 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10"
                   >
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Upgrade to Pro
+                    Upgrade Plan
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

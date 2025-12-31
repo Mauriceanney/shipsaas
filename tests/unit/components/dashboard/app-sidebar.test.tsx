@@ -173,7 +173,7 @@ describe("AppSidebar", () => {
       await user.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
+        expect(screen.getByText("Upgrade Plan")).toBeInTheDocument();
       });
     });
 
@@ -184,7 +184,7 @@ describe("AppSidebar", () => {
       await user.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
+        expect(screen.getByText("Upgrade Plan")).toBeInTheDocument();
       });
     });
 
@@ -195,7 +195,7 @@ describe("AppSidebar", () => {
       await user.click(userButton);
 
       await waitFor(() => {
-        const upgradeLink = screen.getByText("Upgrade to Pro").closest("a");
+        const upgradeLink = screen.getByText("Upgrade Plan").closest("a");
         expect(upgradeLink).toHaveAttribute("href", "/pricing");
       });
     });
@@ -210,7 +210,7 @@ describe("AppSidebar", () => {
         expect(screen.getByText("Settings")).toBeInTheDocument();
       });
 
-      expect(screen.queryByText("Upgrade to Pro")).not.toBeInTheDocument();
+      expect(screen.queryByText("Upgrade Plan")).not.toBeInTheDocument();
     });
 
     it("shows upgrade prompt when no subscription provided", async () => {
@@ -220,7 +220,7 @@ describe("AppSidebar", () => {
       await user.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
+        expect(screen.getByText("Upgrade Plan")).toBeInTheDocument();
       });
     });
   });
