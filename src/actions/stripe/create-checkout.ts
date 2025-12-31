@@ -62,7 +62,13 @@ export async function createCheckoutAction(
       stripeSubscriptionId: subscription?.stripeSubscriptionId || null,
       isEligibleForTrial,
       trialDays,
+      willAddTrial: trialDays > 0,
     });
+
+    // Warn if plan detection failed
+    if (plan === "FREE" && isEligibleForTrial) {
+      console.warn("[createCheckoutAction] WARNING: Plan detected as FREE but user is eligible for trial. Check STRIPE_PRICE_ID_* env vars match the priceId:", priceId);
+    }
 
     // Build subscription data
     const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {
