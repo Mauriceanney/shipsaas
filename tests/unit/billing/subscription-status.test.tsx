@@ -14,6 +14,7 @@ describe("SubscriptionStatus", () => {
     status: "ACTIVE",
     plan: "PRO",
     currentPeriodEnd: new Date("2024-12-31"),
+    trialEnd: null,
     cancelAtPeriodEnd: false,
     stripeCustomerId: "cus_123",
     stripeSubscriptionId: "sub_123",

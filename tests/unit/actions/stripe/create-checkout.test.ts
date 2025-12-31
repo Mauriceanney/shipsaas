@@ -10,6 +10,8 @@ const {
   mockDbSubscription,
   mockStripeCheckoutSessions,
   mockIsValidPriceId,
+  mockGetTrialDays,
+  mockGetPlanFromPriceId,
 } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockDbSubscription: {
@@ -19,6 +21,8 @@ const {
     create: vi.fn(),
   },
   mockIsValidPriceId: vi.fn(),
+  mockGetTrialDays: vi.fn(),
+  mockGetPlanFromPriceId: vi.fn(),
 }));
 
 // Mock auth
@@ -41,10 +45,16 @@ vi.mock("@/lib/stripe", () => ({
     },
   },
   isValidPriceId: mockIsValidPriceId,
+  getTrialDays: mockGetTrialDays,
   CHECKOUT_URLS: {
     success: "/checkout/success",
     cancel: "/pricing",
   },
+}));
+
+// Mock Stripe utils
+vi.mock("@/lib/stripe/utils", () => ({
+  getPlanFromPriceId: mockGetPlanFromPriceId,
 }));
 
 import {
@@ -57,6 +67,9 @@ describe("createCheckoutAction", () => {
     vi.clearAllMocks();
     // Default to valid price ID
     mockIsValidPriceId.mockReturnValue(true);
+    // Default mock implementations for trial functions
+    mockGetPlanFromPriceId.mockReturnValue("PRO");
+    mockGetTrialDays.mockReturnValue(0);
   });
 
   describe("authentication", () => {
@@ -324,5 +337,103 @@ describe("redirectToCheckout", () => {
         line_items: [{ price: "price_test", quantity: 1 }],
       })
     );
+  });
+});
+
+describe("trial period configuration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsValidPriceId.mockReturnValue(true);
+    mockGetPlanFromPriceId.mockReturnValue("PRO");
+    mockGetTrialDays.mockReturnValue(0);
+  });
+
+  it("includes trial period for PRO monthly plan", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user_123", email: "test@example.com" },
+    });
+    mockDbSubscription.findUnique.mockResolvedValue(null);
+    mockStripeCheckoutSessions.create.mockResolvedValue({
+      id: "cs_test",
+      url: "https://checkout.stripe.com/session/cs_test",
+    });
+    mockGetPlanFromPriceId.mockReturnValue("PRO");
+    mockGetTrialDays.mockReturnValue(14);
+
+    // Mock price ID to plan mapping
+    const proPriceId = process.env["STRIPE_PRICE_ID_PRO_MONTHLY"] || "price_pro_monthly";
+    await createCheckoutAction({ priceId: proPriceId });
+
+    const callArgs = mockStripeCheckoutSessions.create.mock.calls[0]![0];
+    expect(callArgs.subscription_data?.trial_period_days).toBe(14);
+  });
+
+  it("includes trial period for ENTERPRISE yearly plan", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user_123", email: "test@example.com" },
+    });
+    mockDbSubscription.findUnique.mockResolvedValue(null);
+    mockStripeCheckoutSessions.create.mockResolvedValue({
+      id: "cs_test",
+      url: "https://checkout.stripe.com/session/cs_test",
+    });
+    mockGetPlanFromPriceId.mockReturnValue("ENTERPRISE");
+    mockGetTrialDays.mockReturnValue(14);
+
+    const enterprisePriceId = process.env["STRIPE_PRICE_ID_ENTERPRISE_YEARLY"] || "price_enterprise_yearly";
+    await createCheckoutAction({ priceId: enterprisePriceId });
+
+    const callArgs = mockStripeCheckoutSessions.create.mock.calls[0]![0];
+    expect(callArgs.subscription_data?.trial_period_days).toBe(14);
+  });
+
+  it("does not include trial period for existing customers", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user_123", email: "test@example.com" },
+    });
+    // Existing customer with previous subscription
+    mockDbSubscription.findUnique.mockResolvedValue({
+      id: "sub_123",
+      userId: "user_123",
+      stripeCustomerId: "cus_existing_123",
+      stripeSubscriptionId: "sub_old_123",
+      plan: "FREE",
+      status: "INACTIVE",
+    });
+    mockStripeCheckoutSessions.create.mockResolvedValue({
+      id: "cs_test",
+      url: "https://checkout.stripe.com/session/cs_test",
+    });
+
+    const proPriceId = process.env["STRIPE_PRICE_ID_PRO_MONTHLY"] || "price_pro_monthly";
+    await createCheckoutAction({ priceId: proPriceId });
+
+    const callArgs = mockStripeCheckoutSessions.create.mock.calls[0]![0];
+    expect(callArgs.subscription_data?.trial_period_days).toBeUndefined();
+  });
+
+  it("does not include trial for existing active subscriptions", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user_123", email: "test@example.com" },
+    });
+    // Active subscription
+    mockDbSubscription.findUnique.mockResolvedValue({
+      id: "sub_123",
+      userId: "user_123",
+      stripeCustomerId: "cus_existing_123",
+      stripeSubscriptionId: "sub_active_123",
+      plan: "PRO",
+      status: "ACTIVE",
+    });
+    mockStripeCheckoutSessions.create.mockResolvedValue({
+      id: "cs_test",
+      url: "https://checkout.stripe.com/session/cs_test",
+    });
+
+    const enterprisePriceId = process.env["STRIPE_PRICE_ID_ENTERPRISE_MONTHLY"] || "price_enterprise_monthly";
+    await createCheckoutAction({ priceId: enterprisePriceId });
+
+    const callArgs = mockStripeCheckoutSessions.create.mock.calls[0]![0];
+    expect(callArgs.subscription_data?.trial_period_days).toBeUndefined();
   });
 });

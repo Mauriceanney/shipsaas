@@ -34,7 +34,7 @@ function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
     if (!priceIds.ENTERPRISE.yearly) missing.push("STRIPE_PRICE_ID_ENTERPRISE_YEARLY");
 
     if (missing.length > 0) {
-      throw new Error(`Missing Stripe price IDs: ${missing.join(", ")}`);
+      throw new Error("Missing Stripe price IDs: " + missing.join(", "));
     }
   }
 
@@ -45,6 +45,33 @@ function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
  * Stripe price IDs from environment
  */
 export const STRIPE_PRICE_IDS = getStripePriceIds();
+
+// ============================================
+// TRIAL PERIOD CONFIGURATION
+// ============================================
+
+/**
+ * Trial period configuration (in days)
+ */
+export const TRIAL_DAYS: Partial<Record<Plan, number>> = {
+  PRO: 14,
+  ENTERPRISE: 14,
+  // FREE plan has no trial
+} as const;
+
+/**
+ * Get trial days for a plan
+ */
+export function getTrialDays(plan: Plan): number {
+  return TRIAL_DAYS[plan] ?? 0;
+}
+
+/**
+ * Check if a plan has a trial period
+ */
+export function hasTrialPeriod(plan: Plan): boolean {
+  return getTrialDays(plan) > 0;
+}
 
 // ============================================
 // PLAN CONFIGURATIONS
@@ -151,11 +178,11 @@ export function formatLimit(value: number, type: "count" | "bytes" = "count"): s
 
   if (type === "bytes") {
     const gb = value / (1024 * 1024 * 1024);
-    return `${gb}GB`;
+    return gb + "GB";
   }
 
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(0)}K`;
+    return (value / 1000).toFixed(0) + "K";
   }
 
   return value.toString();
@@ -180,6 +207,7 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     features: PLAN_FEATURES.PRO,
     highlighted: true,
     badge: "Popular",
+    trialDays: TRIAL_DAYS.PRO,
   },
   {
     id: "ENTERPRISE",
@@ -187,6 +215,7 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     description: "For large organizations",
     prices: STRIPE_PRICE_IDS.ENTERPRISE,
     features: PLAN_FEATURES.ENTERPRISE,
+    trialDays: TRIAL_DAYS.ENTERPRISE,
   },
 ];
 

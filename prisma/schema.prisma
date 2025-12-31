@@ -180,6 +180,7 @@ model Subscription {
   stripeSubscriptionId   String?            @unique
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
+  stripeTrialEnd         DateTime?          // Trial period end date
   status                 SubscriptionStatus @default(INACTIVE)
   statusChangedAt        DateTime?          // When status last changed (for grace period tracking)
   plan                   Plan               @default(FREE)

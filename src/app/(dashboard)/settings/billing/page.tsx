@@ -34,6 +34,7 @@ export default async function BillingPage() {
         status: subscription.status,
         plan: subscription.plan,
         currentPeriodEnd: subscription.stripeCurrentPeriodEnd,
+        trialEnd: subscription.stripeTrialEnd,
         cancelAtPeriodEnd: false, // Will be fetched on client side
         stripeCustomerId: subscription.stripeCustomerId,
         stripeSubscriptionId: subscription.stripeSubscriptionId,

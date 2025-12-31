@@ -28,6 +28,9 @@ export function SubscriptionStatus({ subscription }: SubscriptionStatusProps) {
     );
   }
 
+  const isTrialing = subscription.status === "TRIALING";
+  const trialEndsAt = subscription.trialEnd;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -39,7 +42,19 @@ export function SubscriptionStatus({ subscription }: SubscriptionStatusProps) {
         </div>
       </div>
 
-      {subscription.currentPeriodEnd && (
+      {isTrialing && trialEndsAt && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+          <p className="text-sm text-blue-800">
+            <span className="font-medium">Trial Period</span> - Your trial ends on{" "}
+            <span className="font-semibold">
+              {format(trialEndsAt, "MMMM d, yyyy")}
+            </span>
+            . You won&apos;t be charged until then.
+          </p>
+        </div>
+      )}
+
+      {subscription.currentPeriodEnd && !isTrialing && (
         <div className="text-sm text-muted-foreground">
           {subscription.cancelAtPeriodEnd ? (
             <p>
