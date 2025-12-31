@@ -20,6 +20,11 @@ vi.mock("@/actions/stripe/create-portal", () => ({
   redirectToPortal: mockRedirectToPortal,
 }));
 
+// Mock RetryPaymentButton component
+vi.mock("@/components/billing/retry-payment-button", () => ({
+  RetryPaymentButton: () => <button>Retry Payment</button>,
+}));
+
 import { DunningBanner } from "@/components/billing/dunning-banner";
 
 describe("DunningBanner", () => {
@@ -166,7 +171,7 @@ describe("DunningBanner", () => {
       expect(alert).toBeInTheDocument();
     });
 
-    it("has accessible button text", async () => {
+    it("has accessible button text for Update Payment Method", async () => {
       mockGetDunningStatus.mockResolvedValue({
         success: true,
         data: {
@@ -180,6 +185,23 @@ describe("DunningBanner", () => {
 
       expect(
         screen.getByRole("button", { name: /Update Payment Method/i })
+      ).toBeInTheDocument();
+    });
+
+    it("has accessible button text for Retry Payment", async () => {
+      mockGetDunningStatus.mockResolvedValue({
+        success: true,
+        data: {
+          showBanner: true,
+          daysSinceFailed: 2,
+          statusChangedAt: new Date("2025-12-28"),
+        },
+      });
+
+      render(await DunningBanner());
+
+      expect(
+        screen.getByRole("button", { name: /Retry Payment/i })
       ).toBeInTheDocument();
     });
 

@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { trackServerEvent, SUBSCRIPTION_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
-import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail, sendPaymentFailedEmail, sendInvoiceReceiptEmail } from "@/lib/email";
+import { sendSubscriptionConfirmationEmail, sendSubscriptionCancelledEmail, sendPaymentFailedEmail, sendInvoiceReceiptEmail, sendPaymentRecoveryEmail } from "@/lib/email";
 
 import { stripe } from "./client";
 import { extractCustomerId, extractPriceId, extractSubscriptionId, getPlanFromPriceId, mapStripeStatus, unixToDate, validateCheckoutMetadata } from "./utils";
@@ -391,6 +391,41 @@ export async function handleInvoicePaid(
     } catch (dunningError) {
       console.error("Failed to create dunning recovery record:", dunningError);
       // Don't throw - this is just tracking
+    }
+
+    // Send payment recovery email (graceful degradation)
+    try {
+      const user = await db.user.findUnique({
+        where: { id: pastDueSubscription.userId },
+        select: { email: true, name: true },
+      });
+
+      if (user?.email) {
+        // Format amount from invoice
+        const amountPaid = invoice.amount_paid ?? 0;
+        const currency = invoice.currency?.toUpperCase() ?? "USD";
+        const formattedAmount = `${currency} ${(amountPaid / 100).toFixed(2)}`;
+
+        // Fetch updated subscription to get current period end
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const nextBillingDate = unixToDate(subscription.current_period_end).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+
+        await sendPaymentRecoveryEmail(user.email, {
+          name: user.name ?? undefined,
+          planName: pastDueSubscription.plan,
+          amountPaid: formattedAmount,
+          nextBillingDate,
+        });
+
+        console.log(`Payment recovery email sent for subscription: ${subscriptionId}`);
+      }
+    } catch (emailError) {
+      console.error("Failed to send payment recovery email:", emailError);
+      // Don't throw - subscription was reactivated successfully
     }
   }
 

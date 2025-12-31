@@ -44,6 +44,14 @@ export {
   DunningFinalWarningEmail,
   type DunningFinalWarningEmailProps,
 } from "./dunning-final-warning";
+export {
+  PaymentRecoveryEmail,
+  type PaymentRecoveryEmailProps,
+} from "./payment-recovery";
+export {
+  SubscriptionSuspendedEmail,
+  type SubscriptionSuspendedEmailProps,
+} from "./subscription-suspended";
 
 // Component exports
 export * from "./components";
@@ -86,6 +94,14 @@ import {
   type VerifyEmailTemplateProps,
 } from "./verify-email";
 import { WelcomeEmail, type WelcomeEmailProps } from "./welcome";
+import {
+  PaymentRecoveryEmail,
+  type PaymentRecoveryEmailProps,
+} from "./payment-recovery";
+import {
+  SubscriptionSuspendedEmail,
+  type SubscriptionSuspendedEmailProps,
+} from "./subscription-suspended";
 
 // ============================================
 // RENDER FUNCTIONS
@@ -236,6 +252,34 @@ export async function renderDunningFinalWarningEmail(
   return { html, text };
 }
 
+/**
+ * Render payment recovery email to HTML and plain text
+ */
+export async function renderPaymentRecoveryEmail(
+  props: PaymentRecoveryEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(PaymentRecoveryEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
+/**
+ * Render subscription suspended email to HTML and plain text
+ */
+export async function renderSubscriptionSuspendedEmail(
+  props: SubscriptionSuspendedEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(SubscriptionSuspendedEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
 // ============================================
 // TEMPLATE TYPES MAP
 // ============================================
@@ -255,6 +299,8 @@ export type EmailTemplates = {
   "invoice-receipt": InvoiceReceiptEmailProps;
   "dunning-reminder": DunningReminderEmailProps;
   "dunning-final-warning": DunningFinalWarningEmailProps;
+  "payment-recovery": PaymentRecoveryEmailProps;
+  "subscription-suspended": SubscriptionSuspendedEmailProps;
 };
 
 /**
