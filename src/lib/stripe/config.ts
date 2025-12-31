@@ -96,6 +96,72 @@ export const PLAN_PRICING: Record<Exclude<Plan, "FREE">, { monthly: number; year
 };
 
 /**
+ * Plan usage limits
+ * -1 means unlimited
+ */
+export type PlanLimits = {
+  apiCalls: number;       // API calls per month
+  projects: number;       // Number of projects
+  storageBytes: number;   // Storage in bytes
+  teamMembers: number;    // Team members
+};
+
+export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
+  FREE: {
+    apiCalls: 1000,           // 1,000 API calls/month
+    projects: 1,              // 1 project
+    storageBytes: 5 * 1024 * 1024 * 1024, // 5GB
+    teamMembers: 1,           // Just yourself
+  },
+  PRO: {
+    apiCalls: 50000,          // 50,000 API calls/month
+    projects: -1,             // Unlimited
+    storageBytes: 50 * 1024 * 1024 * 1024, // 50GB
+    teamMembers: 10,          // Up to 10 team members
+  },
+  ENTERPRISE: {
+    apiCalls: -1,             // Unlimited
+    projects: -1,             // Unlimited
+    storageBytes: -1,         // Unlimited
+    teamMembers: -1,          // Unlimited
+  },
+};
+
+/**
+ * Get plan limits by plan
+ */
+export function getPlanLimits(plan: Plan): PlanLimits {
+  return PLAN_LIMITS[plan];
+}
+
+/**
+ * Check if a limit is unlimited (-1)
+ */
+export function isUnlimited(value: number): boolean {
+  return value === -1;
+}
+
+/**
+ * Format limit for display
+ */
+export function formatLimit(value: number, type: "count" | "bytes" = "count"): string {
+  if (isUnlimited(value)) {
+    return "Unlimited";
+  }
+
+  if (type === "bytes") {
+    const gb = value / (1024 * 1024 * 1024);
+    return `${gb}GB`;
+  }
+
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(0)}K`;
+  }
+
+  return value.toString();
+}
+
+/**
  * Full plan configurations
  */
 export const PLAN_CONFIGS: PlanConfig[] = [
