@@ -200,6 +200,28 @@ model Subscription {
 }
 
 // ============================================
+// USAGE METERING MODELS
+// ============================================
+
+model Usage {
+  id             String   @id @default(cuid())
+  userId         String
+  period         String   // Billing period in YYYY-MM format (e.g., "2024-01")
+  apiCalls       Int      @default(0)
+  projectsCount  Int      @default(0)
+  storageBytes   BigInt   @default(0)
+  teamMembers    Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, period])
+  @@index([userId])
+  @@index([period])
+  @@index([userId, period])
+}
+
+// ============================================
 // ENUMS
 // ============================================
 

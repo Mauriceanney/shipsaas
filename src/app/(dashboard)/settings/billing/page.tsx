@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ManageSubscriptionButton, SubscriptionStatus } from "@/components/billing";
+import { ManageSubscriptionButton, SubscriptionStatus, UsageMeter } from "@/components/billing";
 import { UpgradeBanner } from "@/components/feature-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,6 +92,18 @@ export default async function BillingPage() {
               </Button>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Usage</CardTitle>
+          <CardDescription>
+            Your current usage for this billing period
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <UsageMeter />
         </CardContent>
       </Card>
 
