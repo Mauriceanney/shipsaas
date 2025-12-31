@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { EmailComposeDialog } from "@/components/admin/email-compose-dialog";
+
 import { AccountStatusForm } from "./account-status-form";
 import { RoleChangeForm } from "./role-change-form";
 
@@ -160,6 +162,22 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
           </CardHeader>
           <CardContent>
             <AccountStatusForm userId={user.id} isDisabled={user.disabled} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Communication</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Send an email directly to this user from the admin panel.
+            </p>
+            <EmailComposeDialog
+              userId={user.id}
+              userName={user.name}
+              userEmail={user.email}
+            />
           </CardContent>
         </Card>
 

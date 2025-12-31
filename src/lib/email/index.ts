@@ -18,7 +18,10 @@ import {
   renderDunningFinalWarningEmail,
   renderPaymentRecoveryEmail,
   renderSubscriptionSuspendedEmail,
+  renderAdminMessageEmail,
 } from "./templates";
+
+import type { AdminMessageEmailProps } from "./templates";
 
 import type { SendEmailResult } from "./types";
 
@@ -476,6 +479,33 @@ export async function sendSubscriptionSuspendedEmail(
     from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
     to,
     subject: `Subscription Suspended - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send admin message email to a user
+ * @param to - Recipient email address
+ * @param data - Admin message data
+ */
+export async function sendAdminMessage(
+  to: string,
+  data: Omit<AdminMessageEmailProps, "appName" | "appUrl">
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const { html, text } = await renderAdminMessageEmail({
+    ...data,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to,
+    subject: data.subject,
     html,
     text,
   });

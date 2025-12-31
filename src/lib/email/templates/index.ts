@@ -52,6 +52,10 @@ export {
   SubscriptionSuspendedEmail,
   type SubscriptionSuspendedEmailProps,
 } from "./subscription-suspended";
+export {
+  AdminMessageEmail,
+  type AdminMessageEmailProps,
+} from "./admin-message";
 
 // Component exports
 export * from "./components";
@@ -102,6 +106,10 @@ import {
   type VerifyEmailTemplateProps,
 } from "./verify-email";
 import { WelcomeEmail, type WelcomeEmailProps } from "./welcome";
+import {
+  AdminMessageEmail,
+  type AdminMessageEmailProps,
+} from "./admin-message";
 
 // ============================================
 // RENDER FUNCTIONS
@@ -280,6 +288,20 @@ export async function renderSubscriptionSuspendedEmail(
   return { html, text };
 }
 
+/**
+ * Render admin message email to HTML and plain text
+ */
+export async function renderAdminMessageEmail(
+  props: AdminMessageEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(AdminMessageEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}
+
 // ============================================
 // TEMPLATE TYPES MAP
 // ============================================
@@ -301,6 +323,7 @@ export type EmailTemplates = {
   "dunning-final-warning": DunningFinalWarningEmailProps;
   "payment-recovery": PaymentRecoveryEmailProps;
   "subscription-suspended": SubscriptionSuspendedEmailProps;
+  "admin-message": AdminMessageEmailProps;
 };
 
 /**
