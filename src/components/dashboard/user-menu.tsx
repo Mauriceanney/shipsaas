@@ -3,6 +3,7 @@
 import { CreditCard, LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 import { logoutAction } from "@/actions/auth/logout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,12 @@ export interface UserMenuProps {
 export function UserMenu({ user }: UserMenuProps) {
   const initials = getInitials(user.name, user.email);
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only rendering theme UI after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const cycleTheme = () => {
     if (theme === "light") {
@@ -94,10 +101,12 @@ export function UserMenu({ user }: UserMenuProps) {
               <span>Settings</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer" onSelect={cycleTheme}>
-            {getThemeIcon()}
-            <span>Theme: {getThemeLabel()}</span>
-          </DropdownMenuItem>
+          {mounted && (
+            <DropdownMenuItem className="cursor-pointer" onSelect={cycleTheme}>
+              {getThemeIcon()}
+              <span>Theme: {getThemeLabel()}</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
