@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { trackServerEvent, SUBSCRIPTION_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { CHECKOUT_URLS, isValidPriceId, stripe } from "@/lib/stripe";
 
 import type { Result } from "@/types";
@@ -23,15 +24,15 @@ const baseUrl = process.env["NEXT_PUBLIC_APP_URL"] || "http://localhost:3000";
 export async function createCheckoutAction(
   input: CreateCheckoutInput
 ): Promise<Result<{ url: string }, string>> {
+  // Authenticate user
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  const { priceId, successUrl, cancelUrl } = input;
+
   try {
-    // Authenticate user
-    const session = await auth();
-    if (!session?.user) {
-      return { success: false, error: "Authentication required" };
-    }
-
-    const { priceId, successUrl, cancelUrl } = input;
-
     // Validate price ID
     if (!priceId || !isValidPriceId(priceId)) {
       return { success: false, error: "Invalid price ID" };
@@ -79,7 +80,10 @@ export async function createCheckoutAction(
 
     return { success: true, data: { url: checkoutSession.url } };
   } catch (error) {
-    console.error("Create checkout error:", error);
+    logger.error(
+      { err: error, priceId, userId: session.user.id },
+      "Failed to create checkout session"
+    );
     return { success: false, error: "Failed to create checkout session" };
   }
 }
