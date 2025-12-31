@@ -1,6 +1,5 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
@@ -19,6 +18,7 @@ import {
   getUserFriendlyMessage,
   shouldShowTechnicalDetails,
 } from "@/lib/errors/messages";
+import { captureExceptionLazy } from "@/lib/sentry/lazy";
 
 export default function SettingsError({
   error,
@@ -28,7 +28,7 @@ export default function SettingsError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    captureExceptionLazy(error);
     console.error("[Settings Error]", error);
   }, [error]);
 
