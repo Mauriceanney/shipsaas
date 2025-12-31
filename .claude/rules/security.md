@@ -304,6 +304,60 @@ console.warn("[AUTHZ] Unauthorized access attempt:", {
 });
 ```
 
+## Rate Limiting
+
+**Prevention**: Protect against abuse and brute force attacks
+
+```typescript
+import { rateLimiters, getClientIpFromHeaders } from "@/lib/rate-limit";
+
+// IP-based rate limiting (for unauthenticated actions)
+const clientIp = await getClientIpFromHeaders();
+const rateLimitResult = await rateLimiters.auth(clientIp);
+
+if (!rateLimitResult.success) {
+  return {
+    success: false,
+    error: "Too many attempts. Please try again later."
+  };
+}
+
+// Email-based rate limiting (for forgot password)
+const rateLimitResult = await rateLimiters.forgotPassword(email);
+
+// User-based rate limiting (for authenticated actions)
+const session = await auth();
+const rateLimitResult = await rateLimiters.dataExport(session.user.id);
+
+if (!rateLimitResult.success) {
+  return {
+    success: false,
+    error: "Too many requests. Please try again later."
+  };
+}
+```
+
+### Configured Rate Limits
+
+| Endpoint | Limit | Window | Identifier | Purpose |
+|----------|-------|--------|------------|---------|
+| Login/Register | 5 | 1 minute | IP address | Prevent brute force |
+| Forgot Password | 5 | 1 hour | Email address | Prevent abuse, allow retries |
+| Two-Factor Auth | 5 | 5 minutes | IP address | Prevent TOTP brute force |
+| Data Export | 3 | 24 hours | User ID | GDPR compliance + abuse prevention |
+| Retry Payment | 3 | 1 hour | User ID | Prevent payment spam |
+| API Endpoints | 100 | 1 minute | User/API key | General API protection |
+| Webhooks | 1000 | 1 minute | Source IP | High limit for trusted sources |
+
+### Implementation Notes
+
+- Uses Redis with in-memory fallback for high availability
+- Sliding window algorithm for accurate rate limiting
+- Circuit breaker pattern prevents cascading failures
+- Rate limit by email for forgot password (not IP) to prevent targeted attacks
+- Rate limit by user ID for authenticated operations
+- Always return generic error messages to prevent information disclosure
+
 ## Sensitive Data Handling
 
 ### Never Log
@@ -411,3 +465,9 @@ Before merging any PR:
 - [ ] Generic error messages to users
 - [ ] Detailed logging internally
 - [ ] No stack traces exposed
+
+### Rate Limiting
+- [ ] Unauthenticated actions rate limited by IP
+- [ ] Authenticated actions rate limited by user ID
+- [ ] Sensitive operations (forgot password) rate limited by email
+- [ ] Generic error messages for rate limit responses

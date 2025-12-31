@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { rateLimiters } from "@/lib/rate-limit";
 import { stripe } from "@/lib/stripe";
 
 import type { Result } from "@/types";
@@ -18,7 +19,16 @@ export async function retryPaymentAction(): Promise<Result<void, string>> {
       return { success: false, error: "Unauthorized" };
     }
 
-    // 2. Find user's PAST_DUE subscription
+    // 2. Rate limiting - 3 retries per hour
+    const rateLimitResult = await rateLimiters.retryPayment(session.user.id);
+    if (!rateLimitResult.success) {
+      return {
+        success: false,
+        error: "Too many retry attempts. Please try again later.",
+      };
+    }
+
+    // 3. Find user's PAST_DUE subscription
     const subscription = await db.subscription.findFirst({
       where: {
         userId: session.user.id,
@@ -34,7 +44,7 @@ export async function retryPaymentAction(): Promise<Result<void, string>> {
       return { success: false, error: "No Stripe subscription found" };
     }
 
-    // 3. Get the latest unpaid invoice from Stripe
+    // 4. Get the latest unpaid invoice from Stripe
     const invoices = await stripe.invoices.list({
       subscription: subscription.stripeSubscriptionId,
       status: "open",
@@ -46,7 +56,7 @@ export async function retryPaymentAction(): Promise<Result<void, string>> {
       return { success: false, error: "No open invoice found" };
     }
 
-    // 4. Retry payment
+    // 5. Retry payment
     try {
       await stripe.invoices.pay(invoice.id);
       return { success: true, data: undefined };
