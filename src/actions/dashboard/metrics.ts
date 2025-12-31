@@ -8,6 +8,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getUserUsage, getCurrentPeriod } from "@/lib/usage";
+import { getCachedData, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 
 import type { Plan, SubscriptionStatus } from "@prisma/client";
 
@@ -74,79 +75,93 @@ export async function getUserDashboardMetrics() {
   }
 
   try {
-    // Get user with subscription
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        createdAt: true,
-        updatedAt: true,
-        subscription: {
+    const metrics = await getCachedData(
+      CACHE_KEYS.userDashboard(session.user.id),
+      async () => {
+        // Get user with subscription
+        const user = await db.user.findUnique({
+          where: { id: session.user.id },
           select: {
-            plan: true,
-            status: true,
-            stripeCurrentPeriodEnd: true,
+            createdAt: true,
+            updatedAt: true,
+            subscription: {
+              select: {
+                plan: true,
+                status: true,
+                stripeCurrentPeriodEnd: true,
+              },
+            },
           },
-        },
+        });
+
+        if (!user) {
+          throw new Error("User not found");
+        }
+
+        // Get usage data
+        const plan = user.subscription?.plan ?? "FREE";
+        const usage = await getUserUsage(session.user.id, plan);
+
+        // Get recent login count (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const [recentLogins, lastLogin] = await Promise.all([
+          db.loginHistory.count({
+            where: {
+              userId: session.user.id,
+              success: true,
+              createdAt: { gte: thirtyDaysAgo },
+            },
+          }),
+          db.loginHistory.findFirst({
+            where: {
+              userId: session.user.id,
+              success: true,
+            },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+          }),
+        ]);
+
+        const metrics: UserDashboardMetrics = {
+          account: {
+            memberSince: user.createdAt,
+            lastActive: user.updatedAt,
+          },
+          subscription: user.subscription
+            ? {
+                plan: user.subscription.plan,
+                status: user.subscription.status,
+                currentPeriodEnd: user.subscription.stripeCurrentPeriodEnd,
+              }
+            : null,
+          usage: {
+            apiCalls: usage.apiCalls,
+            projects: usage.projects,
+            storage: { used: Number(usage.storage.used), limit: usage.storage.limit },
+            teamMembers: usage.teamMembers,
+          },
+          activity: {
+            recentLogins,
+            lastLoginAt: lastLogin?.createdAt ?? null,
+          },
+        };
+
+        return metrics;
       },
-    });
-
-    if (!user) {
-      return { success: false, error: "User not found" } as const;
-    }
-
-    // Get usage data
-    const plan = user.subscription?.plan ?? "FREE";
-    const usage = await getUserUsage(session.user.id, plan);
-
-    // Get recent login count (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const [recentLogins, lastLogin] = await Promise.all([
-      db.loginHistory.count({
-        where: {
-          userId: session.user.id,
-          success: true,
-          createdAt: { gte: thirtyDaysAgo },
-        },
-      }),
-      db.loginHistory.findFirst({
-        where: {
-          userId: session.user.id,
-          success: true,
-        },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
-      }),
-    ]);
-
-    const metrics: UserDashboardMetrics = {
-      account: {
-        memberSince: user.createdAt,
-        lastActive: user.updatedAt,
-      },
-      subscription: user.subscription
-        ? {
-            plan: user.subscription.plan,
-            status: user.subscription.status,
-            currentPeriodEnd: user.subscription.stripeCurrentPeriodEnd,
-          }
-        : null,
-      usage: {
-        apiCalls: usage.apiCalls,
-        projects: usage.projects,
-        storage: { used: Number(usage.storage.used), limit: usage.storage.limit },
-        teamMembers: usage.teamMembers,
-      },
-      activity: {
-        recentLogins,
-        lastLoginAt: lastLogin?.createdAt ?? null,
-      },
-    };
+      CACHE_TTL.userDashboard
+    );
 
     return { success: true, data: metrics } as const;
   } catch (error) {
     console.error("[getUserDashboardMetrics]", error);
+
+    // Check if it's a "User not found" error
+    if (error instanceof Error && error.message === "User not found") {
+      return { success: false, error: "User not found" } as const;
+    }
+
     return { success: false, error: "Failed to get dashboard metrics" } as const;
   }
 }
@@ -172,71 +187,79 @@ export async function getAdminDashboardMetrics() {
   }
 
   try {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const metrics = await getCachedData(
+      CACHE_KEYS.adminDashboard(),
+      async () => {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Get user counts
-    const [totalUsers, activeThisMonth, newThisMonth] = await Promise.all([
-      db.user.count({ where: { deletedAt: null } }),
-      db.user.count({
-        where: {
-          deletedAt: null,
-          updatedAt: { gte: startOfMonth },
-        },
-      }),
-      db.user.count({
-        where: {
-          deletedAt: null,
-          createdAt: { gte: startOfMonth },
-        },
-      }),
-    ]);
+        // Get user counts
+        const [totalUsers, activeThisMonth, newThisMonth] = await Promise.all([
+          db.user.count({ where: { deletedAt: null } }),
+          db.user.count({
+            where: {
+              deletedAt: null,
+              updatedAt: { gte: startOfMonth },
+            },
+          }),
+          db.user.count({
+            where: {
+              deletedAt: null,
+              createdAt: { gte: startOfMonth },
+            },
+          }),
+        ]);
 
-    // Get subscription counts
-    const [activeSubscriptions, trialingSubscriptions, pastDueSubscriptions] = await Promise.all([
-      db.subscription.count({ where: { status: "ACTIVE" } }),
-      db.subscription.count({ where: { status: "TRIALING" } }),
-      db.subscription.count({ where: { status: "PAST_DUE" } }),
-    ]);
+        // Get subscription counts
+        const [activeSubscriptions, trialingSubscriptions, pastDueSubscriptions] = await Promise.all([
+          db.subscription.count({ where: { status: "ACTIVE" } }),
+          db.subscription.count({ where: { status: "TRIALING" } }),
+          db.subscription.count({ where: { status: "PAST_DUE" } }),
+        ]);
 
-    // Get subscriptions by plan
-    const [freeCount, proCount, enterpriseCount] = await Promise.all([
-      db.subscription.count({ where: { plan: "FREE", status: { in: ["ACTIVE", "TRIALING"] } } }),
-      db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
-      db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
-    ]);
+        // Get subscriptions by plan
+        const [freeCount, proCount, enterpriseCount] = await Promise.all([
+          db.subscription.count({ where: { plan: "FREE", status: { in: ["ACTIVE", "TRIALING"] } } }),
+          db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
+          db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
+        ]);
 
-    // Get recent signups (last 5)
-    const recentSignups = await db.user.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
+        // Get recent signups (last 5)
+        const recentSignups = await db.user.findMany({
+          where: { deletedAt: null },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+          },
+        });
+
+        const metrics: AdminDashboardMetrics = {
+          users: {
+            total: totalUsers,
+            activeThisMonth,
+            newThisMonth,
+          },
+          subscriptions: {
+            active: activeSubscriptions,
+            trialing: trialingSubscriptions,
+            pastDue: pastDueSubscriptions,
+            byPlan: {
+              FREE: freeCount,
+              PLUS: proCount,
+              PRO: enterpriseCount,
+            },
+          },
+          recentSignups,
+        };
+
+        return metrics;
       },
-    });
-
-    const metrics: AdminDashboardMetrics = {
-      users: {
-        total: totalUsers,
-        activeThisMonth,
-        newThisMonth,
-      },
-      subscriptions: {
-        active: activeSubscriptions,
-        trialing: trialingSubscriptions,
-        pastDue: pastDueSubscriptions,
-        byPlan: {
-          FREE: freeCount,
-          PLUS: proCount,
-          PRO: enterpriseCount,
-        },
-      },
-      recentSignups,
-    };
+      CACHE_TTL.adminDashboard
+    );
 
     return { success: true, data: metrics } as const;
   } catch (error) {

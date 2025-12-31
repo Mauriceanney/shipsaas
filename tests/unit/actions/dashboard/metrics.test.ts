@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Hoist mocks
-const { mockAuth, mockDb, mockGetUserUsage } = vi.hoisted(() => ({
+const { mockAuth, mockDb, mockGetUserUsage, mockGetCachedData } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockDb: {
     user: {
@@ -22,6 +22,7 @@ const { mockAuth, mockDb, mockGetUserUsage } = vi.hoisted(() => ({
     },
   },
   mockGetUserUsage: vi.fn(),
+  mockGetCachedData: vi.fn(),
 }));
 
 // Mock dependencies
@@ -38,6 +39,18 @@ vi.mock("@/lib/usage", () => ({
   getCurrentPeriod: () => "2024-01",
 }));
 
+vi.mock("@/lib/redis", () => ({
+  getCachedData: mockGetCachedData,
+  CACHE_KEYS: {
+    userDashboard: (userId: string) => `dashboard:user:${userId}:metrics`,
+    adminDashboard: () => "dashboard:admin:metrics",
+  },
+  CACHE_TTL: {
+    userDashboard: 300,
+    adminDashboard: 60,
+  },
+}));
+
 import {
   getUserDashboardMetrics,
   getAdminDashboardMetrics,
@@ -46,6 +59,10 @@ import {
 describe("dashboard metrics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: getCachedData calls the fallback function (cache miss)
+    mockGetCachedData.mockImplementation(async (_key, fallback, _ttl) => {
+      return await fallback();
+    });
   });
 
   describe("getUserDashboardMetrics", () => {
@@ -222,6 +239,95 @@ describe("dashboard metrics", () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe("Failed to get admin metrics");
+      });
+    });
+
+    describe("caching", () => {
+      it("uses cache key with correct TTL", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+        mockDb.user.count
+          .mockResolvedValueOnce(100)
+          .mockResolvedValueOnce(50)
+          .mockResolvedValueOnce(10);
+        mockDb.subscription.count
+          .mockResolvedValueOnce(30)
+          .mockResolvedValueOnce(5)
+          .mockResolvedValueOnce(2)
+          .mockResolvedValueOnce(50)
+          .mockResolvedValueOnce(25)
+          .mockResolvedValueOnce(5);
+        mockDb.user.findMany.mockResolvedValue([]);
+
+        await getAdminDashboardMetrics();
+
+        expect(mockGetCachedData).toHaveBeenCalledWith(
+          "dashboard:admin:metrics",
+          expect.any(Function),
+          60
+        );
+      });
+    });
+  });
+
+  describe("caching integration", () => {
+    describe("getUserDashboardMetrics caching", () => {
+      it("uses cache key with userId and correct TTL", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "user-123" } });
+        mockDb.user.findUnique.mockResolvedValue({
+          createdAt: new Date("2024-01-01"),
+          updatedAt: new Date("2024-01-15"),
+          subscription: null,
+        });
+        mockGetUserUsage.mockResolvedValue({
+          apiCalls: { used: 50, limit: 1000 },
+          projects: { used: 1, limit: 1 },
+          storage: { used: BigInt(0), limit: 5 * 1024 * 1024 * 1024 },
+          teamMembers: { used: 1, limit: 1 },
+        });
+        mockDb.loginHistory.count.mockResolvedValue(2);
+        mockDb.loginHistory.findFirst.mockResolvedValue(null);
+
+        await getUserDashboardMetrics();
+
+        expect(mockGetCachedData).toHaveBeenCalledWith(
+          "dashboard:user:user-123:metrics",
+          expect.any(Function),
+          300
+        );
+      });
+
+      it("returns cached data when available", async () => {
+        const cachedMetrics = {
+          account: {
+            memberSince: new Date("2024-01-01"),
+            lastActive: new Date("2024-01-15"),
+          },
+          subscription: null,
+          usage: {
+            apiCalls: { used: 50, limit: 1000 },
+            projects: { used: 1, limit: 1 },
+            storage: { used: 0, limit: 5368709120 },
+            teamMembers: { used: 1, limit: 1 },
+          },
+          activity: {
+            recentLogins: 2,
+            lastLoginAt: null,
+          },
+        };
+
+        mockAuth.mockResolvedValue({ user: { id: "user-123" } });
+        // Return cached data directly
+        mockGetCachedData.mockResolvedValueOnce(cachedMetrics);
+
+        const result = await getUserDashboardMetrics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data).toEqual(cachedMetrics);
+        }
+        // DB should not be called when cache hits
+        expect(mockDb.user.findUnique).not.toHaveBeenCalled();
       });
     });
   });

@@ -5,6 +5,7 @@
 
 import { db } from "@/lib/db";
 import { getPlanLimits, isUnlimited } from "@/lib/stripe/config";
+import { invalidateUserDashboard } from "@/lib/redis";
 
 import type { Plan } from "@prisma/client";
 
@@ -84,21 +85,24 @@ export async function incrementUsage(
   const period = getCurrentPeriod();
   const usage = await getOrCreateUsage(userId, period);
 
-  if (metric === "storageBytes") {
-    return db.usage.update({
-      where: { id: usage.id },
-      data: {
-        storageBytes: { increment: BigInt(amount) },
-      },
-    });
-  }
+  const result = metric === "storageBytes"
+    ? await db.usage.update({
+        where: { id: usage.id },
+        data: {
+          storageBytes: { increment: BigInt(amount) },
+        },
+      })
+    : await db.usage.update({
+        where: { id: usage.id },
+        data: {
+          [metric]: { increment: amount },
+        },
+      });
 
-  return db.usage.update({
-    where: { id: usage.id },
-    data: {
-      [metric]: { increment: amount },
-    },
-  });
+  // Invalidate user dashboard cache after usage update
+  await invalidateUserDashboard(userId);
+
+  return result;
 }
 
 /**
@@ -112,25 +116,24 @@ export async function decrementUsage(
   const period = getCurrentPeriod();
   const usage = await getOrCreateUsage(userId, period);
 
-  if (metric === "storageBytes") {
-    const newValue = usage.storageBytes - BigInt(amount);
-    return db.usage.update({
-      where: { id: usage.id },
-      data: {
-        storageBytes: newValue < BigInt(0) ? BigInt(0) : newValue,
-      },
-    });
-  }
+  const result = metric === "storageBytes"
+    ? await db.usage.update({
+        where: { id: usage.id },
+        data: {
+          storageBytes: usage.storageBytes - BigInt(amount) < BigInt(0) ? BigInt(0) : usage.storageBytes - BigInt(amount),
+        },
+      })
+    : await db.usage.update({
+        where: { id: usage.id },
+        data: {
+          [metric]: Math.max(0, (usage[metric] as number) - amount),
+        },
+      });
 
-  const currentValue = usage[metric] as number;
-  const newValue = Math.max(0, currentValue - amount);
+  // Invalidate user dashboard cache after usage update
+  await invalidateUserDashboard(userId);
 
-  return db.usage.update({
-    where: { id: usage.id },
-    data: {
-      [metric]: newValue,
-    },
-  });
+  return result;
 }
 
 /**
