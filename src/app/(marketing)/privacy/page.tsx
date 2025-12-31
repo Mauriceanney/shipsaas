@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   description: "Privacy policy and data handling practices for ShipSaaS",
 };
 
+// ISR: Revalidate daily for legal pages
+export const revalidate = 86400;
+
 export default function PrivacyPage() {
   const lastUpdated = "December 29, 2025";
 
