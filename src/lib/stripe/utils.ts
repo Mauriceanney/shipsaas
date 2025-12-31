@@ -39,20 +39,20 @@ export function mapStripeStatus(
  * Determine plan from Stripe price ID
  */
 export function getPlanFromPriceId(priceId: string): Plan {
+  // Check Plus prices
+  if (
+    priceId === STRIPE_PRICE_IDS.PLUS.monthly ||
+    priceId === STRIPE_PRICE_IDS.PLUS.yearly
+  ) {
+    return "PLUS";
+  }
+
   // Check Pro prices
   if (
     priceId === STRIPE_PRICE_IDS.PRO.monthly ||
     priceId === STRIPE_PRICE_IDS.PRO.yearly
   ) {
     return "PRO";
-  }
-
-  // Check Enterprise prices
-  if (
-    priceId === STRIPE_PRICE_IDS.ENTERPRISE.monthly ||
-    priceId === STRIPE_PRICE_IDS.ENTERPRISE.yearly
-  ) {
-    return "ENTERPRISE";
   }
 
   // Default to FREE for unknown prices

@@ -19,7 +19,7 @@ interface UserTableProps {
     disabled?: boolean;
     createdAt: Date;
     subscription: {
-      plan: "FREE" | "PRO" | "ENTERPRISE";
+      plan: "FREE" | "PLUS" | "PRO";
       status: string;
     } | null;
   }>;

@@ -88,7 +88,7 @@ describe("dashboard metrics", () => {
           createdAt: new Date("2024-01-01"),
           updatedAt: new Date("2024-01-15"),
           subscription: {
-            plan: "PRO",
+            plan: "PLUS",
             status: "ACTIVE",
             stripeCurrentPeriodEnd: new Date("2024-02-01"),
           },
@@ -108,7 +108,7 @@ describe("dashboard metrics", () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-          expect(result.data.subscription?.plan).toBe("PRO");
+          expect(result.data.subscription?.plan).toBe("PLUS");
           expect(result.data.subscription?.status).toBe("ACTIVE");
           expect(result.data.usage.apiCalls.used).toBe(100);
           expect(result.data.activity.recentLogins).toBe(10);
@@ -206,7 +206,7 @@ describe("dashboard metrics", () => {
           expect(result.data.users.activeThisMonth).toBe(50);
           expect(result.data.users.newThisMonth).toBe(10);
           expect(result.data.subscriptions.active).toBe(30);
-          expect(result.data.subscriptions.byPlan.PRO).toBe(25);
+          expect(result.data.subscriptions.byPlan.PLUS).toBe(25);
           expect(result.data.recentSignups).toHaveLength(1);
         }
       });

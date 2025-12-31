@@ -233,8 +233,8 @@ enum Role {
 
 enum Plan {
   FREE
+  PLUS
   PRO
-  ENTERPRISE
 }
 
 enum SubscriptionStatus {

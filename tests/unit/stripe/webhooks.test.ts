@@ -59,11 +59,11 @@ vi.mock("@/lib/stripe/client", () => ({
 // Mock config
 vi.mock("@/lib/stripe/config", () => ({
   STRIPE_PRICE_IDS: {
-    PRO: {
+    PLUS: {
       monthly: "price_pro_monthly",
       yearly: "price_pro_yearly",
     },
-    ENTERPRISE: {
+    PRO: {
       monthly: "price_enterprise_monthly",
       yearly: "price_enterprise_yearly",
     },
@@ -160,7 +160,7 @@ describe("Stripe Webhooks", () => {
             stripeCustomerId: "cus_456",
             stripeSubscriptionId: "sub_789",
             status: "ACTIVE",
-            plan: "PRO",
+            plan: "PLUS",
           }),
         })
       );
@@ -227,7 +227,7 @@ describe("Stripe Webhooks", () => {
             userId: "user_123",
             stripeSubscriptionId: "sub_test",
             status: "ACTIVE",
-            plan: "PRO",
+            plan: "PLUS",
           }),
         })
       );
@@ -268,7 +268,7 @@ describe("Stripe Webhooks", () => {
         where: { id: "sub_db_123" },
         data: expect.objectContaining({
           status: "ACTIVE",
-          plan: "ENTERPRISE",
+          plan: "PLUS",
           stripePriceId: "price_enterprise_yearly",
         }),
       });
@@ -277,7 +277,7 @@ describe("Stripe Webhooks", () => {
     it("handles plan downgrade", async () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
-        plan: "ENTERPRISE",
+        plan: "PLUS",
       });
 
       const subscription = {
@@ -294,7 +294,7 @@ describe("Stripe Webhooks", () => {
       expect(mockDbSubscription.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            plan: "PRO",
+            plan: "PLUS",
           }),
         })
       );
@@ -346,7 +346,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
         });
         mockDbUser.findUnique.mockResolvedValue({
           email: "user@example.com",
@@ -373,7 +373,7 @@ describe("Stripe Webhooks", () => {
           "user@example.com",
           expect.objectContaining({
             name: "Test User",
-            planName: "PRO",
+            planName: "PLUS",
           })
         );
       });
@@ -382,7 +382,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
         });
         mockDbUser.findUnique.mockResolvedValue({
           email: "user@example.com",
@@ -421,7 +421,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
         });
 
         const subscription = {
@@ -443,7 +443,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
         });
         mockDbUser.findUnique.mockResolvedValue({
           email: "user@example.com",
@@ -466,7 +466,7 @@ describe("Stripe Webhooks", () => {
         expect(mockDbSubscription.update).toHaveBeenCalledWith({
           where: { id: "sub_db_123" },
           data: expect.objectContaining({
-            plan: "PRO", // Plan should stay PRO, not be reset to FREE
+            plan: "PLUS", // Plan should stay PRO, not be reset to FREE
             status: "ACTIVE", // Status should remain ACTIVE
           }),
         });
@@ -476,7 +476,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
         });
         mockDbUser.findUnique.mockResolvedValue(null);
 
@@ -499,7 +499,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
         });
         mockDbUser.findUnique.mockResolvedValue({
           email: "user@example.com",
@@ -531,7 +531,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           cancelAtPeriodEnd: false,
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -561,7 +561,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           cancelAtPeriodEnd: true, // Already set in DB
         });
 
@@ -587,7 +587,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           cancelAtPeriodEnd: true,
         });
 
@@ -613,7 +613,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           cancelAtPeriodEnd: true,
         });
 
@@ -639,7 +639,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           cancelAtPeriodEnd: false, // DB shows not cancelled
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -683,7 +683,7 @@ describe("Stripe Webhooks", () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
         userId: "user_123",
-        plan: "PRO",
+        plan: "PLUS",
       });
       mockDbUser.findUnique.mockResolvedValue({
         email: "user@example.com",
@@ -712,7 +712,7 @@ describe("Stripe Webhooks", () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
         userId: "user_123",
-        plan: "PRO",
+        plan: "PLUS",
       });
 
       const subscription = {
@@ -731,7 +731,7 @@ describe("Stripe Webhooks", () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
         userId: "user_123",
-        plan: "PRO",
+        plan: "PLUS",
       });
 
       const subscription = {
@@ -839,7 +839,7 @@ describe("Stripe Webhooks", () => {
           .mockResolvedValueOnce({
             id: "sub_db_123",
             userId: "user_123",
-            plan: "PRO",
+            plan: "PLUS",
             status: "ACTIVE",
           }); // Second call: email lookup
         mockDbUser.findUnique.mockResolvedValue({
@@ -874,7 +874,7 @@ describe("Stripe Webhooks", () => {
           "user@example.com",
           expect.objectContaining({
             name: "Test User",
-            planName: "PRO",
+            planName: "PLUS",
             amount: "USD 19.00",
             invoiceNumber: "INV-0001",
             invoiceUrl: "https://invoice.stripe.com/i/test",
@@ -888,7 +888,7 @@ describe("Stripe Webhooks", () => {
           .mockResolvedValueOnce({
             id: "sub_db_123",
             userId: "user_123",
-            plan: "PRO",
+            plan: "PLUS",
           });
         mockDbUser.findUnique.mockResolvedValue({
           email: "user@example.com",
@@ -922,7 +922,7 @@ describe("Stripe Webhooks", () => {
           .mockResolvedValueOnce({
             id: "sub_db_123",
             userId: "user_123",
-            plan: "PRO",
+            plan: "PLUS",
           });
         mockDbUser.findUnique.mockResolvedValue(null);
 
@@ -946,7 +946,7 @@ describe("Stripe Webhooks", () => {
           .mockResolvedValueOnce({
             id: "sub_db_123",
             userId: "user_123",
-            plan: "PRO",
+            plan: "PLUS",
           });
         mockDbUser.findUnique.mockResolvedValue({
           email: "user@example.com",
@@ -973,7 +973,7 @@ describe("Stripe Webhooks", () => {
           .mockResolvedValueOnce({
             id: "sub_db_123",
             userId: "user_123",
-            plan: "PRO",
+            plan: "PLUS",
           });
         mockDbUser.findUnique.mockResolvedValue({
           email: "user@example.com",
@@ -1009,7 +1009,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "PAST_DUE",
           user: {
             email: "user@example.com",
@@ -1044,7 +1044,7 @@ describe("Stripe Webhooks", () => {
           "user@example.com",
           expect.objectContaining({
             name: "Test User",
-            planName: "PRO",
+            planName: "PLUS",
             amountPaid: "USD 19.00",
             nextBillingDate: expect.any(String),
           })
@@ -1055,7 +1055,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "PAST_DUE",
           user: {
             email: "user@example.com",
@@ -1093,7 +1093,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "PAST_DUE",
           user: {
             email: "user@example.com",
@@ -1134,7 +1134,7 @@ describe("Stripe Webhooks", () => {
           .mockResolvedValueOnce({
             id: "sub_db_123",
             userId: "user_123",
-            plan: "PRO",
+            plan: "PLUS",
             status: "ACTIVE", // Normal active subscription
           });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1159,7 +1159,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "PAST_DUE",
           user: {
             email: "user@example.com",
@@ -1198,7 +1198,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "PAST_DUE",
           user: {
             email: "user@example.com",
@@ -1238,7 +1238,7 @@ describe("Stripe Webhooks", () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
         userId: "user_123",
-        plan: "PRO",
+        plan: "PLUS",
         status: "ACTIVE",
       });
       mockDbUser.findUnique.mockResolvedValue({
@@ -1276,7 +1276,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1306,7 +1306,7 @@ describe("Stripe Webhooks", () => {
           "user@example.com",
           expect.objectContaining({
             name: "Test User",
-            planName: "PRO",
+            planName: "PLUS",
           })
         );
       });
@@ -1315,7 +1315,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1349,7 +1349,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1385,7 +1385,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1419,7 +1419,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue(null);
@@ -1445,7 +1445,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1477,7 +1477,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1509,7 +1509,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1543,7 +1543,7 @@ describe("Stripe Webhooks", () => {
         mockDbSubscription.findFirst.mockResolvedValue({
           id: "sub_db_123",
           userId: "user_123",
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockDbUser.findUnique.mockResolvedValue({
@@ -1663,7 +1663,7 @@ describe("Stripe Webhooks", () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
         userId: "user_123",
-        plan: "PRO",
+        plan: "PLUS",
         cancelAtPeriodEnd: false,
       });
       mockDbUser.findUnique.mockResolvedValue({
@@ -1699,7 +1699,7 @@ describe("Stripe Webhooks", () => {
       mockDbSubscription.findFirst.mockResolvedValue({
         id: "sub_db_123",
         userId: "user_123",
-        plan: "PRO",
+        plan: "PLUS",
         cancelAtPeriodEnd: true, // Already cancelled in DB
       });
 

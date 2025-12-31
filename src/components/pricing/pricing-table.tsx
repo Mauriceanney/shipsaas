@@ -21,8 +21,8 @@ export function PricingTable({ planConfigs, currentPlan, isAuthenticated }: Pric
   const [error, setError] = useState<string | null>(null);
 
   const savingsPercent = calculateYearlySavings(
-    PLAN_PRICING.PRO.monthly,
-    PLAN_PRICING.PRO.yearly
+    PLAN_PRICING.PLUS.monthly,
+    PLAN_PRICING.PLUS.yearly
   );
 
   const handleSubscribe = async (priceId: string) => {

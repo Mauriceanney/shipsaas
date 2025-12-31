@@ -20,8 +20,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/stripe/config", () => ({
   calculateYearlySavings: vi.fn().mockReturnValue(17),
   PLAN_PRICING: {
-    PRO: { monthly: 19, yearly: 190 },
-    ENTERPRISE: { monthly: 99, yearly: 990 },
+    PLUS: { monthly: 19, yearly: 190 },
+    PRO: { monthly: 99, yearly: 990 },
   },
 }));
 
@@ -38,7 +38,7 @@ describe("PricingTable", () => {
       features: ["Basic feature"],
     },
     {
-      id: "PRO",
+      id: "PLUS",
       name: "Pro",
       description: "For professionals",
       prices: { monthly: "price_pro_monthly", yearly: "price_pro_yearly" },
@@ -47,7 +47,7 @@ describe("PricingTable", () => {
       badge: "Popular",
     },
     {
-      id: "ENTERPRISE",
+      id: "PRO",
       name: "Enterprise",
       description: "For organizations",
       prices: {
@@ -166,7 +166,7 @@ describe("PricingTable", () => {
 
       render(<PricingTable {...defaultProps} />);
 
-      // Find and click the Pro plan subscribe button
+      // Find and click the Plus plan subscribe button
       const subscribeButtons = screen.getAllByRole("button", {
         name: /subscribe/i,
       });
@@ -338,7 +338,7 @@ describe("PricingTable", () => {
       // Test with a plan that has no price ID configured
       const planWithoutPriceId: PlanConfig[] = [
         {
-          id: "PRO",
+          id: "PLUS",
           name: "Pro",
           description: "Test",
           prices: { monthly: "", yearly: "" },
@@ -385,7 +385,7 @@ describe("PricingTable", () => {
 
   describe("with current plan", () => {
     it("shows Current Plan for matching plan", () => {
-      render(<PricingTable {...defaultProps} currentPlan="PRO" />);
+      render(<PricingTable {...defaultProps} currentPlan="PLUS" />);
 
       expect(
         screen.getByRole("button", { name: "Current Plan" })

@@ -21,7 +21,7 @@
 │      id: "user-123",                                                     │
 │      role: "USER",                                                       │
 │      subscription: {                                                     │
-│        plan: "PRO",                                                      │
+│        plan: "PLUS",                                                      │
 │        status: "ACTIVE",                                                 │
 │        stripeCurrentPeriodEnd: Date                                      │
 │      }                                                                   │
@@ -99,21 +99,21 @@
 CLIENT-SIDE CHECK (UX):              SERVER-SIDE CHECK (Security):
 ┌────────────────────┐              ┌──────────────────────┐
 │ <FeatureGate       │              │ Server Action        │
-│   plan="PRO">      │              │                      │
+│   plan="PLUS">      │              │                      │
 └─────────┬──────────┘              └──────────┬───────────┘
           │                                    │
           ↓                                    ↓
 ┌────────────────────┐              ┌──────────────────────┐
 │ useSession()       │              │ const result =       │
 │ → session.user     │              │   await requirePlan  │
-│   .subscription    │              │   ("PRO");           │
+│   .subscription    │              │   ("PLUS");           │
 └─────────┬──────────┘              └──────────┬───────────┘
           │                                    │
           ↓                                    ↓
 ┌────────────────────┐              ┌──────────────────────┐
 │ hasAccess(         │              │ hasAccess(           │
 │   session,         │              │   session,           │
-│   "PRO"            │              │   "PRO"              │
+│   "PLUS"            │              │   "PLUS"              │
 │ )                  │              │ )                    │
 └─────────┬──────────┘              └──────────┬───────────┘
           │                                    │
@@ -169,7 +169,7 @@ CANCELED  │ User canceled            │       ✗
 │      <>                                                         │
 │        <BasicStats />  ◄── Available to all users              │
 │                                                                 │
-│        <FeatureGate plan="PRO">                                 │
+│        <FeatureGate plan="PLUS">                                 │
 │          <AdvancedAnalytics />  ◄── PRO+ only (UX gate)        │
 │        </FeatureGate>                                           │
 │      </>                                                        │
@@ -203,7 +203,7 @@ CANCELED  │ User canceled            │       ✗
 │  "use server";                                                  │
 │                                                                 │
 │  export async function exportAnalyticsAction() {                │
-│    const result = await requirePlan("PRO");  ◄── Security!     │
+│    const result = await requirePlan("PLUS");  ◄── Security!     │
 │                                                                 │
 │    if (!result.success) {                                       │
 │      return { success: false, error: result.error };            │
@@ -269,7 +269,7 @@ src/components/        src/actions/
 feature-gate/          [any]/
   ├─ feature-gate.tsx  [action].ts
   └─ upgrade-card.tsx     │
-                          └─ requirePlan("PRO")
+                          └─ requirePlan("PLUS")
 ```
 
 ## Testing Architecture

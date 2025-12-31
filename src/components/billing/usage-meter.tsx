@@ -100,7 +100,7 @@ export function UsageMeter({ className }: UsageMeterProps) {
     );
   }
 
-  const showUpgradeHint = plan !== "ENTERPRISE";
+  const showUpgradeHint = plan !== "PRO";
 
   return (
     <div className={className}>
@@ -147,7 +147,7 @@ export function UsageMeter({ className }: UsageMeterProps) {
                     size="sm"
                     message="Increase limit"
                     variant="subtle"
-                    requiredPlan={plan === "FREE" ? "PRO" : "ENTERPRISE"}
+                    requiredPlan={plan === "FREE" ? "PLUS" : "PRO"}
                   />
                 </div>
               )}

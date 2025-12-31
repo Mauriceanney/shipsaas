@@ -112,7 +112,7 @@ describe("usage metering service", () => {
       expect(result.projects.limit).toBe(1);
     });
 
-    it("returns unlimited limits for ENTERPRISE", async () => {
+    it("returns unlimited limits for PLUS", async () => {
       const usage = {
         id: "usage-1",
         userId: "user-1",
@@ -124,7 +124,7 @@ describe("usage metering service", () => {
       };
       mockDb.usage.findUnique.mockResolvedValue(usage);
 
-      const result = await getUserUsage("user-1", "ENTERPRISE");
+      const result = await getUserUsage("user-1", "PRO");
 
       expect(result.apiCalls.limit).toBe(-1); // Unlimited
       expect(result.projects.limit).toBe(-1);
@@ -284,7 +284,7 @@ describe("usage metering service", () => {
       };
       mockDb.usage.findUnique.mockResolvedValue(usage);
 
-      const result = await canUseMetric("user-1", "ENTERPRISE", "apiCalls");
+      const result = await canUseMetric("user-1", "PRO", "apiCalls");
 
       expect(result.allowed).toBe(true);
       expect(result.limit).toBe(-1);

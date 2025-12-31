@@ -123,7 +123,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
           stripeSubscriptionId: "sub_stripe_1",
           status: "PAST_DUE",
           statusChangedAt: pastDate,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "test@example.com",
             name: "John Doe",
@@ -163,7 +163,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
           stripeSubscriptionId: "sub_stripe_1",
           status: "PAST_DUE",
           statusChangedAt: recentDate,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "test@example.com",
             name: "John Doe",
@@ -192,7 +192,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
           stripeSubscriptionId: "sub_stripe_1",
           status: "PAST_DUE",
           statusChangedAt: pastDate,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "test@example.com",
             name: "John Doe",
@@ -231,7 +231,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
           stripeSubscriptionId: "sub_stripe_1",
           status: "PAST_DUE",
           statusChangedAt: pastDate,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "test@example.com",
             name: "John Doe",
@@ -253,7 +253,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
         "test@example.com",
         {
           name: "John Doe",
-          planName: "PRO",
+          planName: "PLUS",
           daysOverdue: 11,
         }
       );
@@ -270,7 +270,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
           stripeSubscriptionId: "sub_stripe_1",
           status: "PAST_DUE",
           statusChangedAt: pastDate,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "test@example.com",
             name: "John Doe",
@@ -309,7 +309,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
           stripeSubscriptionId: "sub_stripe_1",
           status: "PAST_DUE",
           statusChangedAt: pastDate,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "test@example.com",
             name: "John Doe",
@@ -341,7 +341,7 @@ describe("GET /api/cron/suspend-subscriptions", () => {
           stripeSubscriptionId: "sub_stripe_1",
           status: "PAST_DUE",
           statusChangedAt: pastDate,
-          plan: "PRO",
+          plan: "PLUS",
           user: {
             email: "test@example.com",
             name: "John Doe",

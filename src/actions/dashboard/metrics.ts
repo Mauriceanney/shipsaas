@@ -51,8 +51,8 @@ export type AdminDashboardMetrics = {
     pastDue: number;
     byPlan: {
       FREE: number;
+      PLUS: number;
       PRO: number;
-      ENTERPRISE: number;
     };
   };
   recentSignups: Array<{
@@ -202,8 +202,8 @@ export async function getAdminDashboardMetrics() {
     // Get subscriptions by plan
     const [freeCount, proCount, enterpriseCount] = await Promise.all([
       db.subscription.count({ where: { plan: "FREE", status: { in: ["ACTIVE", "TRIALING"] } } }),
-      db.subscription.count({ where: { plan: "PRO", status: { in: ["ACTIVE", "TRIALING"] } } }),
-      db.subscription.count({ where: { plan: "ENTERPRISE", status: { in: ["ACTIVE", "TRIALING"] } } }),
+      db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
+      db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
     ]);
 
     // Get recent signups (last 5)
@@ -231,8 +231,8 @@ export async function getAdminDashboardMetrics() {
         pastDue: pastDueSubscriptions,
         byPlan: {
           FREE: freeCount,
-          PRO: proCount,
-          ENTERPRISE: enterpriseCount,
+          PLUS: proCount,
+          PRO: enterpriseCount,
         },
       },
       recentSignups,

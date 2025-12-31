@@ -68,7 +68,7 @@ describe("createCheckoutAction", () => {
     // Default to valid price ID
     mockIsValidPriceId.mockReturnValue(true);
     // Default mock implementations for trial functions
-    mockGetPlanFromPriceId.mockReturnValue("PRO");
+    mockGetPlanFromPriceId.mockReturnValue("PLUS");
     mockGetTrialDays.mockReturnValue(0);
   });
 
@@ -344,11 +344,11 @@ describe("trial period configuration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsValidPriceId.mockReturnValue(true);
-    mockGetPlanFromPriceId.mockReturnValue("PRO");
+    mockGetPlanFromPriceId.mockReturnValue("PLUS");
     mockGetTrialDays.mockReturnValue(0);
   });
 
-  it("includes trial period for PRO monthly plan", async () => {
+  it("includes trial period for PLUS monthly plan", async () => {
     mockAuth.mockResolvedValue({
       user: { id: "user_123", email: "test@example.com" },
     });
@@ -357,7 +357,7 @@ describe("trial period configuration", () => {
       id: "cs_test",
       url: "https://checkout.stripe.com/session/cs_test",
     });
-    mockGetPlanFromPriceId.mockReturnValue("PRO");
+    mockGetPlanFromPriceId.mockReturnValue("PLUS");
     mockGetTrialDays.mockReturnValue(14);
 
     // Mock price ID to plan mapping
@@ -368,7 +368,7 @@ describe("trial period configuration", () => {
     expect(callArgs.subscription_data?.trial_period_days).toBe(14);
   });
 
-  it("includes trial period for ENTERPRISE yearly plan", async () => {
+  it("includes trial period for PRO yearly plan", async () => {
     mockAuth.mockResolvedValue({
       user: { id: "user_123", email: "test@example.com" },
     });
@@ -377,7 +377,7 @@ describe("trial period configuration", () => {
       id: "cs_test",
       url: "https://checkout.stripe.com/session/cs_test",
     });
-    mockGetPlanFromPriceId.mockReturnValue("ENTERPRISE");
+    mockGetPlanFromPriceId.mockReturnValue("PRO");
     mockGetTrialDays.mockReturnValue(14);
 
     const enterprisePriceId = process.env["STRIPE_PRICE_ID_ENTERPRISE_YEARLY"] || "price_enterprise_yearly";
@@ -422,7 +422,7 @@ describe("trial period configuration", () => {
       userId: "user_123",
       stripeCustomerId: "cus_existing_123",
       stripeSubscriptionId: "sub_active_123",
-      plan: "PRO",
+      plan: "PLUS",
       status: "ACTIVE",
     });
     mockStripeCheckoutSessions.create.mockResolvedValue({

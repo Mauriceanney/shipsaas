@@ -15,7 +15,7 @@ describe("FeatureGate", () => {
   });
 
   describe("when user has required plan access", () => {
-    it("renders children when PRO user views PRO gate", () => {
+    it("renders children when PLUS user views PLUS gate", () => {
       vi.mocked(useSession).mockReturnValue({
         data: {
           user: {
@@ -24,7 +24,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PRO",
+            plan: "PLUS",
             status: "ACTIVE",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -36,7 +36,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="PRO">
+        <FeatureGate plan="PLUS">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );
@@ -45,7 +45,7 @@ describe("FeatureGate", () => {
       expect(screen.getByText("Protected Feature")).toBeInTheDocument();
     });
 
-    it("renders children when ENTERPRISE user views PRO gate", () => {
+    it("renders children when PRO user views PLUS gate", () => {
       vi.mocked(useSession).mockReturnValue({
         data: {
           user: {
@@ -54,7 +54,36 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "ENTERPRISE",
+            plan: "PLUS",
+            status: "ACTIVE",
+            stripeCurrentPeriodEnd: null,
+            statusChangedAt: null,
+          },
+          expires: new Date(Date.now() + 86400000).toISOString(),
+        },
+        status: "authenticated",
+        update: vi.fn(),
+      });
+
+      render(
+        <FeatureGate plan="PLUS">
+          <div data-testid="protected-content">Protected Feature</div>
+        </FeatureGate>
+      );
+
+      expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+    });
+
+    it("renders children when PRO user views PRO gate", () => {
+      vi.mocked(useSession).mockReturnValue({
+        data: {
+          user: {
+            id: "user-1",
+            email: "enterprise@example.com",
+            role: "USER",
+          },
+          subscription: {
+            plan: "PLUS",
             status: "ACTIVE",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -67,35 +96,6 @@ describe("FeatureGate", () => {
 
       render(
         <FeatureGate plan="PRO">
-          <div data-testid="protected-content">Protected Feature</div>
-        </FeatureGate>
-      );
-
-      expect(screen.getByTestId("protected-content")).toBeInTheDocument();
-    });
-
-    it("renders children when ENTERPRISE user views ENTERPRISE gate", () => {
-      vi.mocked(useSession).mockReturnValue({
-        data: {
-          user: {
-            id: "user-1",
-            email: "enterprise@example.com",
-            role: "USER",
-          },
-          subscription: {
-            plan: "ENTERPRISE",
-            status: "ACTIVE",
-            stripeCurrentPeriodEnd: null,
-            statusChangedAt: null,
-          },
-          expires: new Date(Date.now() + 86400000).toISOString(),
-        },
-        status: "authenticated",
-        update: vi.fn(),
-      });
-
-      render(
-        <FeatureGate plan="ENTERPRISE">
           <div data-testid="protected-content">Enterprise Feature</div>
         </FeatureGate>
       );
@@ -112,7 +112,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PRO",
+            plan: "PLUS",
             status: "TRIALING",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -124,7 +124,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="PRO">
+        <FeatureGate plan="PLUS">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );
@@ -134,6 +134,36 @@ describe("FeatureGate", () => {
   });
 
   describe("when user does not have required plan access", () => {
+    it("shows UpgradeCard when FREE user views PLUS gate", () => {
+      vi.mocked(useSession).mockReturnValue({
+        data: {
+          user: {
+            id: "user-1",
+            email: "free@example.com",
+            role: "USER",
+          },
+          subscription: {
+            plan: "FREE",
+            status: "ACTIVE",
+            stripeCurrentPeriodEnd: null,
+            statusChangedAt: null,
+          },
+          expires: new Date(Date.now() + 86400000).toISOString(),
+        },
+        status: "authenticated",
+        update: vi.fn(),
+      });
+
+      render(
+        <FeatureGate plan="PLUS">
+          <div data-testid="protected-content">Protected Feature</div>
+        </FeatureGate>
+      );
+
+      expect(screen.queryByTestId("protected-content")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /upgrade to pro/i })).toBeInTheDocument();
+    });
+
     it("shows UpgradeCard when FREE user views PRO gate", () => {
       vi.mocked(useSession).mockReturnValue({
         data: {
@@ -161,40 +191,10 @@ describe("FeatureGate", () => {
       );
 
       expect(screen.queryByTestId("protected-content")).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /upgrade to pro/i })).toBeInTheDocument();
-    });
-
-    it("shows UpgradeCard when FREE user views ENTERPRISE gate", () => {
-      vi.mocked(useSession).mockReturnValue({
-        data: {
-          user: {
-            id: "user-1",
-            email: "free@example.com",
-            role: "USER",
-          },
-          subscription: {
-            plan: "FREE",
-            status: "ACTIVE",
-            stripeCurrentPeriodEnd: null,
-            statusChangedAt: null,
-          },
-          expires: new Date(Date.now() + 86400000).toISOString(),
-        },
-        status: "authenticated",
-        update: vi.fn(),
-      });
-
-      render(
-        <FeatureGate plan="ENTERPRISE">
-          <div data-testid="protected-content">Protected Feature</div>
-        </FeatureGate>
-      );
-
-      expect(screen.queryByTestId("protected-content")).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: /upgrade to enterprise/i })).toBeInTheDocument();
     });
 
-    it("shows UpgradeCard when PRO user views ENTERPRISE gate", () => {
+    it("shows UpgradeCard when PLUS user views PRO gate", () => {
       vi.mocked(useSession).mockReturnValue({
         data: {
           user: {
@@ -203,7 +203,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PRO",
+            plan: "PLUS",
             status: "ACTIVE",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -215,7 +215,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="ENTERPRISE">
+        <FeatureGate plan="PRO">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );
@@ -233,7 +233,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PRO",
+            plan: "PLUS",
             status: "INACTIVE",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -245,7 +245,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="PRO">
+        <FeatureGate plan="PLUS">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );
@@ -263,7 +263,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PRO",
+            plan: "PLUS",
             status: "CANCELED",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -275,7 +275,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="PRO">
+        <FeatureGate plan="PLUS">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );
@@ -308,7 +308,7 @@ describe("FeatureGate", () => {
 
       render(
         <FeatureGate
-          plan="PRO"
+          plan="PLUS"
           fallback={<div data-testid="custom-fallback">Custom upgrade message</div>}
         >
           <div data-testid="protected-content">Protected Feature</div>
@@ -331,7 +331,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="PRO">
+        <FeatureGate plan="PLUS">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );
@@ -348,7 +348,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="PRO">
+        <FeatureGate plan="PLUS">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );
@@ -368,7 +368,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PRO",
+            plan: "PLUS",
             status: "PAST_DUE",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -380,7 +380,7 @@ describe("FeatureGate", () => {
       });
 
       render(
-        <FeatureGate plan="PRO">
+        <FeatureGate plan="PLUS">
           <div data-testid="protected-content">Protected Feature</div>
         </FeatureGate>
       );

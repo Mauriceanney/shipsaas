@@ -23,7 +23,7 @@ vi.mock("@/lib/stripe/utils", () => ({
   extractCustomerId: vi.fn(() => "cus_123"),
   extractPriceId: vi.fn(() => "price_123"),
   extractSubscriptionId: vi.fn(() => "sub_123"),
-  getPlanFromPriceId: vi.fn(() => "PRO"),
+  getPlanFromPriceId: vi.fn(() => "PLUS"),
   mapStripeStatus: vi.fn(() => "TRIALING"),
   unixToDate: mockUnixToDate,
   validateCheckoutMetadata: vi.fn((metadata) => ({ userId: metadata?.userId })),

@@ -14,13 +14,13 @@ import type { Plan } from "@prisma/client";
  */
 function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
   const priceIds = {
+    PLUS: {
+      monthly: process.env["STRIPE_PRICE_ID_PLUS_MONTHLY"] ?? "",
+      yearly: process.env["STRIPE_PRICE_ID_PLUS_YEARLY"] ?? "",
+    },
     PRO: {
       monthly: process.env["STRIPE_PRICE_ID_PRO_MONTHLY"] ?? "",
       yearly: process.env["STRIPE_PRICE_ID_PRO_YEARLY"] ?? "",
-    },
-    ENTERPRISE: {
-      monthly: process.env["STRIPE_PRICE_ID_ENTERPRISE_MONTHLY"] ?? "",
-      yearly: process.env["STRIPE_PRICE_ID_ENTERPRISE_YEARLY"] ?? "",
     },
   };
 
@@ -28,10 +28,10 @@ function getStripePriceIds(): Record<Exclude<Plan, "FREE">, PlanPrices> {
   if (process.env.NODE_ENV === "production") {
     const missing: string[] = [];
 
+    if (!priceIds.PLUS.monthly) missing.push("STRIPE_PRICE_ID_PLUS_MONTHLY");
+    if (!priceIds.PLUS.yearly) missing.push("STRIPE_PRICE_ID_PLUS_YEARLY");
     if (!priceIds.PRO.monthly) missing.push("STRIPE_PRICE_ID_PRO_MONTHLY");
     if (!priceIds.PRO.yearly) missing.push("STRIPE_PRICE_ID_PRO_YEARLY");
-    if (!priceIds.ENTERPRISE.monthly) missing.push("STRIPE_PRICE_ID_ENTERPRISE_MONTHLY");
-    if (!priceIds.ENTERPRISE.yearly) missing.push("STRIPE_PRICE_ID_ENTERPRISE_YEARLY");
 
     if (missing.length > 0) {
       throw new Error("Missing Stripe price IDs: " + missing.join(", "));
@@ -54,8 +54,8 @@ export const STRIPE_PRICE_IDS = getStripePriceIds();
  * Trial period configuration (in days)
  */
 export const TRIAL_DAYS: Partial<Record<Plan, number>> = {
-  PRO: 14,
-  ENTERPRISE: 14,
+  PLUS: 14,
+  PLUS: 14,
   // FREE plan has no trial
 } as const;
 
@@ -87,7 +87,7 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
     "1 project",
     "5GB storage",
   ],
-  PRO: [
+  PLUS: [
     "All Free features",
     "Priority email support",
     "Unlimited projects",
@@ -96,8 +96,8 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
     "API access",
     "Custom integrations",
   ],
-  ENTERPRISE: [
-    "All Pro features",
+  PLUS: [
+    "All Plus features",
     "24/7 dedicated support",
     "Unlimited storage",
     "Custom SLA",
@@ -112,11 +112,11 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
  * Plan pricing (in dollars)
  */
 export const PLAN_PRICING: Record<Exclude<Plan, "FREE">, { monthly: number; yearly: number }> = {
-  PRO: {
+  PLUS: {
     monthly: 19,
     yearly: 190, // ~17% savings
   },
-  ENTERPRISE: {
+  PLUS: {
     monthly: 99,
     yearly: 990, // ~17% savings
   },
@@ -140,13 +140,13 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     storageBytes: 5 * 1024 * 1024 * 1024, // 5GB
     teamMembers: 1,           // Just yourself
   },
-  PRO: {
+  PLUS: {
     apiCalls: 50000,          // 50,000 API calls/month
     projects: -1,             // Unlimited
     storageBytes: 50 * 1024 * 1024 * 1024, // 50GB
     teamMembers: 10,          // Up to 10 team members
   },
-  ENTERPRISE: {
+  PLUS: {
     apiCalls: -1,             // Unlimited
     projects: -1,             // Unlimited
     storageBytes: -1,         // Unlimited
@@ -200,22 +200,22 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     features: PLAN_FEATURES.FREE,
   },
   {
-    id: "PRO",
-    name: "Pro",
+    id: "PLUS",
+    name: "Plus",
     description: "For professionals and small teams",
-    prices: STRIPE_PRICE_IDS.PRO,
-    features: PLAN_FEATURES.PRO,
+    prices: STRIPE_PRICE_IDS.PLUS,
+    features: PLAN_FEATURES.PLUS,
     highlighted: true,
     badge: "Popular",
-    trialDays: TRIAL_DAYS.PRO,
+    trialDays: TRIAL_DAYS.PLUS,
   },
   {
-    id: "ENTERPRISE",
-    name: "Enterprise",
+    id: "PLUS",
+    name: "Pro",
     description: "For large organizations",
-    prices: STRIPE_PRICE_IDS.ENTERPRISE,
-    features: PLAN_FEATURES.ENTERPRISE,
-    trialDays: TRIAL_DAYS.ENTERPRISE,
+    prices: STRIPE_PRICE_IDS.PRO,
+    features: PLAN_FEATURES.PRO,
+    trialDays: TRIAL_DAYS.PRO,
   },
 ];
 
@@ -243,10 +243,10 @@ export function getPriceId(plan: Plan, interval: BillingInterval): string | null
  */
 export function getAllPriceIds(): string[] {
   return [
+    STRIPE_PRICE_IDS.PLUS.monthly,
+    STRIPE_PRICE_IDS.PLUS.yearly,
     STRIPE_PRICE_IDS.PRO.monthly,
     STRIPE_PRICE_IDS.PRO.yearly,
-    STRIPE_PRICE_IDS.ENTERPRISE.monthly,
-    STRIPE_PRICE_IDS.ENTERPRISE.yearly,
   ].filter(Boolean);
 }
 

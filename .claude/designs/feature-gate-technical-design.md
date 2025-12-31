@@ -132,8 +132,8 @@ import type { Result } from "@/types";
  */
 const PLAN_HIERARCHY: Record<Plan, number> = {
   FREE: 0,
-  PRO: 1,
-  ENTERPRISE: 2,
+  PLUS: 1,
+  PRO: 2,
 } as const;
 
 /**
@@ -226,7 +226,7 @@ export function canAccessFeature(
  * 
  * @example
  * // Single plan requirement
- * const result = await requirePlan("PRO");
+ * const result = await requirePlan("PLUS");
  * if (!result.success) {
  *   return { success: false, error: result.error };
  * }
@@ -234,7 +234,7 @@ export function canAccessFeature(
  * 
  * @example
  * // Multiple allowed plans
- * const result = await requirePlan(["PRO", "ENTERPRISE"]);
+ * const result = await requirePlan(["PLUS", "PRO"]);
  */
 export async function requirePlan(
   requiredPlan: Plan | Plan[]
@@ -349,12 +349,12 @@ interface FeatureGateProps {
  * @param showUpgrade - Show upgrade card on access denied (default: true)
  * 
  * @example
- * <FeatureGate plan="PRO">
+ * <FeatureGate plan="PLUS">
  *   <AdvancedAnalytics />
  * </FeatureGate>
  * 
  * @example
- * <FeatureGate plan="PRO" fallback={<p>Upgrade to Pro</p>}>
+ * <FeatureGate plan="PLUS" fallback={<p>Upgrade to Pro</p>}>
  *   <AdvancedAnalytics />
  * </FeatureGate>
  */
@@ -567,7 +567,7 @@ const user = await db.user.findUnique({
 
 ```typescript
 // All data comes from session - NO database query
-const canAccess = hasAccess(session, "PRO");
+const canAccess = hasAccess(session, "PLUS");
 ```
 
 ### Caching Strategy
@@ -672,7 +672,7 @@ const canAccess = hasAccess(session, "PRO");
 - [ ] Grace period boundary: exactly 7 days (604800000ms)
 - [ ] Grace period boundary: 7 days + 1 second
 - [ ] Plan hierarchy boundary: PRO accessing PRO (should succeed)
-- [ ] Multiple plans: ["PRO", "ENTERPRISE"] - PRO user succeeds
+- [ ] Multiple plans: ["PLUS", "PRO"] - PRO user succeeds
 
 ### Integration Tests
 
@@ -735,7 +735,7 @@ import { db } from "@/lib/db";
 
 export async function exportAnalytics() {
   // Require PRO or higher
-  const result = await requirePlan("PRO");
+  const result = await requirePlan("PLUS");
 
   if (!result.success) {
     return { success: false, error: result.error };
@@ -771,7 +771,7 @@ export default async function AnalyticsPage() {
       <BasicStats userId={session.user.id} />
 
       {/* Advanced analytics - PRO users */}
-      <FeatureGate plan="PRO">
+      <FeatureGate plan="PLUS">
         <AnalyticsDashboard userId={session.user.id} />
       </FeatureGate>
     </div>
@@ -790,11 +790,11 @@ export function DashboardHeader() {
     <header>
       <h1>Dashboard</h1>
 
-      <FeatureGate plan="PRO" fallback={null}>
+      <FeatureGate plan="PLUS" fallback={null}>
         <Button onClick={exportData}>Export Data</Button>
       </FeatureGate>
 
-      <FeatureGate plan="ENTERPRISE" fallback={null}>
+      <FeatureGate plan="PRO" fallback={null}>
         <Button onClick={openAdvancedSettings}>Advanced Settings</Button>
       </FeatureGate>
     </header>

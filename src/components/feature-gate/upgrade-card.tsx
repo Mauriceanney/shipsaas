@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 
 type UpgradeCardProps = {
-  requiredPlan: "PRO" | "ENTERPRISE";
+  requiredPlan: "PLUS" | "PRO";
   title?: string;
   description?: string;
 };
@@ -30,7 +30,7 @@ export function UpgradeCard({
   description,
 }: UpgradeCardProps) {
   // Format plan name for display (PRO -> Pro, ENTERPRISE -> Enterprise)
-  const planDisplayName = requiredPlan === "PRO" ? "Pro" : "Enterprise";
+  const planDisplayName = requiredPlan === "PLUS" ? "Pro" : "Enterprise";
 
   // Default title and description
   const cardTitle = title ?? `Upgrade to ${planDisplayName}`;

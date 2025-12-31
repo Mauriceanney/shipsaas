@@ -43,12 +43,12 @@ const mockFreeSubscription = {
 };
 
 const mockProSubscription = {
-  plan: "PRO",
+  plan: "PLUS",
   status: "ACTIVE",
 };
 
 const mockEnterpriseSubscription = {
-  plan: "ENTERPRISE",
+  plan: "PLUS",
   status: "ACTIVE",
 };
 
@@ -177,7 +177,7 @@ describe("AppSidebar", () => {
       });
     });
 
-    it("shows upgrade prompt for PRO plan users (can upgrade to ENTERPRISE)", async () => {
+    it("shows upgrade prompt for PLUS plan users (can upgrade to PRO)", async () => {
       render(<AppSidebar user={mockUser} subscription={mockProSubscription} />);
 
       const userButton = screen.getByRole("button", { name: /JD/i });
@@ -200,7 +200,7 @@ describe("AppSidebar", () => {
       });
     });
 
-    it("does not show upgrade prompt for ENTERPRISE plan users (highest plan)", async () => {
+    it("does not show upgrade prompt for PRO plan users (highest plan)", async () => {
       render(<AppSidebar user={mockUser} subscription={mockEnterpriseSubscription} />);
 
       const userButton = screen.getByRole("button", { name: /JD/i });

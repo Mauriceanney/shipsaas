@@ -6,7 +6,7 @@
  * import { requirePlan } from "@/lib/auth/feature-gate";
  *
  * export async function premiumAction() {
- *   const result = await requirePlan("PRO");
+ *   const result = await requirePlan("PLUS");
  *   if (!result.success) {
  *     return { success: false, error: result.error };
  *   }
@@ -22,7 +22,7 @@
  * import { canAccessFeature } from "@/lib/auth/feature-gate";
  *
  * const session = await auth();
- * const { canAccess, reason } = canAccessFeature(session, "ENTERPRISE");
+ * const { canAccess, reason } = canAccessFeature(session, "PRO");
  *
  * if (!canAccess) {
  *   // Show upgrade prompt based on reason
@@ -34,7 +34,7 @@ import { auth } from "@/lib/auth";
 
 import type { Session } from "next-auth";
 
-export type Plan = "FREE" | "PRO" | "ENTERPRISE";
+export type Plan = "FREE" | "PLUS" | "PRO";
 export type SubscriptionStatus = "ACTIVE" | "INACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING";
 
 export type ActionResult<T = void> =
@@ -43,8 +43,8 @@ export type ActionResult<T = void> =
 
 const PLAN_HIERARCHY = {
   FREE: 0,
-  PRO: 1,
-  ENTERPRISE: 2,
+  PLUS: 1,
+  PRO: 2,
 } as const;
 
 const PAST_DUE_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

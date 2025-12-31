@@ -28,7 +28,7 @@ describe("sendSubscriptionSuspendedEmail", () => {
 
     const result = await sendSubscriptionSuspendedEmail("test@example.com", {
       name: "John Doe",
-      planName: "PRO",
+      planName: "PLUS",
       daysOverdue: 10,
     });
 
@@ -49,7 +49,7 @@ describe("sendSubscriptionSuspendedEmail", () => {
 
     await sendSubscriptionSuspendedEmail("test@example.com", {
       name: "John Doe",
-      planName: "PRO",
+      planName: "PLUS",
       daysOverdue: 10,
     });
 
@@ -64,7 +64,7 @@ describe("sendSubscriptionSuspendedEmail", () => {
     } as any);
 
     const result = await sendSubscriptionSuspendedEmail("test@example.com", {
-      planName: "PRO",
+      planName: "PLUS",
       daysOverdue: 10,
     });
 
@@ -78,12 +78,12 @@ describe("sendSubscriptionSuspendedEmail", () => {
     } as any);
 
     await sendSubscriptionSuspendedEmail("test@example.com", {
-      planName: "ENTERPRISE",
+      planName: "PRO",
       daysOverdue: 12,
     });
 
     const callArgs = mockSend.mock.calls[0]?.[0];
-    expect(callArgs?.html).toContain("ENTERPRISE");
+    expect(callArgs?.html).toContain("PRO");
     expect(callArgs?.html).toContain("12");
   });
 
@@ -97,7 +97,7 @@ describe("sendSubscriptionSuspendedEmail", () => {
     } as any);
 
     const result = await sendSubscriptionSuspendedEmail("test@example.com", {
-      planName: "PRO",
+      planName: "PLUS",
       daysOverdue: 10,
     });
 

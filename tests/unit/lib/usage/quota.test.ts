@@ -62,7 +62,7 @@ describe("quota enforcement", () => {
       it("denies access for CANCELED subscription", async () => {
         mockAuth.mockResolvedValue({ user: { id: "user-1" } });
         mockDb.subscription.findUnique.mockResolvedValue({
-          plan: "PRO",
+          plan: "PLUS",
           status: "CANCELED",
         });
 
@@ -80,7 +80,7 @@ describe("quota enforcement", () => {
       it("allows access for ACTIVE subscription", async () => {
         mockAuth.mockResolvedValue({ user: { id: "user-1" } });
         mockDb.subscription.findUnique.mockResolvedValue({
-          plan: "PRO",
+          plan: "PLUS",
           status: "ACTIVE",
         });
         mockCanUseMetric.mockResolvedValue({
@@ -97,7 +97,7 @@ describe("quota enforcement", () => {
       it("allows access for TRIALING subscription", async () => {
         mockAuth.mockResolvedValue({ user: { id: "user-1" } });
         mockDb.subscription.findUnique.mockResolvedValue({
-          plan: "PRO",
+          plan: "PLUS",
           status: "TRIALING",
         });
         mockCanUseMetric.mockResolvedValue({
@@ -114,7 +114,7 @@ describe("quota enforcement", () => {
       it("allows access for PAST_DUE subscription (grace period)", async () => {
         mockAuth.mockResolvedValue({ user: { id: "user-1" } });
         mockDb.subscription.findUnique.mockResolvedValue({
-          plan: "PRO",
+          plan: "PLUS",
           status: "PAST_DUE",
         });
         mockCanUseMetric.mockResolvedValue({
@@ -196,7 +196,7 @@ describe("quota enforcement", () => {
     it("returns userId when quota available", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.subscription.findUnique.mockResolvedValue({
-        plan: "PRO",
+        plan: "PLUS",
         status: "ACTIVE",
       });
       mockCanUseMetric.mockResolvedValue({

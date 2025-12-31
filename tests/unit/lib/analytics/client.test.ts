@@ -215,7 +215,7 @@ describe("Analytics Client", () => {
           email: "test@example.com",
         },
         subscription: {
-          plan: "PRO",
+          plan: "PLUS",
         },
         expires: "2024-12-31",
       } as Session & { subscription?: { plan: string } };
@@ -225,7 +225,7 @@ describe("Analytics Client", () => {
 
       // Assert
       expect(mockIdentify).toHaveBeenCalledWith("user-123", {
-        plan: "PRO",
+        plan: "PLUS",
       });
     });
 
@@ -479,13 +479,13 @@ describe("Analytics Client", () => {
 
       // Execute
       setUserProperties({
-        subscription: "PRO",
+        subscription: "PLUS",
         company_size: "10-50",
       });
 
       // Assert
       expect(mockSetPersonProperties).toHaveBeenCalledWith({
-        subscription: "PRO",
+        subscription: "PLUS",
         company_size: "10-50",
       });
     });
@@ -514,7 +514,7 @@ describe("Analytics Client", () => {
       vi.mocked(posthog).setPersonProperties = mockSetPersonProperties;
 
       // Execute
-      setUserProperties({ plan: "PRO" });
+      setUserProperties({ plan: "PLUS" });
 
       // Assert
       expect(mockSetPersonProperties).not.toHaveBeenCalled();

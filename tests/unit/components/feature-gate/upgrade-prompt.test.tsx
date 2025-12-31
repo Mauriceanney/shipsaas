@@ -17,7 +17,7 @@ describe("UpgradePrompt", () => {
     });
 
     it("renders ENTERPRISE upgrade message when specified", () => {
-      render(<UpgradePrompt requiredPlan="ENTERPRISE" />);
+      render(<UpgradePrompt requiredPlan="PRO" />);
 
       expect(screen.getByText("Upgrade to Enterprise")).toBeInTheDocument();
     });
@@ -30,15 +30,15 @@ describe("UpgradePrompt", () => {
   });
 
   describe("link behavior", () => {
-    it("links to pricing page with PRO plan", () => {
+    it("links to pricing page with PLUS plan", () => {
       render(<UpgradePrompt />);
 
       const link = screen.getByRole("link");
       expect(link).toHaveAttribute("href", "/pricing?source=upgrade_prompt&plan=PRO");
     });
 
-    it("links to pricing page with ENTERPRISE plan", () => {
-      render(<UpgradePrompt requiredPlan="ENTERPRISE" />);
+    it("links to pricing page with PRO plan", () => {
+      render(<UpgradePrompt requiredPlan="PRO" />);
 
       const link = screen.getByRole("link");
       expect(link).toHaveAttribute("href", "/pricing?source=upgrade_prompt&plan=ENTERPRISE");
