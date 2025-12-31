@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { ProfileForm } from "@/components/settings/profile-form";
 
 import type { Metadata } from "next";
 
@@ -16,12 +16,22 @@ export const metadata: Metadata = {
 export default async function ProfilePage() {
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect("/login");
   }
 
-  const user = session.user;
-  const initials = getInitials(user.name, user.email);
+  // Fetch fresh user data from database (not from JWT session which can be stale)
+  const dbUser = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, email: true, image: true, password: true },
+  });
+
+  if (!dbUser) {
+    redirect("/login");
+  }
+
+  const initials = getInitials(dbUser.name, dbUser.email);
+  const isCredentialUser = !!dbUser.password;
 
   return (
     <div className="space-y-6">
@@ -41,7 +51,7 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            {user.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
+            {dbUser.image && <AvatarImage src={dbUser.image} alt={dbUser.name || "User"} />}
             <AvatarFallback className="text-lg">{initials}</AvatarFallback>
           </Avatar>
           <div className="text-sm text-muted-foreground">
@@ -54,32 +64,17 @@ export default async function ProfilePage() {
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>
-            Your basic account information
+            {isCredentialUser
+              ? "Update your profile details"
+              : "Update your name (email is managed by your auth provider)"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              defaultValue={user.name || ""}
-              disabled
-              className="max-w-md"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              defaultValue={user.email || ""}
-              disabled
-              className="max-w-md"
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Profile information is managed through your authentication provider.
-          </p>
+        <CardContent>
+          <ProfileForm
+            defaultName={dbUser.name}
+            defaultEmail={dbUser.email}
+            isCredentialUser={isCredentialUser}
+          />
         </CardContent>
       </Card>
     </div>
