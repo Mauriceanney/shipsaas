@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   },
 };
 
+// ISR: Revalidate every 30 minutes for fresh blog content
+export const revalidate = 1800;
+
 export default function BlogPage() {
   const posts = getAllPosts();
 

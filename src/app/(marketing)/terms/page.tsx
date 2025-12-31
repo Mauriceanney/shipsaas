@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   description: "Terms of Service for ShipSaaS",
 };
 
+// ISR: Revalidate daily for legal pages
+export const revalidate = 86400;
+
 export default function TermsPage() {
   const lastUpdated = "December 30, 2025";
 
