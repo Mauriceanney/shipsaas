@@ -1,5 +1,5 @@
 /**
- * Unit tests for AppSidebar component - theme toggle functionality
+ * Unit tests for AppSidebar component
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
@@ -37,6 +37,21 @@ const mockUser = {
   image: null,
 };
 
+const mockFreeSubscription = {
+  plan: "FREE",
+  status: "ACTIVE",
+};
+
+const mockProSubscription = {
+  plan: "PRO",
+  status: "ACTIVE",
+};
+
+const mockEnterpriseSubscription = {
+  plan: "ENTERPRISE",
+  status: "ACTIVE",
+};
+
 describe("AppSidebar", () => {
   const user = userEvent.setup();
 
@@ -46,7 +61,7 @@ describe("AppSidebar", () => {
     mockUseTheme.mockReturnValue({
       theme: "light",
       setTheme: mockSetTheme,
-      systemTheme: "light",
+      resolvedTheme: "light",
     });
     // Mock localStorage
     Object.defineProperty(window, "localStorage", {
@@ -58,59 +73,24 @@ describe("AppSidebar", () => {
     });
   });
 
-  describe("theme toggle in sidebar dropdown", () => {
-    it("shows theme toggle in user menu dropdown", async () => {
-      render(<AppSidebar user={mockUser} />);
-
-      // Click on user menu button (shows initials when collapsed)
-      const userButton = screen.getByRole("button", { name: /JD/i });
-      await user.click(userButton);
-
-      // Wait for dropdown and theme option
-      await waitFor(() => {
-        expect(screen.getByText(/Theme: Light/)).toBeInTheDocument();
-      });
-    });
-
-    it("shows dark theme label when dark mode is active", async () => {
-      mockUseTheme.mockReturnValue({
-        theme: "dark",
-        setTheme: mockSetTheme,
-        systemTheme: "dark",
-      });
-
+  describe("dark mode toggle", () => {
+    it("shows dark mode toggle switch in user menu dropdown", async () => {
       render(<AppSidebar user={mockUser} />);
 
       const userButton = screen.getByRole("button", { name: /JD/i });
       await user.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Theme: Dark/)).toBeInTheDocument();
+        expect(screen.getByText("Dark mode")).toBeInTheDocument();
+        expect(screen.getByRole("switch", { name: /toggle dark mode/i })).toBeInTheDocument();
       });
     });
 
-    it("shows system theme label when system mode is active", async () => {
-      mockUseTheme.mockReturnValue({
-        theme: "system",
-        setTheme: mockSetTheme,
-        systemTheme: "light",
-      });
-
-      render(<AppSidebar user={mockUser} />);
-
-      const userButton = screen.getByRole("button", { name: /JD/i });
-      await user.click(userButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Theme: System/)).toBeInTheDocument();
-      });
-    });
-
-    it("cycles theme when clicked", async () => {
+    it("shows switch as unchecked when in light mode", async () => {
       mockUseTheme.mockReturnValue({
         theme: "light",
         setTheme: mockSetTheme,
-        systemTheme: "light",
+        resolvedTheme: "light",
       });
 
       render(<AppSidebar user={mockUser} />);
@@ -119,12 +99,183 @@ describe("AppSidebar", () => {
       await user.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Theme: Light/)).toBeInTheDocument();
+        const toggle = screen.getByRole("switch", { name: /toggle dark mode/i });
+        expect(toggle).toHaveAttribute("data-state", "unchecked");
+      });
+    });
+
+    it("shows switch as checked when in dark mode", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "dark",
+        setTheme: mockSetTheme,
+        resolvedTheme: "dark",
       });
 
-      await user.click(screen.getByText(/Theme: Light/));
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        const toggle = screen.getByRole("switch", { name: /toggle dark mode/i });
+        expect(toggle).toHaveAttribute("data-state", "checked");
+      });
+    });
+
+    it("toggles to dark mode when switch is clicked in light mode", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "light",
+        setTheme: mockSetTheme,
+        resolvedTheme: "light",
+      });
+
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole("switch", { name: /toggle dark mode/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("switch", { name: /toggle dark mode/i }));
 
       expect(mockSetTheme).toHaveBeenCalledWith("dark");
+    });
+
+    it("toggles to light mode when switch is clicked in dark mode", async () => {
+      mockUseTheme.mockReturnValue({
+        theme: "dark",
+        setTheme: mockSetTheme,
+        resolvedTheme: "dark",
+      });
+
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole("switch", { name: /toggle dark mode/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("switch", { name: /toggle dark mode/i }));
+
+      expect(mockSetTheme).toHaveBeenCalledWith("light");
+    });
+  });
+
+  describe("upgrade prompt", () => {
+    it("shows upgrade prompt for FREE plan users", async () => {
+      render(<AppSidebar user={mockUser} subscription={mockFreeSubscription} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Upgrade Plan")).toBeInTheDocument();
+      });
+    });
+
+    it("shows upgrade prompt for PRO plan users (can upgrade to ENTERPRISE)", async () => {
+      render(<AppSidebar user={mockUser} subscription={mockProSubscription} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Upgrade Plan")).toBeInTheDocument();
+      });
+    });
+
+    it("upgrade prompt links to pricing page", async () => {
+      render(<AppSidebar user={mockUser} subscription={mockFreeSubscription} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        const upgradeLink = screen.getByText("Upgrade Plan").closest("a");
+        expect(upgradeLink).toHaveAttribute("href", "/pricing");
+      });
+    });
+
+    it("does not show upgrade prompt for ENTERPRISE plan users (highest plan)", async () => {
+      render(<AppSidebar user={mockUser} subscription={mockEnterpriseSubscription} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Settings")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText("Upgrade Plan")).not.toBeInTheDocument();
+    });
+
+    it("shows upgrade prompt when no subscription provided", async () => {
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Upgrade Plan")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("menu items", () => {
+    it("shows Settings link in menu", async () => {
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Settings")).toBeInTheDocument();
+        const settingsLink = screen.getByText("Settings").closest("a");
+        expect(settingsLink).toHaveAttribute("href", "/settings");
+      });
+    });
+
+    it("does not show Profile link in menu", async () => {
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Settings")).toBeInTheDocument();
+      });
+
+      // Profile should not be in the dropdown menu
+      expect(screen.queryByRole("link", { name: /^profile$/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show Billing link in menu", async () => {
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Settings")).toBeInTheDocument();
+      });
+
+      // Billing should not be in the dropdown menu
+      expect(screen.queryByRole("link", { name: /^billing$/i })).not.toBeInTheDocument();
+    });
+
+    it("shows Sign out button", async () => {
+      render(<AppSidebar user={mockUser} />);
+
+      const userButton = screen.getByRole("button", { name: /JD/i });
+      await user.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole("menuitem", { name: /sign out/i })).toBeInTheDocument();
+      });
     });
   });
 
@@ -132,13 +283,12 @@ describe("AppSidebar", () => {
     it("renders sidebar with user initials", () => {
       render(<AppSidebar user={mockUser} />);
 
-      expect(screen.getByText("JD")).toBeInTheDocument(); // Initials
+      expect(screen.getByText("JD")).toBeInTheDocument();
     });
 
     it("renders dashboard link", () => {
       render(<AppSidebar user={mockUser} />);
 
-      // Dashboard link exists (with title attribute when collapsed)
       const dashboardLink = screen.getByRole("link", { name: /dashboard/i });
       expect(dashboardLink).toBeInTheDocument();
     });

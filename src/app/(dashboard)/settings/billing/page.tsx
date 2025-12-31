@@ -63,7 +63,8 @@ export default async function BillingPage() {
           <div className="flex flex-wrap gap-4">
             <ManageSubscriptionButton hasSubscription={hasActiveSubscription} />
 
-            {(!subscription || subscription.plan === "FREE") && (
+            {/* Show upgrade button for all plans except ENTERPRISE (highest plan) */}
+            {subscription?.plan !== "ENTERPRISE" && (
               <Button asChild>
                 <Link href="/pricing">Upgrade Plan</Link>
               </Button>
