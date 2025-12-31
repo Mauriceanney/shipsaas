@@ -20,15 +20,18 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  // Fetch user to check if credential user (has password)
+  // Fetch fresh user data from database (not from JWT session which can be stale)
   const dbUser = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { password: true },
+    select: { name: true, email: true, image: true, password: true },
   });
 
-  const user = session.user;
-  const initials = getInitials(user.name, user.email);
-  const isCredentialUser = !!dbUser?.password;
+  if (!dbUser) {
+    redirect("/login");
+  }
+
+  const initials = getInitials(dbUser.name, dbUser.email);
+  const isCredentialUser = !!dbUser.password;
 
   return (
     <div className="space-y-6">
@@ -48,7 +51,7 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            {user.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
+            {dbUser.image && <AvatarImage src={dbUser.image} alt={dbUser.name || "User"} />}
             <AvatarFallback className="text-lg">{initials}</AvatarFallback>
           </Avatar>
           <div className="text-sm text-muted-foreground">
@@ -68,8 +71,8 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent>
           <ProfileForm
-            defaultName={user.name}
-            defaultEmail={user.email}
+            defaultName={dbUser.name}
+            defaultEmail={dbUser.email}
             isCredentialUser={isCredentialUser}
           />
         </CardContent>
