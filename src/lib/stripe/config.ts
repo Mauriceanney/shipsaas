@@ -55,7 +55,7 @@ export const STRIPE_PRICE_IDS = getStripePriceIds();
  */
 export const TRIAL_DAYS: Partial<Record<Plan, number>> = {
   PLUS: 14,
-  PLUS: 14,
+  PRO: 14,
   // FREE plan has no trial
 } as const;
 
@@ -96,7 +96,7 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
     "API access",
     "Custom integrations",
   ],
-  PLUS: [
+  PRO: [
     "All Plus features",
     "24/7 dedicated support",
     "Unlimited storage",
@@ -116,7 +116,7 @@ export const PLAN_PRICING: Record<Exclude<Plan, "FREE">, { monthly: number; year
     monthly: 19,
     yearly: 190, // ~17% savings
   },
-  PLUS: {
+  PRO: {
     monthly: 99,
     yearly: 990, // ~17% savings
   },
@@ -146,7 +146,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     storageBytes: 50 * 1024 * 1024 * 1024, // 50GB
     teamMembers: 10,          // Up to 10 team members
   },
-  PLUS: {
+  PRO: {
     apiCalls: -1,             // Unlimited
     projects: -1,             // Unlimited
     storageBytes: -1,         // Unlimited
@@ -210,7 +210,7 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     trialDays: TRIAL_DAYS.PLUS,
   },
   {
-    id: "PLUS",
+    id: "PRO",
     name: "Pro",
     description: "For large organizations",
     prices: STRIPE_PRICE_IDS.PRO,
