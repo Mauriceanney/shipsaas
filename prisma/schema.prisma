@@ -455,3 +455,28 @@ enum DiscountType {
   PERCENTAGE
   FIXED
 }
+
+// ============================================
+// ADMIN IMPERSONATION MODELS
+// ============================================
+
+model ImpersonationLog {
+  id              String    @id @default(cuid())
+  adminId         String // Admin user who initiated impersonation
+  targetUserId    String // User being impersonated
+  reason          String? // Optional reason for impersonation
+  ipAddress       String?
+  userAgent       String?
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime? // When impersonation ended (null = still active)
+  expiresAt       DateTime // When impersonation auto-expires (1 hour)
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@index([startedAt])
+  @@index([endedAt])
+  @@index([expiresAt])
+  @@index([adminId, startedAt]) // For admin activity queries
+}

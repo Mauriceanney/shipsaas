@@ -13,6 +13,13 @@ declare module "next-auth" {
       stripeCurrentPeriodEnd: Date | null;
       statusChangedAt: Date | null;
     };
+    // Impersonation context
+    impersonation?: {
+      originalAdminId: string;
+      originalAdminEmail: string;
+      impersonationLogId: string;
+      expiresAt: Date;
+    };
   }
 
   interface User {
@@ -29,6 +36,13 @@ declare module "next-auth/jwt" {
       status: SubscriptionStatus;
       stripeCurrentPeriodEnd: Date | null;
       statusChangedAt: Date | null;
+    };
+    // Impersonation context
+    impersonation?: {
+      originalAdminId: string;
+      originalAdminEmail: string;
+      impersonationLogId: string;
+      expiresAt: Date;
     };
   }
 }

@@ -3,11 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getUserById } from "@/actions/admin/users";
+import { EmailComposeDialog } from "@/components/admin/email-compose-dialog";
+import { ImpersonateButton } from "@/components/admin/impersonate-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-import { EmailComposeDialog } from "@/components/admin/email-compose-dialog";
 
 import { AccountStatusForm } from "./account-status-form";
 import { RoleChangeForm } from "./role-change-form";
@@ -180,6 +180,25 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
             />
           </CardContent>
         </Card>
+
+        {user.role !== "ADMIN" && !user.disabled && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Impersonation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                View the application as this user for support or debugging.
+                Impersonation sessions last 1 hour.
+              </p>
+              <ImpersonateButton
+                userId={user.id}
+                userName={user.name}
+                userEmail={user.email}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
