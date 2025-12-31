@@ -27,19 +27,19 @@ model User {
   tosAcceptedAt    DateTime? // Terms of Service acceptance timestamp
 
   // Email Preferences (GDPR compliant)
-  unsubscribeToken       String   @unique @default(cuid()) // Token for one-click unsubscribe
-  emailMarketingOptIn    Boolean  @default(true)  // Marketing/promotional emails
-  emailProductUpdates    Boolean  @default(true)  // Product updates and announcements
-  emailSecurityAlerts    Boolean  @default(true)  // Security alerts (recommended always on)
+  unsubscribeToken    String  @unique @default(cuid()) // Token for one-click unsubscribe
+  emailMarketingOptIn Boolean @default(true) // Marketing/promotional emails
+  emailProductUpdates Boolean @default(true) // Product updates and announcements
+  emailSecurityAlerts Boolean @default(true) // Security alerts (recommended always on)
 
   // Two-Factor Authentication
-  twoFactorSecret      String?   // Encrypted TOTP secret
-  twoFactorEnabled     Boolean   @default(false)
-  twoFactorBackupCodes String[]  // Hashed backup codes (bcrypt)
+  twoFactorSecret      String? // Encrypted TOTP secret
+  twoFactorEnabled     Boolean  @default(false)
+  twoFactorBackupCodes String[] // Hashed backup codes (bcrypt)
 
   // Onboarding
-  onboardingCompleted    Boolean   @default(false)  // User finished or dismissed onboarding
-  onboardingDismissedAt  DateTime? // When user dismissed the onboarding
+  onboardingCompleted   Boolean   @default(false) // User finished or dismissed onboarding
+  onboardingDismissedAt DateTime? // When user dismissed the onboarding
 
   accounts               Account[]
   sessions               Session[]
@@ -108,14 +108,14 @@ model VerificationToken {
 }
 
 model TrustedDevice {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash   String   // Hashed device token (stored in browser cookie)
-  deviceName  String   // Browser/device info for user reference
-  lastUsedAt  DateTime @default(now())
-  expiresAt   DateTime // When the trust expires (e.g., 30 days from creation)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String // Hashed device token (stored in browser cookie)
+  deviceName String // Browser/device info for user reference
+  lastUsedAt DateTime @default(now())
+  expiresAt  DateTime // When the trust expires (e.g., 30 days from creation)
+  createdAt  DateTime @default(now())
 
   @@unique([userId, tokenHash])
   @@index([userId])
@@ -134,7 +134,7 @@ model UserSession {
   sessionToken String    @unique // Links to Auth.js Session.sessionToken
   ipAddress    String?
   userAgent    String?
-  deviceName   String?   // Parsed from userAgent (e.g., "Chrome on macOS")
+  deviceName   String? // Parsed from userAgent (e.g., "Chrome on macOS")
   lastActiveAt DateTime  @default(now())
   expiresAt    DateTime
   revokedAt    DateTime? // Null = active, set = revoked
@@ -151,15 +151,15 @@ model UserSession {
 }
 
 model LoginHistory {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   ipAddress  String?
   userAgent  String?
-  deviceName String?  // Parsed from userAgent
+  deviceName String? // Parsed from userAgent
   success    Boolean
-  failReason String?  // "invalid_credentials", "account_disabled", "2fa_failed"
-  provider   String   // "credentials", "google", "github", "two-factor"
+  failReason String? // "invalid_credentials", "account_disabled", "2fa_failed"
+  provider   String // "credentials", "google", "github", "two-factor"
 
   createdAt DateTime @default(now())
 
@@ -182,9 +182,9 @@ model Subscription {
   stripeSubscriptionId   String?            @unique
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
-  stripeTrialEnd         DateTime?          // Trial period end date
+  stripeTrialEnd         DateTime? // Trial period end date
   status                 SubscriptionStatus @default(INACTIVE)
-  statusChangedAt        DateTime?          // When status last changed (for grace period tracking)
+  statusChangedAt        DateTime? // When status last changed (for grace period tracking)
   plan                   Plan               @default(FREE)
   cancelAtPeriodEnd      Boolean            @default(false)
   dunningEmails          DunningEmail[]
@@ -207,13 +207,13 @@ model Subscription {
 // ============================================
 
 model Usage {
-  id             String   @id @default(cuid())
-  userId         String
-  period         String   // Billing period in YYYY-MM format (e.g., "2024-01")
-  apiCalls       Int      @default(0)
-  projectsCount  Int      @default(0)
-  storageBytes   BigInt   @default(0)
-  teamMembers    Int      @default(0)
+  id            String @id @default(cuid())
+  userId        String
+  period        String // Billing period in YYYY-MM format (e.g., "2024-01")
+  apiCalls      Int    @default(0)
+  projectsCount Int    @default(0)
+  storageBytes  BigInt @default(0)
+  teamMembers   Int    @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -256,8 +256,8 @@ model PlanConfig {
   plan           Plan     @unique
   name           String
   description    String?
-  monthlyPriceId String?  // Stripe Price ID for monthly billing
-  yearlyPriceId  String?  // Stripe Price ID for yearly billing
+  monthlyPriceId String? // Stripe Price ID for monthly billing
+  yearlyPriceId  String? // Stripe Price ID for yearly billing
   monthlyPrice   Int      @default(0) // Display price in cents
   yearlyPrice    Int      @default(0) // Display price in cents
   features       String[] // Feature list for display
@@ -272,11 +272,11 @@ model PlanConfig {
 }
 
 model AppConfig {
-  id          String   @id @default(cuid())
-  key         String   @unique
+  id          String  @id @default(cuid())
+  key         String  @unique
   value       Json
   description String?
-  category    String   // "general", "features", "billing", "email"
+  category    String // "general", "features", "billing", "email"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -286,13 +286,13 @@ model AppConfig {
 }
 
 model ConfigAuditLog {
-  id         String   @id @default(cuid())
-  entityType String   // "PlanConfig", "AppConfig", "User"
+  id         String @id @default(cuid())
+  entityType String // "PlanConfig", "AppConfig", "User"
   entityId   String
-  action     String   // "CREATE", "UPDATE", "DELETE"
-  changes    Json     // { field: { old: value, new: value } }
-  userId     String   // Admin who made the change
-  userEmail  String   // For display purposes
+  action     String // "CREATE", "UPDATE", "DELETE"
+  changes    Json // { field: { old: value, new: value } }
+  userId     String // Admin who made the change
+  userEmail  String // For display purposes
 
   createdAt DateTime @default(now())
 
@@ -376,4 +376,24 @@ enum EmailSendStatus {
   PENDING
   SENT
   FAILED
+}
+
+// ============================================
+// WEBHOOK IDEMPOTENCY MODEL
+// ============================================
+
+model WebhookEvent {
+  id            String    @id @default(cuid())
+  stripeEventId String    @unique
+  eventType     String
+  processed     Boolean   @default(false)
+  processedAt   DateTime?
+  apiVersion    String?
+  errorMessage  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([stripeEventId])
+  @@index([eventType])
+  @@index([processedAt])
 }
