@@ -4,6 +4,7 @@ import crypto from "crypto";
 
 import { db } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 import {
   rateLimiters,
   getClientIpFromHeaders,
@@ -75,13 +76,16 @@ export async function forgotPasswordAction(
     try {
       await sendPasswordResetEmail(email, resetToken, user.name ?? undefined);
     } catch (emailError) {
-      console.error("Failed to send password reset email:", emailError);
+      logger.error(
+        { err: emailError, email },
+        "Failed to send password reset email"
+      );
       // Don't throw - user can request again
     }
 
     return { success: true, message: successMessage };
   } catch (error) {
-    console.error("Forgot password error:", error);
+    logger.error({ err: error }, "Forgot password error");
     // Still return success to prevent enumeration
     return { success: true, message: successMessage };
   }

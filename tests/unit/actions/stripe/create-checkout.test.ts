@@ -261,20 +261,12 @@ describe("createCheckoutAction", () => {
         new Error("Stripe API error")
       );
 
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
       const result = await createCheckoutAction({ priceId: "price_test" });
 
       expect(result).toEqual({
         success: false,
         error: "Failed to create checkout session",
       });
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Create checkout error:",
-        expect.any(Error)
-      );
-
-      consoleSpy.mockRestore();
     });
 
     it("handles database errors gracefully", async () => {
@@ -285,16 +277,12 @@ describe("createCheckoutAction", () => {
         new Error("Database connection error")
       );
 
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
       const result = await createCheckoutAction({ priceId: "price_test" });
 
       expect(result).toEqual({
         success: false,
         error: "Failed to create checkout session",
       });
-
-      consoleSpy.mockRestore();
     });
   });
 });

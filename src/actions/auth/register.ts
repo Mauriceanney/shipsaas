@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/email";
+import { logger, redactSensitiveData } from "@/lib/logger";
 import {
   rateLimiters,
   getClientIpFromHeaders,
@@ -99,7 +100,10 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
     try {
       await sendVerificationEmail(user.email, verificationToken, name);
     } catch (emailError) {
-      console.error("Failed to send verification email:", emailError);
+      logger.error(
+        { err: emailError, email: user.email },
+        "Failed to send verification email"
+      );
       // Don't throw - user is created, they can request a new verification email
     }
 
@@ -108,7 +112,10 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
       message: "Please check your email to verify your account",
     };
   } catch (error) {
-    console.error("Registration error:", error);
+    logger.error(
+      { err: error, input: redactSensitiveData(input) },
+      "Registration error"
+    );
     return {
       success: false,
       error: "An error occurred during registration",
