@@ -20,10 +20,21 @@ const statusColors = {
 };
 
 export function SubscriptionStatus({ subscription }: SubscriptionStatusProps) {
+  // Show Free Plan for users without a subscription record
   if (!subscription) {
     return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No subscription found</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">Free Plan</h3>
+            <Badge className={cn("mt-1", statusColors.ACTIVE)}>
+              ACTIVE
+            </Badge>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          You&apos;re on the free plan. Upgrade to unlock more features.
+        </p>
       </div>
     );
   }
@@ -31,11 +42,14 @@ export function SubscriptionStatus({ subscription }: SubscriptionStatusProps) {
   const isTrialing = subscription.status === "TRIALING";
   const trialEndsAt = subscription.trialEnd;
 
+  // Format plan name for display (FREE -> Free, PLUS -> Plus, PRO -> Pro)
+  const planDisplayName = subscription.plan.charAt(0) + subscription.plan.slice(1).toLowerCase();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">{subscription.plan} Plan</h3>
+          <h3 className="font-semibold">{planDisplayName} Plan</h3>
           <Badge className={cn("mt-1", statusColors[subscription.status])}>
             {subscription.status}
           </Badge>
