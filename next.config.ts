@@ -34,11 +34,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.posthog.com https://*.i.posthog.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.posthog.com https://*.i.posthog.com https://*.sentry.io https://browser.sentry-cdn.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.posthog.com https://*.i.posthog.com",
+      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.posthog.com https://*.i.posthog.com https://*.sentry.io https://*.ingest.sentry.io",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
@@ -55,6 +55,7 @@ const nextConfig: NextConfig = {
   experimental: {
     typedRoutes: true,
   },
+  productionBrowserSourceMaps: true,
   async headers() {
     return [
       {
@@ -81,8 +82,21 @@ const nextConfig: NextConfig = {
     },
   },
   // Velite integration - build content at dev/build time
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.plugins.push(new VeliteWebpackPlugin());
+
+    // Suppress Sentry/OpenTelemetry dynamic require warnings
+    // These are expected and harmless - Sentry uses dynamic imports internally
+    if (isServer) {
+      config.ignoreWarnings = [
+        ...(config.ignoreWarnings || []),
+        {
+          module: /require-in-the-middle/,
+          message: /Critical dependency/,
+        },
+      ];
+    }
+
     return config;
   },
 };
