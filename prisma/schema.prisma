@@ -147,6 +147,7 @@ model UserSession {
   @@index([userId, revokedAt])
   @@index([expiresAt])
   @@index([lastActiveAt])
+  @@index([userId, revokedAt, expiresAt, lastActiveAt]) // Optimized for active sessions query with ordering
 }
 
 model LoginHistory {
@@ -166,6 +167,7 @@ model LoginHistory {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@index([userId, success])
+  @@index([userId, success, createdAt]) // Optimized for metrics query: count by user, success, and date range
 }
 
 // ============================================
