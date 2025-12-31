@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 
+import { ProfileForm } from "@/components/settings/profile-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ProfileForm } from "@/components/settings/profile-form";
 
 import type { Metadata } from "next";
 
@@ -35,12 +36,10 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
-        <p className="text-muted-foreground">
-          Manage your profile information
-        </p>
-      </div>
+      <PageHeader
+        title="Profile"
+        description="Manage your profile information"
+      />
 
       <Card>
         <CardHeader>

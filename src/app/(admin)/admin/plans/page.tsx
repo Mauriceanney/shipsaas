@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getPlanConfigs } from "@/actions/admin/config";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { db } from "@/lib/db";
 
 import { PlanConfigForm } from "./plan-config-form";
@@ -109,12 +110,10 @@ async function PlansContent() {
 export default function PlansPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Plan Configuration</h1>
-        <p className="text-muted-foreground">
-          Configure subscription plans and map Stripe Price IDs.
-        </p>
-      </div>
+      <PageHeader
+        title="Plan Configuration"
+        description="Configure subscription plans and map Stripe Price IDs."
+      />
 
       <Suspense
         fallback={<div className="py-8 text-center">Loading plans...</div>}

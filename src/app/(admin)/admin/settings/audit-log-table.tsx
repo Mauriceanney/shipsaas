@@ -1,4 +1,7 @@
+import { History } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -17,9 +20,11 @@ interface AuditLogTableProps {
 export function AuditLogTable({ logs }: AuditLogTableProps) {
   if (logs.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No configuration changes recorded yet.
-      </p>
+      <EmptyState
+        icon={History}
+        title="No changes recorded"
+        description="Configuration changes will appear here once updates are made."
+      />
     );
   }
 

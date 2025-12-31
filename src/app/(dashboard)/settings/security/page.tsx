@@ -6,6 +6,7 @@ import { SessionsList } from "@/components/settings/sessions-list";
 import { TwoFactorSettings } from "@/components/settings/two-factor-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -31,12 +32,10 @@ export default async function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Security</h1>
-        <p className="text-muted-foreground">
-          Manage your account security settings
-        </p>
-      </div>
+      <PageHeader
+        title="Security"
+        description="Manage your account security settings"
+      />
 
       <Card>
         <CardHeader>

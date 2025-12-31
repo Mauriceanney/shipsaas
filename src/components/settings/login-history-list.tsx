@@ -7,10 +7,12 @@ import {
   Smartphone,
   Tablet,
   Loader2,
+  History,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { getLoginHistory, type LoginHistoryData } from "@/actions/session";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -108,9 +110,11 @@ export function LoginHistoryList() {
 
   if (history.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No login history found
-      </div>
+      <EmptyState
+        icon={History}
+        title="No login history"
+        description="Your recent login attempts will appear here."
+      />
     );
   }
 

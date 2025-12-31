@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // No props needed - current session is determined server-side
 
@@ -117,9 +118,11 @@ export function SessionsList() {
 
   if (sessions.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No active sessions found
-      </div>
+      <EmptyState
+        icon={Monitor}
+        title="No active sessions"
+        description="Your active sessions will appear here."
+      />
     );
   }
 

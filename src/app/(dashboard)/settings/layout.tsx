@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { SettingsNav } from "@/components/settings/settings-nav";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { auth } from "@/lib/auth";
+
+import type { Route } from "next";
 
 export default async function SettingsLayout({
   children,
@@ -16,12 +19,11 @@ export default async function SettingsLayout({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: "Settings", href: "/settings" as Route },
+        ]}
+      />
 
       <div className="flex flex-col gap-8 lg:flex-row">
         {/* Left sidebar navigation */}

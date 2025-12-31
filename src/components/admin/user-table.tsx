@@ -1,6 +1,8 @@
+import { Users } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -28,9 +30,11 @@ interface UserTableProps {
 export function UserTable({ users }: UserTableProps) {
   if (users.length === 0) {
     return (
-      <div className="rounded-lg border p-8 text-center text-muted-foreground">
-        No users found
-      </div>
+      <EmptyState
+        icon={Users}
+        title="No users found"
+        description="No users match your current filters. Try adjusting your search criteria."
+      />
     );
   }
 
