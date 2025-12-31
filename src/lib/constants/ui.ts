@@ -62,3 +62,13 @@ export const GRID_LAYOUTS = {
   features: "grid gap-6 md:grid-cols-2 lg:grid-cols-3",
   twoColumn: "grid gap-4 md:grid-cols-2",
 } as const;
+
+/**
+ * Touch target sizes for mobile accessibility (WCAG 2.1 AA compliance)
+ * Minimum: 44x44px (Level AA)
+ * Recommended: 48x48px (Enhanced usability)
+ */
+export const TOUCH_TARGETS = {
+  minimum: "min-h-[44px] min-w-[44px]",
+  recommended: "min-h-[48px] min-w-[48px]",
+} as const;
