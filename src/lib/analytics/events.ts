@@ -22,6 +22,14 @@ export const SUBSCRIPTION_EVENTS = {
   PAYMENT_SUCCEEDED: "payment_succeeded",
 } as const;
 
+// Upgrade prompt events (usage limit tracking)
+export const UPGRADE_PROMPT_EVENTS = {
+  UPGRADE_PROMPT_SHOWN: "upgrade_prompt_shown",
+  UPGRADE_PROMPT_CLICKED: "upgrade_prompt_clicked",
+  UPGRADE_PROMPT_DISMISSED: "upgrade_prompt_dismissed",
+  UPGRADE_LIMIT_BLOCKED: "upgrade_limit_blocked",
+} as const;
+
 // Feature usage events
 export const FEATURE_EVENTS = {
   FEATURE_USED: "feature_used",
@@ -34,6 +42,7 @@ export const FEATURE_EVENTS = {
 export const ANALYTICS_EVENTS = {
   ...AUTH_EVENTS,
   ...SUBSCRIPTION_EVENTS,
+  ...UPGRADE_PROMPT_EVENTS,
   ...FEATURE_EVENTS,
 } as const;
 

@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatLimit, isUnlimited } from "@/lib/stripe/config";
 import { getUsagePercentage, isApproachingLimit } from "@/lib/usage";
 
+import { UsageLimitModal, type UsageMetricKey } from "./usage-limit-modal";
+
 import type { Plan } from "@prisma/client";
 
 type UsageData = {
@@ -60,10 +62,22 @@ const usageMetrics = [
 ];
 
 
+// Threshold for showing modal (90%)
+const MODAL_THRESHOLD = 90;
+
+type ModalState = {
+  isOpen: boolean;
+  metric: UsageMetricKey;
+  currentUsage: number;
+  limit: number;
+} | null;
+
 export function UsageMeter({ className }: UsageMeterProps) {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [plan, setPlan] = useState<Plan>("FREE");
   const [isLoading, setIsLoading] = useState(true);
+  const [modalState, setModalState] = useState<ModalState>(null);
+  const [shownModals, setShownModals] = useState<Set<UsageMetricKey>>(new Set());
 
   useEffect(() => {
     async function loadUsage() {
@@ -71,11 +85,36 @@ export function UsageMeter({ className }: UsageMeterProps) {
       if (result.success) {
         setUsage(result.data.usage);
         setPlan(result.data.plan);
+
+        // Check if any metric is at or above 90% and show modal
+        // Only show once per session per metric
+        const usageData = result.data.usage;
+        const userPlan = result.data.plan;
+
+        // Don't show modal for PRO users (highest plan)
+        if (userPlan !== "PRO") {
+          for (const metric of usageMetrics) {
+            const data = usageData[metric.key];
+            const percentage = getUsagePercentage(data.used, data.limit);
+            const unlimited = isUnlimited(data.limit);
+
+            if (!unlimited && percentage >= MODAL_THRESHOLD && !shownModals.has(metric.key)) {
+              setModalState({
+                isOpen: true,
+                metric: metric.key,
+                currentUsage: data.used,
+                limit: data.limit,
+              });
+              setShownModals((prev) => new Set(prev).add(metric.key));
+              break; // Only show one modal at a time
+            }
+          }
+        }
       }
       setIsLoading(false);
     }
     loadUsage();
-  }, []);
+  }, [shownModals]);
 
   if (isLoading) {
     return (
@@ -155,6 +194,22 @@ export function UsageMeter({ className }: UsageMeterProps) {
           );
         })}
       </div>
+
+      {/* Usage Limit Modal */}
+      {modalState && (
+        <UsageLimitModal
+          metric={modalState.metric}
+          currentUsage={modalState.currentUsage}
+          limit={modalState.limit}
+          plan={plan}
+          isOpen={modalState.isOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setModalState(null);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
