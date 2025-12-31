@@ -13,6 +13,14 @@ import { AppConfigForm } from "./app-config-form";
 import { AuditLogTable } from "./audit-log-table";
 import { FeatureFlagsForm } from "./feature-flags-form";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "App Settings",
+  description: "Configure application settings and feature flags",
+  robots: { index: false, follow: false },
+};
+
 async function SettingsContent() {
   const [configs, flags, auditLogs] = await Promise.all([
     getAppConfigs(),
