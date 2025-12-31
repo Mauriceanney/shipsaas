@@ -82,8 +82,21 @@ const nextConfig: NextConfig = {
     },
   },
   // Velite integration - build content at dev/build time
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.plugins.push(new VeliteWebpackPlugin());
+
+    // Suppress Sentry/OpenTelemetry dynamic require warnings
+    // These are expected and harmless - Sentry uses dynamic imports internally
+    if (isServer) {
+      config.ignoreWarnings = [
+        ...(config.ignoreWarnings || []),
+        {
+          module: /require-in-the-middle/,
+          message: /Critical dependency/,
+        },
+      ];
+    }
+
     return config;
   },
 };
