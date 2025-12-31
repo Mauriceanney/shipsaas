@@ -3,13 +3,18 @@
  * Error monitoring and performance tracking settings
  */
 
+const hasDsn = !!process.env["NEXT_PUBLIC_SENTRY_DSN"];
+const isProduction = process.env.NODE_ENV === "production";
+// NEXT_PUBLIC_ prefix required for client-side access
+const isDebugMode = process.env["NEXT_PUBLIC_SENTRY_DEBUG"] === "true";
+const shouldEnable = (isProduction || isDebugMode) && hasDsn;
+
 export const sentryConfig = {
   dsn: process.env["NEXT_PUBLIC_SENTRY_DSN"],
   environment:
     process.env["NEXT_PUBLIC_SENTRY_ENVIRONMENT"] || "development",
-  enabled:
-    process.env.NODE_ENV === "production" &&
-    !!process.env["NEXT_PUBLIC_SENTRY_DSN"],
+  // Enable in production OR when SENTRY_DEBUG=true for testing
+  enabled: shouldEnable,
   // Disable tracing and replays by default to minimize costs
   // Enable in production if needed
   tracesSampleRate: 0,

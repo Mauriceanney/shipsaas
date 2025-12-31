@@ -34,11 +34,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.posthog.com https://*.i.posthog.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.posthog.com https://*.i.posthog.com https://*.sentry.io https://browser.sentry-cdn.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.posthog.com https://*.i.posthog.com https://*.ingest.sentry.io",
+      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.posthog.com https://*.i.posthog.com https://*.sentry.io https://*.ingest.sentry.io",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
