@@ -64,7 +64,7 @@ export async function handleCheckoutCompleted(
   });
 
   // Upsert subscription in database
-  await db.subscription.upsert({
+  const dbSubscription = await db.subscription.upsert({
     where: { userId: metadata.userId },
     create: {
       userId: metadata.userId,
@@ -86,6 +86,60 @@ export async function handleCheckoutCompleted(
       plan,
     },
   });
+
+  // Track promotion code usage if a discount was applied
+  if (session.total_details?.amount_discount && session.total_details.amount_discount > 0) {
+    try {
+      // Get the first discount from the session
+      // discounts is an array of Discount objects with promotion_code field
+      const discount = session.discounts?.[0];
+      let promotionCodeId: string | null = null;
+
+      if (discount && typeof discount === "object" && discount.promotion_code) {
+        // promotion_code can be a string ID or an expanded PromotionCode object
+        promotionCodeId = typeof discount.promotion_code === "string"
+          ? discount.promotion_code
+          : discount.promotion_code.id;
+      }
+
+      if (promotionCodeId) {
+        // Find the promotion code in our database
+        const promotionCode = await db.promotionCode.findUnique({
+          where: { stripePromotionId: promotionCodeId },
+        });
+
+        if (promotionCode) {
+          // Record usage (use upsert to handle duplicate checkout IDs)
+          await db.promotionUsage.upsert({
+            where: { stripeCheckoutId: session.id },
+            create: {
+              promotionCodeId: promotionCode.id,
+              userId: metadata.userId,
+              subscriptionId: dbSubscription.id,
+              stripeCheckoutId: session.id,
+              discountAmount: session.total_details.amount_discount,
+            },
+            update: {
+              discountAmount: session.total_details.amount_discount,
+            },
+          });
+
+          // Increment redemption count
+          await db.promotionCode.update({
+            where: { id: promotionCode.id },
+            data: {
+              timesRedeemed: { increment: 1 },
+            },
+          });
+
+          console.log(`Promotion code ${promotionCode.code} applied to subscription ${subscriptionId}, discount: ${session.total_details.amount_discount}`);
+        }
+      }
+    } catch (promoError) {
+      console.error("Failed to track promotion code usage:", promoError);
+      // Don't throw - subscription was created successfully
+    }
+  }
 
   // Revalidate cached pages that display subscription data
   revalidatePath("/pricing");

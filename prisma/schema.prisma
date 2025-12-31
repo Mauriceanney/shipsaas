@@ -397,3 +397,61 @@ model WebhookEvent {
   @@index([eventType])
   @@index([processedAt])
 }
+
+// ============================================
+// PROMOTION CODE MODELS
+// ============================================
+
+model PromotionCode {
+  id                String       @id @default(cuid())
+  code              String       @unique // Human-readable code (e.g., "SUMMER2024")
+  stripePromotionId String       @unique // Stripe promotion code ID
+  stripeCouponId    String // Stripe coupon ID
+  description       String?
+  discountType      DiscountType // PERCENTAGE or FIXED
+  discountValue     Int // Percentage (e.g., 20 for 20%) or amount in cents
+  currency          String? // Required for FIXED discounts
+  active            Boolean      @default(true)
+
+  // Usage restrictions
+  maxRedemptions Int @default(0) // 0 = unlimited
+  timesRedeemed  Int @default(0)
+  expiresAt      DateTime?
+
+  // Metadata
+  createdBy String // Admin user ID
+  notes     String? // Internal notes for admin
+
+  // Relations
+  usages PromotionUsage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([active])
+  @@index([expiresAt])
+  @@index([createdBy])
+}
+
+model PromotionUsage {
+  id               String        @id @default(cuid())
+  promotionCodeId  String
+  promotionCode    PromotionCode @relation(fields: [promotionCodeId], references: [id], onDelete: Cascade)
+  userId           String
+  subscriptionId   String?
+  stripeCheckoutId String        @unique
+  discountAmount   Int // Amount discounted in cents
+
+  createdAt DateTime @default(now())
+
+  @@index([promotionCodeId])
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([createdAt])
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}

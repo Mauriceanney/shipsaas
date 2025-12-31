@@ -16,6 +16,7 @@ export interface CreateCheckoutInput {
   priceId: string;
   successUrl?: string;
   cancelUrl?: string;
+  promotionCode?: string; // Stripe promotion code ID (from validateCouponAction)
 }
 
 const baseUrl = process.env["NEXT_PUBLIC_APP_URL"] || "http://localhost:3000";
@@ -32,7 +33,7 @@ export async function createCheckoutAction(
     return { success: false, error: "Authentication required" };
   }
 
-  const { priceId, successUrl, cancelUrl } = input;
+  const { priceId, successUrl, cancelUrl, promotionCode } = input;
 
   try {
     // Validate price ID
@@ -101,7 +102,14 @@ export async function createCheckoutAction(
         userId: session.user.id,
       },
       subscription_data: subscriptionData,
-      allow_promotion_codes: true,
+      // If a promotion code is provided, apply it; otherwise allow manual entry
+      ...(promotionCode
+        ? {
+            discounts: [{ promotion_code: promotionCode }],
+          }
+        : {
+            allow_promotion_codes: true,
+          }),
     });
 
     if (!checkoutSession.url) {
