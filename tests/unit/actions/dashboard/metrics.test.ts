@@ -15,11 +15,13 @@ const { mockAuth, mockDb, mockGetUserUsage, mockGetCachedData } = vi.hoisted(() 
     },
     subscription: {
       count: vi.fn(),
+      groupBy: vi.fn(),
     },
     loginHistory: {
       count: vi.fn(),
       findFirst: vi.fn(),
     },
+    $queryRaw: vi.fn(),
   },
   mockGetUserUsage: vi.fn(),
   mockGetCachedData: vi.fn(),
@@ -197,20 +199,30 @@ describe("dashboard metrics", () => {
     });
 
     describe("success cases", () => {
-      it("returns admin metrics", async () => {
+      it("returns admin metrics with optimized queries", async () => {
         mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
         mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
-        mockDb.user.count
-          .mockResolvedValueOnce(100) // total
-          .mockResolvedValueOnce(50) // active this month
-          .mockResolvedValueOnce(10); // new this month
-        mockDb.subscription.count
-          .mockResolvedValueOnce(30) // active
-          .mockResolvedValueOnce(5) // trialing
-          .mockResolvedValueOnce(2) // past due
-          .mockResolvedValueOnce(50) // FREE
-          .mockResolvedValueOnce(25) // PRO
-          .mockResolvedValueOnce(5); // ENTERPRISE
+
+        // Mock optimized user metrics query (single $queryRaw)
+        mockDb.$queryRaw.mockResolvedValue([
+          {
+            total: BigInt(100),
+            active_this_month: BigInt(50),
+            new_this_month: BigInt(10),
+          },
+        ]);
+
+        // Mock optimized subscription query (single groupBy)
+        mockDb.subscription.groupBy.mockResolvedValue([
+          { status: "ACTIVE", plan: "FREE", _count: { id: 20 } },
+          { status: "ACTIVE", plan: "PLUS", _count: { id: 8 } },
+          { status: "ACTIVE", plan: "PRO", _count: { id: 2 } },
+          { status: "TRIALING", plan: "FREE", _count: { id: 3 } },
+          { status: "TRIALING", plan: "PLUS", _count: { id: 2 } },
+          { status: "PAST_DUE", plan: "PLUS", _count: { id: 1 } },
+          { status: "PAST_DUE", plan: "PRO", _count: { id: 1 } },
+        ]);
+
         mockDb.user.findMany.mockResolvedValue([
           { id: "1", email: "user@test.com", name: "Test", createdAt: new Date() },
         ]);
@@ -222,9 +234,76 @@ describe("dashboard metrics", () => {
           expect(result.data.users.total).toBe(100);
           expect(result.data.users.activeThisMonth).toBe(50);
           expect(result.data.users.newThisMonth).toBe(10);
-          expect(result.data.subscriptions.active).toBe(30);
-          expect(result.data.subscriptions.byPlan.PLUS).toBe(25);
+          expect(result.data.subscriptions.active).toBe(30); // 20 + 8 + 2
+          expect(result.data.subscriptions.trialing).toBe(5); // 3 + 2
+          expect(result.data.subscriptions.pastDue).toBe(2); // 1 + 1
+          expect(result.data.subscriptions.byPlan.FREE).toBe(23); // 20 + 3
+          expect(result.data.subscriptions.byPlan.PLUS).toBe(10); // 8 + 2
+          expect(result.data.subscriptions.byPlan.PRO).toBe(2); // 2 (ACTIVE only, TRIALING is 0)
           expect(result.data.recentSignups).toHaveLength(1);
+        }
+
+        // Verify optimized query usage - should use $queryRaw and groupBy
+        expect(mockDb.$queryRaw).toHaveBeenCalledTimes(1);
+        expect(mockDb.subscription.groupBy).toHaveBeenCalledTimes(1);
+      });
+
+      it("handles subscriptions with no data correctly", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.$queryRaw.mockResolvedValue([
+          {
+            total: BigInt(50),
+            active_this_month: BigInt(20),
+            new_this_month: BigInt(5),
+          },
+        ]);
+
+        // No subscriptions
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.user.findMany.mockResolvedValue([]);
+
+        const result = await getAdminDashboardMetrics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.subscriptions.active).toBe(0);
+          expect(result.data.subscriptions.trialing).toBe(0);
+          expect(result.data.subscriptions.pastDue).toBe(0);
+          expect(result.data.subscriptions.byPlan.FREE).toBe(0);
+          expect(result.data.subscriptions.byPlan.PLUS).toBe(0);
+          expect(result.data.subscriptions.byPlan.PRO).toBe(0);
+        }
+      });
+
+      it("correctly counts PRO plan subscriptions (bug fix)", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.$queryRaw.mockResolvedValue([
+          {
+            total: BigInt(30),
+            active_this_month: BigInt(15),
+            new_this_month: BigInt(3),
+          },
+        ]);
+
+        // Emphasis on PRO plan being counted correctly
+        mockDb.subscription.groupBy.mockResolvedValue([
+          { status: "ACTIVE", plan: "PRO", _count: { id: 15 } },
+          { status: "TRIALING", plan: "PRO", _count: { id: 5 } },
+        ]);
+
+        mockDb.user.findMany.mockResolvedValue([]);
+
+        const result = await getAdminDashboardMetrics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // PRO should be 20 (15 ACTIVE + 5 TRIALING), not PLUS
+          expect(result.data.subscriptions.byPlan.PRO).toBe(20);
+          expect(result.data.subscriptions.byPlan.PLUS).toBe(0);
         }
       });
     });
@@ -233,7 +312,7 @@ describe("dashboard metrics", () => {
       it("handles database errors gracefully", async () => {
         mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
         mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
-        mockDb.user.count.mockRejectedValue(new Error("DB Error"));
+        mockDb.$queryRaw.mockRejectedValue(new Error("DB Error"));
 
         const result = await getAdminDashboardMetrics();
 
@@ -246,17 +325,19 @@ describe("dashboard metrics", () => {
       it("uses cache key with correct TTL", async () => {
         mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
         mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
-        mockDb.user.count
-          .mockResolvedValueOnce(100)
-          .mockResolvedValueOnce(50)
-          .mockResolvedValueOnce(10);
-        mockDb.subscription.count
-          .mockResolvedValueOnce(30)
-          .mockResolvedValueOnce(5)
-          .mockResolvedValueOnce(2)
-          .mockResolvedValueOnce(50)
-          .mockResolvedValueOnce(25)
-          .mockResolvedValueOnce(5);
+
+        mockDb.$queryRaw.mockResolvedValue([
+          {
+            total: BigInt(100),
+            active_this_month: BigInt(50),
+            new_this_month: BigInt(10),
+          },
+        ]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([
+          { status: "ACTIVE", plan: "FREE", _count: { id: 20 } },
+        ]);
+
         mockDb.user.findMany.mockResolvedValue([]);
 
         await getAdminDashboardMetrics();

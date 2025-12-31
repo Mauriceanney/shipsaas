@@ -193,36 +193,63 @@ export async function getAdminDashboardMetrics() {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // Get user counts
-        const [totalUsers, activeThisMonth, newThisMonth] = await Promise.all([
-          db.user.count({ where: { deletedAt: null } }),
-          db.user.count({
-            where: {
-              deletedAt: null,
-              updatedAt: { gte: startOfMonth },
-            },
-          }),
-          db.user.count({
-            where: {
-              deletedAt: null,
-              createdAt: { gte: startOfMonth },
-            },
-          }),
-        ]);
+        // OPTIMIZED: Single query for all user metrics using PostgreSQL FILTER clause
+        const userMetrics = await db.$queryRaw<
+          Array<{
+            total: bigint;
+            active_this_month: bigint;
+            new_this_month: bigint;
+          }>
+        >`
+          SELECT
+            COUNT(*) FILTER (WHERE "deletedAt" IS NULL) as total,
+            COUNT(*) FILTER (WHERE "deletedAt" IS NULL AND "updatedAt" >= ${startOfMonth}) as active_this_month,
+            COUNT(*) FILTER (WHERE "deletedAt" IS NULL AND "createdAt" >= ${startOfMonth}) as new_this_month
+          FROM "User"
+        `;
 
-        // Get subscription counts
-        const [activeSubscriptions, trialingSubscriptions, pastDueSubscriptions] = await Promise.all([
-          db.subscription.count({ where: { status: "ACTIVE" } }),
-          db.subscription.count({ where: { status: "TRIALING" } }),
-          db.subscription.count({ where: { status: "PAST_DUE" } }),
-        ]);
+        const userStats = userMetrics[0];
+        const totalUsers = Number(userStats?.total ?? 0);
+        const activeThisMonth = Number(userStats?.active_this_month ?? 0);
+        const newThisMonth = Number(userStats?.new_this_month ?? 0);
 
-        // Get subscriptions by plan
-        const [freeCount, proCount, enterpriseCount] = await Promise.all([
-          db.subscription.count({ where: { plan: "FREE", status: { in: ["ACTIVE", "TRIALING"] } } }),
-          db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
-          db.subscription.count({ where: { plan: "PLUS", status: { in: ["ACTIVE", "TRIALING"] } } }),
-        ]);
+        // OPTIMIZED: Single groupBy query for all subscription metrics
+        const subscriptionStats = await db.subscription.groupBy({
+          by: ["status", "plan"],
+          _count: { id: true },
+        });
+
+        // Process subscription stats
+        let activeSubscriptions = 0;
+        let trialingSubscriptions = 0;
+        let pastDueSubscriptions = 0;
+        let freeCount = 0;
+        let plusCount = 0;
+        let proCount = 0;
+
+        for (const stat of subscriptionStats) {
+          const count = stat._count.id;
+
+          // Count by status
+          if (stat.status === "ACTIVE") {
+            activeSubscriptions += count;
+          } else if (stat.status === "TRIALING") {
+            trialingSubscriptions += count;
+          } else if (stat.status === "PAST_DUE") {
+            pastDueSubscriptions += count;
+          }
+
+          // Count by plan (only ACTIVE and TRIALING)
+          if (stat.status === "ACTIVE" || stat.status === "TRIALING") {
+            if (stat.plan === "FREE") {
+              freeCount += count;
+            } else if (stat.plan === "PLUS") {
+              plusCount += count;
+            } else if (stat.plan === "PRO") {
+              proCount += count;
+            }
+          }
+        }
 
         // Get recent signups (last 5)
         const recentSignups = await db.user.findMany({
@@ -249,8 +276,8 @@ export async function getAdminDashboardMetrics() {
             pastDue: pastDueSubscriptions,
             byPlan: {
               FREE: freeCount,
-              PLUS: proCount,
-              PRO: enterpriseCount,
+              PLUS: plusCount,
+              PRO: proCount,
             },
           },
           recentSignups,
