@@ -4,6 +4,7 @@ import { getDunningStatus } from "@/actions/billing/get-dunning-status";
 import { redirectToPortal } from "@/actions/stripe/create-portal";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { RetryPaymentButton } from "@/components/billing/retry-payment-button";
 
 /**
  * Server Component that displays a warning banner when payment fails
@@ -28,21 +29,24 @@ export async function DunningBanner() {
           {daysSinceFailed === 1 ? "day" : "days"} ago. Update your payment
           method to avoid service interruption.
         </span>
-        <form
-          action={async () => {
-            "use server";
-            await redirectToPortal();
-          }}
-        >
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className="whitespace-nowrap"
+        <div className="flex flex-wrap gap-2">
+          <RetryPaymentButton />
+          <form
+            action={async () => {
+              "use server";
+              await redirectToPortal();
+            }}
           >
-            Update Payment Method
-          </Button>
-        </form>
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap"
+            >
+              Update Payment Method
+            </Button>
+          </form>
+        </div>
       </AlertDescription>
     </Alert>
   );

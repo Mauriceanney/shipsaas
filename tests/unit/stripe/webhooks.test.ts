@@ -7,7 +7,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type Stripe from "stripe";
 
 // Hoist mocks for vitest
-const { mockDbSubscription, mockDbUser, mockDbDunningEmail, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockSendPaymentFailedEmail, mockSendInvoiceReceiptEmail, mockRevalidatePath } = vi.hoisted(() => ({
+const { mockDbSubscription, mockDbUser, mockDbDunningEmail, mockStripeSubscriptions, mockSendSubscriptionCancelledEmail, mockSendPaymentFailedEmail, mockSendInvoiceReceiptEmail, mockSendPaymentRecoveryEmail, mockRevalidatePath } = vi.hoisted(() => ({
   mockDbSubscription: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
@@ -27,6 +27,7 @@ const { mockDbSubscription, mockDbUser, mockDbDunningEmail, mockStripeSubscripti
   mockSendSubscriptionCancelledEmail: vi.fn(),
   mockSendPaymentFailedEmail: vi.fn(),
   mockSendInvoiceReceiptEmail: vi.fn(),
+  mockSendPaymentRecoveryEmail: vi.fn(),
   mockRevalidatePath: vi.fn(),
 }));
 
@@ -45,6 +46,7 @@ vi.mock("@/lib/email", () => ({
   sendSubscriptionCancelledEmail: mockSendSubscriptionCancelledEmail,
   sendPaymentFailedEmail: mockSendPaymentFailedEmail,
   sendInvoiceReceiptEmail: mockSendInvoiceReceiptEmail,
+  sendPaymentRecoveryEmail: mockSendPaymentRecoveryEmail,
 }));
 
 // Mock Stripe client
@@ -998,6 +1000,224 @@ describe("Stripe Webhooks", () => {
             name: undefined,
           })
         );
+      });
+    });
+
+    // Payment recovery email tests
+    describe("payment recovery email", () => {
+      it("sends recovery email when PAST_DUE subscription is reactivated", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          status: "PAST_DUE",
+          user: {
+            email: "user@example.com",
+          },
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockDbDunningEmail.create.mockResolvedValue({});
+        mockStripeSubscriptions.retrieve.mockResolvedValue({
+          id: "sub_stripe_123",
+          current_period_end: 1706745600, // Feb 1, 2024
+        });
+
+        const invoice = {
+          id: "in_test",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockDbSubscription.update).toHaveBeenCalledWith({
+          where: { id: "sub_db_123" },
+          data: { status: "ACTIVE" },
+        });
+
+        expect(mockSendPaymentRecoveryEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            name: "Test User",
+            planName: "PRO",
+            amountPaid: "USD 19.00",
+            nextBillingDate: expect.any(String),
+          })
+        );
+      });
+
+      it("includes formatted amount in recovery email", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          status: "PAST_DUE",
+          user: {
+            email: "user@example.com",
+          },
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockDbDunningEmail.create.mockResolvedValue({});
+        mockStripeSubscriptions.retrieve.mockResolvedValue({
+          id: "sub_stripe_123",
+          current_period_end: 1706745600,
+        });
+
+        const invoice = {
+          id: "in_test",
+          subscription: "sub_stripe_123",
+          amount_paid: 2999, // $29.99
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendPaymentRecoveryEmail).toHaveBeenCalledWith(
+          "user@example.com",
+          expect.objectContaining({
+            amountPaid: "USD 29.99",
+          })
+        );
+      });
+
+      it("creates PAYMENT_RECOVERED dunning email record", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          status: "PAST_DUE",
+          user: {
+            email: "user@example.com",
+          },
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockStripeSubscriptions.retrieve.mockResolvedValue({
+          id: "sub_stripe_123",
+          current_period_end: 1706745600,
+        });
+
+        const invoice = {
+          id: "in_test",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockDbDunningEmail.create).toHaveBeenCalledWith({
+          data: {
+            subscriptionId: "sub_db_123",
+            emailType: "PAYMENT_RECOVERED",
+            recipientEmail: "user@example.com",
+            emailStatus: "SENT",
+          },
+        });
+      });
+
+      it("does NOT send recovery email for normal payments (not PAST_DUE)", async () => {
+        mockDbSubscription.findFirst
+          .mockResolvedValueOnce(null) // PAST_DUE lookup returns null
+          .mockResolvedValueOnce({
+            id: "sub_db_123",
+            userId: "user_123",
+            plan: "PRO",
+            status: "ACTIVE", // Normal active subscription
+          });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+
+        const invoice = {
+          id: "in_test",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendPaymentRecoveryEmail).not.toHaveBeenCalled();
+      });
+
+      it("handles recovery email sending failure gracefully", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          status: "PAST_DUE",
+          user: {
+            email: "user@example.com",
+          },
+        });
+        mockDbUser.findUnique.mockResolvedValue({
+          email: "user@example.com",
+          name: "Test User",
+        });
+        mockDbDunningEmail.create.mockResolvedValue({});
+        mockStripeSubscriptions.retrieve.mockResolvedValue({
+          id: "sub_stripe_123",
+          current_period_end: 1706745600,
+        });
+        mockSendPaymentRecoveryEmail.mockRejectedValue(new Error("Email service error"));
+
+        const invoice = {
+          id: "in_test",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        // Should not throw - graceful degradation
+        await expect(handleInvoicePaid(invoice)).resolves.not.toThrow();
+
+        // Subscription should still be updated to ACTIVE
+        expect(mockDbSubscription.update).toHaveBeenCalledWith({
+          where: { id: "sub_db_123" },
+          data: { status: "ACTIVE" },
+        });
+      });
+
+      it("skips recovery email when user not found", async () => {
+        mockDbSubscription.findFirst.mockResolvedValue({
+          id: "sub_db_123",
+          userId: "user_123",
+          plan: "PRO",
+          status: "PAST_DUE",
+          user: {
+            email: "user@example.com",
+          },
+        });
+        mockDbUser.findUnique.mockResolvedValue(null);
+        mockDbDunningEmail.create.mockResolvedValue({});
+
+        const invoice = {
+          id: "in_test",
+          subscription: "sub_stripe_123",
+          amount_paid: 1900,
+          currency: "usd",
+          created: 1704067200,
+        } as unknown as Stripe.Invoice;
+
+        await handleInvoicePaid(invoice);
+
+        expect(mockSendPaymentRecoveryEmail).not.toHaveBeenCalled();
       });
     });
   });

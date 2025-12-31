@@ -16,6 +16,8 @@ import {
   renderInvoiceReceiptEmail,
   renderDunningReminderEmail,
   renderDunningFinalWarningEmail,
+  renderPaymentRecoveryEmail,
+  renderSubscriptionSuspendedEmail,
 } from "./templates";
 
 import type { SendEmailResult } from "./types";
@@ -403,6 +405,77 @@ export async function sendDunningFinalWarningEmail(
     from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
     to: email,
     subject: `URGENT: Update Payment to Avoid Service Suspension - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send payment recovery email
+ * @param to - Recipient email address
+ * @param data - Payment recovery details
+ */
+export async function sendPaymentRecoveryEmail(
+  to: string,
+  data: {
+    name?: string;
+    planName: string;
+    amountPaid: string;
+    nextBillingDate: string;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const { html, text } = await renderPaymentRecoveryEmail({
+    name: data.name,
+    planName: data.planName,
+    amountPaid: data.amountPaid,
+    nextBillingDate: data.nextBillingDate,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to,
+    subject: `Payment Successful - Your Subscription is Active - ${config.appName}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send subscription suspended email (Day 10)
+ * @param to - Recipient email address
+ * @param data - Subscription suspended details
+ */
+export async function sendSubscriptionSuspendedEmail(
+  to: string,
+  data: {
+    name?: string;
+    planName: string;
+    daysOverdue: number;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const reactivateUrl = `${config.appUrl}/settings/billing`;
+
+  const { html, text } = await renderSubscriptionSuspendedEmail({
+    name: data.name,
+    planName: data.planName,
+    daysOverdue: data.daysOverdue,
+    reactivateUrl,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to,
+    subject: `Subscription Suspended - ${config.appName}`,
     html,
     text,
   });
