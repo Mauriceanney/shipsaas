@@ -10,8 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountStatusForm } from "./account-status-form";
 import { RoleChangeForm } from "./role-change-form";
 
+import type { Metadata } from "next";
+
 interface UserDetailPageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: UserDetailPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const user = await getUserById(id);
+
+  return {
+    title: user ? `User: ${user.email}` : "User Not Found",
+    description: "Manage user details and permissions",
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function UserDetailPage({ params }: UserDetailPageProps) {

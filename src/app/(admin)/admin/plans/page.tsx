@@ -9,6 +9,14 @@ import { db } from "@/lib/db";
 
 import { PlanConfigForm } from "./plan-config-form";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Plan Configuration",
+  description: "Configure subscription plans and pricing",
+  robots: { index: false, follow: false },
+};
+
 // Force dynamic rendering - this page requires database access
 export const dynamic = "force-dynamic";
 

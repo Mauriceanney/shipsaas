@@ -6,6 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "User Management",
+  description: "Manage users, roles, and subscriptions",
+  robots: { index: false, follow: false },
+};
+
 interface UsersPageProps {
   searchParams: Promise<{
     page?: string;

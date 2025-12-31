@@ -18,7 +18,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 
+import type { Metadata } from "next";
 import type { Feature, Testimonial, FAQItem } from "@/components/landing";
+
+export const metadata: Metadata = {
+  title: "ShipSaaS - Build Your SaaS Faster",
+  description:
+    "Production-ready SaaS boilerplate with authentication, payments, email, and more. Ship your SaaS in days, not months.",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 export default async function HomePage() {
   const session = await auth();
