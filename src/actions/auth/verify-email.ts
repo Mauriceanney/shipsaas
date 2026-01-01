@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 import {
   verifyEmailSchema,
   type VerifyEmailInput,
@@ -117,7 +118,10 @@ export async function verifyEmailAction(
     try {
       await sendWelcomeEmail(email, user.name ?? "there");
     } catch (emailError) {
-      console.error("Failed to send welcome email:", emailError);
+      logger.error(
+        { err: emailError, email, userId: user.id },
+        "Failed to send welcome email"
+      );
       // Don't throw - email verification was successful
     }
 
@@ -132,7 +136,10 @@ export async function verifyEmailAction(
       message: "Your email has been verified successfully",
     };
   } catch (error) {
-    console.error("Email verification error:", error);
+    logger.error(
+      { err: error, tokenProvided: !!input.token },
+      "Email verification error"
+    );
     return {
       success: false,
       error: "An error occurred while verifying your email",

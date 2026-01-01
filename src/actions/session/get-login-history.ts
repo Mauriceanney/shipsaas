@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-
+import { logger } from "@/lib/logger";
 export type LoginHistoryData = {
   id: string;
   ipAddress: string | null;
@@ -43,7 +43,10 @@ export async function getLoginHistory(): Promise<Result> {
 
     return { success: true, data: history };
   } catch (error) {
-    console.error("[getLoginHistory]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "Failed to fetch login history"
+    );
     return { success: false, error: "Failed to fetch login history" };
   }
 }

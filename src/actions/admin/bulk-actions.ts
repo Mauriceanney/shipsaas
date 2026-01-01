@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-
 /**
  * Admin Bulk Actions
  * Server actions for performing operations on multiple users at once
@@ -11,6 +10,7 @@ import { createAuditLog } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendAdminMessage } from "@/lib/email";
+import { logger } from "@/lib/logger";
 import {
   bulkChangeRoleSchema,
   bulkSendEmailSchema,
@@ -115,7 +115,10 @@ export async function bulkDisableUsers(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("[bulkDisableUsers]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "bulkDisableUsers error"
+    );
     return { success: false, error: "Failed to disable users" };
   }
 }
@@ -211,7 +214,10 @@ export async function bulkEnableUsers(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("[bulkEnableUsers]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "bulkEnableUsers error"
+    );
     return { success: false, error: "Failed to enable users" };
   }
 }
@@ -306,7 +312,10 @@ export async function bulkChangeUserRole(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("[bulkChangeUserRole]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "bulkChangeUserRole error"
+    );
     return { success: false, error: "Failed to change user roles" };
   }
 }
@@ -401,7 +410,10 @@ export async function bulkSendEmail(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("[bulkSendEmail]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "bulkSendEmail error"
+    );
     return { success: false, error: "Failed to send emails" };
   }
 }

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-
+import { logger } from "@/lib/logger";
 const updateNotificationPreferencesSchema = z.object({
   emailMarketingOptIn: z.boolean().optional(),
   emailProductUpdates: z.boolean().optional(),
@@ -37,7 +37,10 @@ export async function updateNotificationPreferences(input: UpdateNotificationPre
 
     return { success: true } as const;
   } catch (error) {
-    console.error("[updateNotificationPreferences]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "updateNotificationPreferences error"
+    );
     return { success: false, error: "Failed to update preferences" } as const;
   }
 }

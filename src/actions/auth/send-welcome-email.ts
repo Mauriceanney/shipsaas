@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/email";
-
+import { logger } from "@/lib/logger";
 /**
  * Check and send welcome email for OAuth users on first dashboard visit
  * This runs in Node.js runtime (not Edge), so nodemailer works
@@ -39,9 +39,15 @@ export async function checkAndSendWelcomeEmail(): Promise<void> {
       data: { welcomeEmailSent: true },
     });
 
-    console.log(`Welcome email sent to OAuth user: ${user.email}`);
+    logger.info(
+      { userId: user?.id || session?.user?.id },
+      "Welcome email sent to OAuth user: user.email"
+    );
   } catch (error) {
-    console.error("Failed to send welcome email:", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "Failed to send welcome email"
+    );
     // Don't throw - this is a non-critical operation
   }
 }

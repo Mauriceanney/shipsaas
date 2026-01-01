@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendPasswordChangedEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 import {
   resetPasswordSchema,
   type ResetPasswordInput,
@@ -124,7 +125,10 @@ export async function resetPasswordAction(
       } catch (sessionError) {
         // Log error but don't fail the password reset
         // Password security is more important than session cleanup
-        console.error("Failed to invalidate sessions:", sessionError);
+        logger.error(
+          { err: sessionError, userId: user.id },
+          "Failed to invalidate sessions during password reset"
+        );
       }
     }
 
@@ -132,7 +136,10 @@ export async function resetPasswordAction(
     try {
       await sendPasswordChangedEmail(email, user?.name ?? undefined);
     } catch (emailError) {
-      console.error("Failed to send password changed email:", emailError);
+      logger.error(
+        { err: emailError, email, userId: user?.id },
+        "Failed to send password changed email"
+      );
       // Don't throw - password was changed successfully
     }
 
@@ -149,7 +156,10 @@ export async function resetPasswordAction(
       message: "Your password has been reset successfully",
     };
   } catch (error) {
-    console.error("Reset password error:", error);
+    logger.error(
+      { err: error, tokenProvided: !!input.token },
+      "Reset password error"
+    );
     return {
       success: false,
       error: "An error occurred while resetting your password",

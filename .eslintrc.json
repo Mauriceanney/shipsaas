@@ -58,6 +58,12 @@
       "rules": {
         "no-console": "off"
       }
+    },
+    {
+      "files": ["src/actions/**/*.ts"],
+      "rules": {
+        "no-console": "error"
+      }
     }
   ]
 }

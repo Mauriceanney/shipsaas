@@ -2,11 +2,11 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { redirectTo } from "@/lib/navigation";
 import { PORTAL_RETURN_URL, stripe } from "@/lib/stripe";
 
 import type { Result } from "@/types";
-
 export interface CreatePortalInput {
   returnUrl?: string;
 }
@@ -43,7 +43,10 @@ export async function createPortalAction(
 
     return { success: true, data: { url: portalSession.url } };
   } catch (error) {
-    console.error("Create portal error:", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "Failed to create Stripe portal session"
+    );
     return { success: false, error: "Failed to create portal session" };
   }
 }

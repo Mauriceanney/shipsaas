@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-
+import { logger } from "@/lib/logger";
 /**
  * Dismiss onboarding without completing all steps
  */
@@ -28,7 +28,10 @@ export async function dismissOnboarding() {
 
     return { success: true } as const;
   } catch (error) {
-    console.error("[dismissOnboarding]", error);
+    logger.error(
+      { err: error, userId: session.user.id },
+      "Failed to dismiss onboarding"
+    );
     return { success: false, error: "Failed to dismiss onboarding" } as const;
   }
 }
@@ -55,7 +58,10 @@ export async function completeOnboarding() {
 
     return { success: true } as const;
   } catch (error) {
-    console.error("[completeOnboarding]", error);
+    logger.error(
+      { err: error, userId: session.user.id },
+      "Failed to complete onboarding"
+    );
     return { success: false, error: "Failed to complete onboarding" } as const;
   }
 }
@@ -106,7 +112,10 @@ export async function getOnboardingStatus() {
       },
     } as const;
   } catch (error) {
-    console.error("[getOnboardingStatus]", error);
+    logger.error(
+      { err: error, userId: session.user.id },
+      "Failed to get onboarding status"
+    );
     return { success: false, error: "Failed to get onboarding status" } as const;
   }
 }

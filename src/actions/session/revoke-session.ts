@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { revokeSessionSchema } from "@/lib/validations/session";
-
 type Result = { success: true } | { success: false; error: string };
 
 export async function revokeSession(input: unknown): Promise<Result> {
@@ -49,7 +49,10 @@ export async function revokeSession(input: unknown): Promise<Result> {
 
     return { success: true };
   } catch (error) {
-    console.error("[revokeSession]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "Failed to revoke session"
+    );
     return { success: false, error: "Failed to revoke session" };
   }
 }

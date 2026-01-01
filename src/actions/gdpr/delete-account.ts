@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { stripe } from "@/lib/stripe";
 
 /**
@@ -99,13 +100,17 @@ export async function requestAccountDeletion(
         },
       });
 
-      console.log(
-        `[deleteAccount] Cancelled Stripe subscription ${subscription.stripeSubscriptionId} for user ${userId}`
+      logger.info(
+        { userId, stripeSubscriptionId: subscription.stripeSubscriptionId },
+        "Cancelled Stripe subscription for account deletion"
       );
     }
   } catch (stripeError) {
     // Log error but don't fail the deletion request
-    console.error("[deleteAccount] Failed to cancel Stripe subscription:", stripeError);
+    logger.error(
+      { err: stripeError, userId },
+      "Failed to cancel Stripe subscription during account deletion"
+    );
   }
 
   // TODO: Send confirmation email

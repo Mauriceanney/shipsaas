@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-
+import { logger } from "@/lib/logger";
 type Result =
   | { success: true; data: { revokedCount: number } }
   | { success: false; error: string };
@@ -44,7 +44,10 @@ export async function revokeAllOtherSessions(): Promise<Result> {
 
     return { success: true, data: { revokedCount: result.count } };
   } catch (error) {
-    console.error("[revokeAllOtherSessions]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "Failed to revoke other sessions"
+    );
     return { success: false, error: "Failed to revoke sessions" };
   }
 }

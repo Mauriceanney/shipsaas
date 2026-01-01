@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 
 import { signIn } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import {
   rateLimiters,
   getClientIpFromHeaders,
@@ -150,7 +151,10 @@ export async function verifyTwoFactorAction(
 
     return { success: true };
   } catch (error) {
-    console.error("2FA verification error:", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "2FA verification error"
+    );
     return { success: false, error: "Verification failed" };
   }
 }

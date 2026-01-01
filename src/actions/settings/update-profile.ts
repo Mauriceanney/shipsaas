@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { updateProfileSchema } from "@/lib/validations/profile";
 
 import type { UpdateProfileInput } from "@/lib/validations/profile";
-
 export async function updateProfile(input: UpdateProfileInput) {
   // 1. Authentication
   const session = await auth();
@@ -75,7 +75,10 @@ export async function updateProfile(input: UpdateProfileInput) {
 
     return { success: true, data: updatedUser } as const;
   } catch (error) {
-    console.error("[updateProfile]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "updateProfile error"
+    );
     return { success: false, error: "Failed to update profile" } as const;
   }
 }

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { verifyTOTP, generateBackupCodes, formatBackupCodes } from "@/lib/two-factor";
 import {
   setupTwoFactorSchema,
@@ -96,7 +97,10 @@ export async function enableTwoFactorAction(
       backupCodes: formatBackupCodes(plainCodes),
     };
   } catch (error) {
-    console.error("2FA enable error:", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "2FA enable error"
+    );
     return { success: false, error: "Failed to enable two-factor authentication" };
   }
 }

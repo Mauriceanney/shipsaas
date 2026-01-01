@@ -7,6 +7,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { getUserUsage } from "@/lib/usage";
 
 import type { Plan } from "@prisma/client";
@@ -48,7 +49,10 @@ export async function getCurrentUsage() {
       },
     } as const;
   } catch (error) {
-    console.error("[getCurrentUsage]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "getCurrentUsage error"
+    );
     return { success: false, error: "Failed to get usage data" } as const;
   }
 }

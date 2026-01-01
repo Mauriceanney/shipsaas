@@ -6,8 +6,8 @@ import { createAuditLog } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendAdminMessage } from "@/lib/email";
+import { logger } from "@/lib/logger";
 import { sendEmailToUserSchema } from "@/lib/validations/admin-email";
-
 /**
  * Send an email to a specific user (admin only)
  */
@@ -91,7 +91,10 @@ export async function sendEmailToUser(input: unknown) {
 
     return { success: true } as const;
   } catch (error) {
-    console.error("[sendEmailToUser]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "sendEmailToUser error"
+    );
     return { success: false, error: "Failed to send email" } as const;
   }
 }
