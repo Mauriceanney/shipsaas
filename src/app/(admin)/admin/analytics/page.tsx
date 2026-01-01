@@ -5,6 +5,7 @@ import {
   SignupTrendChart,
   SubscriptionBreakdownChart,
 } from "@/components/admin/lazy-charts";
+import { LtvMetrics } from "@/components/admin/ltv-metrics";
 import { RevenueOverview } from "@/components/admin/revenue-overview";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -49,6 +50,13 @@ export default async function AnalyticsPage() {
         mrr={analytics.revenue.mrr}
         arr={analytics.revenue.arr}
         revenueByPlan={analytics.revenue.byPlan}
+      />
+
+      <LtvMetrics
+        ltv={analytics.ltv.value}
+        arpu={analytics.ltv.arpu}
+        avgLifetimeMonths={analytics.ltv.avgLifetimeMonths}
+        payingCustomers={analytics.ltv.payingCustomers}
       />
 
       <div className="grid gap-4 md:grid-cols-2">

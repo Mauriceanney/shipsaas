@@ -40,6 +40,13 @@ export type AnalyticsData = {
     pastDue: number;
     canceled: number;
   };
+  // Advanced revenue metrics
+  ltv: {
+    value: number;           // Lifetime Value in dollars
+    arpu: number;            // Average Revenue Per User (monthly)
+    avgLifetimeMonths: number; // Average customer lifetime in months
+    payingCustomers: number; // Number of paying customers
+  };
 };
 
 /**
@@ -135,6 +142,18 @@ export async function getAdminAnalytics() {
           ? (canceledCount / totalAtMonthStart) * 100
           : 0;
 
+        // Calculate LTV metrics
+        const payingCustomers = activeCount + trialingCount;
+        const arpu = payingCustomers > 0 ? mrr / payingCustomers : 0;
+        const monthlyChurnRate = churnRate / 100; // Convert to decimal
+
+        // LTV = ARPU / Monthly Churn Rate
+        // If churn is 0, use a conservative estimate (12 months lifetime)
+        const avgLifetimeMonths = monthlyChurnRate > 0
+          ? 1 / monthlyChurnRate
+          : 12; // Default to 12 months if no churn
+        const ltv = arpu * avgLifetimeMonths;
+
         // Get signup trends (last 12 months)
         const signupTrends = await db.$queryRaw<
           Array<{ month: string; count: bigint }>
@@ -173,6 +192,12 @@ export async function getAdminAnalytics() {
             trialing: trialingCount,
             pastDue: pastDueCount,
             canceled: canceledCount,
+          },
+          ltv: {
+            value: ltv,
+            arpu,
+            avgLifetimeMonths,
+            payingCustomers,
           },
         };
 
