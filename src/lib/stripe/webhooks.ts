@@ -733,6 +733,10 @@ export async function processWebhookEvent(
         await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
         break;
 
+      case "charge.refunded":
+        await handleChargeRefunded(event.data.object as Stripe.Charge);
+        break;
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
@@ -750,5 +754,63 @@ export async function processWebhookEvent(
       eventType: event.type,
       error: error instanceof Error ? error.message : "Unknown error",
     };
+  }
+}
+
+// ============================================
+// REFUND HANDLERS
+// ============================================
+
+/**
+ * Handle charge.refunded event
+ * Logs refund information for audit trail
+ */
+export async function handleChargeRefunded(
+  charge: Stripe.Charge
+): Promise<void> {
+  try {
+    const customerId = typeof charge.customer === "string"
+      ? charge.customer
+      : charge.customer?.id;
+
+    // Try to find subscription from metadata first
+    const subscriptionId = charge.metadata?.["subscriptionId"];
+    
+    let subscription = null;
+    
+    if (subscriptionId) {
+      subscription = await db.subscription.findFirst({
+        where: { id: subscriptionId },
+      });
+    }
+    
+    // Fallback: lookup by customer ID
+    if (!subscription && customerId) {
+      subscription = await db.subscription.findFirst({
+        where: { stripeCustomerId: customerId },
+      });
+    }
+
+    if (!subscription) {
+      console.log("[handleChargeRefunded] No subscription found for charge:", charge.id);
+      return;
+    }
+
+    const refundAmount = charge.amount_refunded ?? 0;
+    const currency = charge.currency?.toUpperCase() ?? "USD";
+
+    console.log(`[handleChargeRefunded] Refund processed for subscription ${subscription.id}:`, {
+      chargeId: charge.id,
+      amount: refundAmount,
+      currency,
+      userId: subscription.userId,
+    });
+
+    // Revalidate admin pages
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${subscription.userId}`);
+  } catch (error) {
+    console.error("[handleChargeRefunded] Error:", error);
+    // Don't throw - webhook should not fail
   }
 }

@@ -509,3 +509,40 @@ export async function sendAdminMessage(
     text,
   });
 }
+
+/**
+ * Send refund confirmation email
+ * @param to - Recipient email address
+ * @param data - Refund confirmation details
+ */
+export async function sendRefundConfirmationEmail(
+  to: string,
+  data: {
+    name?: string;
+    planName: string;
+    refundAmount: string;
+    reason: string;
+  }
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  const provider = getEmailProvider();
+
+  const { renderRefundConfirmationEmail } = await import("./templates");
+
+  const { html, text } = await renderRefundConfirmationEmail({
+    name: data.name,
+    planName: data.planName,
+    refundAmount: data.refundAmount,
+    reason: data.reason,
+    appName: config.appName,
+    appUrl: config.appUrl,
+  });
+
+  return provider.send({
+    from: `"${sanitizeFromName(config.appName)}" <${config.from}>`,
+    to,
+    subject: `Refund Processed - ${config.appName}`,
+    html,
+    text,
+  });
+}
