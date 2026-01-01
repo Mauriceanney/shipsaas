@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Info } from "lucide-react";
 import { toast } from "sonner";
 
 import { createApiKey } from "@/actions/api-keys";
@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -35,11 +36,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CharacterCount } from "@/components/ui/character-count";
 import {
   createApiKeySchema,
   type CreateApiKeyInput,
 } from "@/lib/validations/api-key";
+
+type ScopeOption = {
+  value: "read" | "write" | "admin";
+  label: string;
+  description: string;
+};
+
+const SCOPE_OPTIONS: ScopeOption[] = [
+  {
+    value: "read",
+    label: "Read",
+    description: "Access to read data (GET requests)",
+  },
+  {
+    value: "write",
+    label: "Write",
+    description: "Access to modify data (POST, PUT, DELETE)",
+  },
+  {
+    value: "admin",
+    label: "Admin",
+    description: "Full access including admin operations",
+  },
+];
 
 export function ApiKeyCreateForm() {
   const router = useRouter();
@@ -60,11 +91,13 @@ export function ApiKeyCreateForm() {
     mode: "onBlur",
     defaultValues: {
       environment: "live",
+      scopes: ["read"],
     },
   });
 
   const name = watch("name");
   const environment = watch("environment");
+  const scopes = watch("scopes");
 
   const onSubmit = async (data: CreateApiKeyInput) => {
     const result = await createApiKey(data);
@@ -92,6 +125,14 @@ export function ApiKeyCreateForm() {
     setShowKeyDialog(false);
     setGeneratedKey("");
     setCopied(false);
+  }
+
+  function toggleScope(scope: "read" | "write" | "admin") {
+    const currentScopes = scopes || [];
+    const newScopes = currentScopes.includes(scope)
+      ? currentScopes.filter((s) => s !== scope)
+      : [...currentScopes, scope];
+    setValue("scopes", newScopes, { shouldValidate: true });
   }
 
   return (
@@ -157,6 +198,58 @@ export function ApiKeyCreateForm() {
               <p className="text-sm text-muted-foreground">
                 Choose the environment for this API key
               </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Label>Permissions</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground" aria-label="Permission information" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm">
+                        Select the permissions this API key will have. You can select multiple permissions.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              <div className="space-y-3 rounded-lg border p-4">
+                {SCOPE_OPTIONS.map((scope) => (
+                  <div key={scope.value} className="flex items-start space-x-3">
+                    <Checkbox
+                      id={`scope-${scope.value}`}
+                      checked={scopes?.includes(scope.value) || false}
+                      onCheckedChange={() => toggleScope(scope.value)}
+                      disabled={isSubmitting}
+                      aria-describedby={`scope-${scope.value}-description`}
+                    />
+                    <div className="grid gap-1 leading-none">
+                      <label
+                        htmlFor={`scope-${scope.value}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {scope.label}
+                      </label>
+                      <p
+                        id={`scope-${scope.value}-description`}
+                        className="text-sm text-muted-foreground"
+                      >
+                        {scope.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {errors.scopes && (
+                <p className="text-sm text-destructive" role="alert">
+                  {errors.scopes.message}
+                </p>
+              )}
             </div>
           </CardContent>
           <CardFooter>

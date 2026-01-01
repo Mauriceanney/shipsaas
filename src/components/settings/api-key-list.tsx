@@ -41,6 +41,7 @@ interface ApiKey {
   name: string;
   keyPrefix: string;
   environment: string; // "live" | "test" but comes from DB as string
+  scopes: string[]; // ["read", "write", "admin"]
   createdAt: Date;
   lastUsedAt: Date | null;
   usageCount: number;
@@ -50,6 +51,12 @@ interface ApiKey {
 interface ApiKeyListProps {
   apiKeys: ApiKey[];
 }
+
+const SCOPE_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  read: "secondary",
+  write: "default",
+  admin: "destructive",
+};
 
 export function ApiKeyList({ apiKeys }: ApiKeyListProps) {
   const router = useRouter();
@@ -108,6 +115,7 @@ export function ApiKeyList({ apiKeys }: ApiKeyListProps) {
                 <TableHead>Name</TableHead>
                 <TableHead>Key</TableHead>
                 <TableHead>Environment</TableHead>
+                <TableHead>Permissions</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Last Used</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -128,6 +136,19 @@ export function ApiKeyList({ apiKeys }: ApiKeyListProps) {
                     >
                       {apiKey.environment}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {apiKey.scopes.map((scope) => (
+                        <Badge
+                          key={scope}
+                          variant={SCOPE_COLORS[scope] || "outline"}
+                          className="text-xs"
+                        >
+                          {scope}
+                        </Badge>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDate(apiKey.createdAt)}

@@ -64,6 +64,7 @@ export async function createApiKey(input: unknown) {
         keyHash,
         keyPrefix,
         environment: parsed.data.environment,
+        scopes: parsed.data.scopes,
       },
     });
 
@@ -74,6 +75,7 @@ export async function createApiKey(input: unknown) {
         userId: session.user.id,
         keyId: apiKey.id,
         environment: parsed.data.environment,
+        scopes: parsed.data.scopes,
       },
       "API key created"
     );
@@ -81,6 +83,7 @@ export async function createApiKey(input: unknown) {
     // Track analytics event
     trackServerEvent(session.user.id, SETTINGS_EVENTS.API_KEY_CREATED, {
       environment: parsed.data.environment,
+      scopes: parsed.data.scopes,
     });
 
     // 7. Return key (only time it's shown) and metadata
@@ -93,6 +96,7 @@ export async function createApiKey(input: unknown) {
           name: apiKey.name,
           keyPrefix: apiKey.keyPrefix,
           environment: apiKey.environment,
+          scopes: apiKey.scopes,
           createdAt: apiKey.createdAt,
           lastUsedAt: apiKey.lastUsedAt,
         },

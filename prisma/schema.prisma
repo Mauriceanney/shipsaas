@@ -496,6 +496,8 @@ model ApiKey {
   keyHash     String @unique // bcrypt hash of full key
   keyPrefix   String // First 12 chars for display (e.g., "sk_live_abc1")
   environment String @default("live") // "live" or "test"
+  scopes      String[] @default(["read"]) // "read", "write", "admin"
+
 
   // Usage tracking
   lastUsedAt DateTime?

@@ -21,6 +21,7 @@ export async function listApiKeys() {
         name: true,
         keyPrefix: true,
         environment: true,
+        scopes: true,
         lastUsedAt: true,
         usageCount: true,
         createdAt: true,
