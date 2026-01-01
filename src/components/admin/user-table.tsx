@@ -1,19 +1,15 @@
 "use client";
 
+import type { ColumnDef, OnChangeFn, RowSelectionState } from "@tanstack/react-table";
 import { Users } from "lucide-react";
 import Link from "next/link";
+import { useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableColumnHeader } from "@/components/ui/data-table/data-table-column-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
@@ -49,38 +45,162 @@ export function UserTable({
   selectedUserIds,
   onSelectionChange,
 }: UserTableProps) {
-  // Filter out users that cannot be selected (current admin)
-  const selectableUsers = users.filter((user) => user.id !== currentAdminId);
+  const rowSelection: RowSelectionState = useMemo(() => {
+    const selection: RowSelectionState = {};
+    users.forEach((user, index) => {
+      if (selectedUserIds.has(user.id)) {
+        selection[index] = true;
+      }
+    });
+    return selection;
+  }, [users, selectedUserIds]);
 
-  const allSelectableSelected =
-    selectableUsers.length > 0 &&
-    selectableUsers.every((user) => selectedUserIds.has(user.id));
+  const handleRowSelectionChange: OnChangeFn<RowSelectionState> = (updaterOrValue) => {
+    const newSelection = typeof updaterOrValue === 'function'
+      ? updaterOrValue(rowSelection)
+      : updaterOrValue;
 
-  const someSelected =
-    selectableUsers.some((user) => selectedUserIds.has(user.id)) &&
-    !allSelectableSelected;
+    const newSelectedIds = new Set<string>();
+    Object.keys(newSelection).forEach((indexStr) => {
+      const index = parseInt(indexStr, 10);
+      if (newSelection[index] && users[index]) {
+        newSelectedIds.add(users[index].id);
+      }
+    });
+    onSelectionChange(newSelectedIds);
+  };
 
-  function handleSelectAll(checked: boolean) {
-    if (checked) {
-      const newSelection = new Set(selectedUserIds);
-      selectableUsers.forEach((user) => newSelection.add(user.id));
-      onSelectionChange(newSelection);
-    } else {
-      const newSelection = new Set(selectedUserIds);
-      selectableUsers.forEach((user) => newSelection.delete(user.id));
-      onSelectionChange(newSelection);
-    }
-  }
+  const columns: ColumnDef<UserForTable>[] = useMemo(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected() ||
+              (table.getIsSomePageRowsSelected() && "indeterminate")
+            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => {
+          const user = row.original;
+          const isCurrentAdmin = user.id === currentAdminId;
 
-  function handleSelectUser(userId: string, checked: boolean) {
-    const newSelection = new Set(selectedUserIds);
-    if (checked) {
-      newSelection.add(userId);
-    } else {
-      newSelection.delete(userId);
-    }
-    onSelectionChange(newSelection);
-  }
+          if (isCurrentAdmin) {
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Checkbox disabled aria-label="Cannot select yourself" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Cannot select yourself</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return (
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label={'Select ' + user.email}
+            />
+          );
+        },
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        accessorKey: "name",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Name" />
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium">{row.getValue("name") || "Unnamed"}</span>
+        ),
+      },
+      {
+        accessorKey: "email",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Email" />
+        ),
+      },
+      {
+        accessorKey: "role",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Role" />
+        ),
+        cell: ({ row }) => {
+          const role = row.getValue("role") as Role;
+          return (
+            <Badge variant={role === "ADMIN" ? "default" : "secondary"}>
+              {role}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const user = row.original;
+          return (
+            <Badge variant={user.disabled ? "destructive" : "outline"}>
+              {user.disabled ? "Disabled" : "Active"}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "plan",
+        header: "Plan",
+        cell: ({ row }) => {
+          const user = row.original;
+          return (
+            <Badge variant="outline">
+              {user.subscription?.plan || "Free"}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "createdAt",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Joined" />
+        ),
+        cell: ({ row }) => {
+          const date = row.getValue("createdAt") as Date;
+          return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
+        },
+      },
+      {
+        id: "actions",
+        header: () => <div className="text-right">Actions</div>,
+        cell: ({ row }) => {
+          const user = row.original;
+          return (
+            <div className="text-right">
+              <Link
+                href={`/admin/users/${user.id}` as never}
+                className="text-sm text-primary hover:underline"
+              >
+                View
+              </Link>
+            </div>
+          );
+        },
+      },
+    ],
+    [currentAdminId]
+  );
 
   if (users.length === 0) {
     return (
@@ -95,101 +215,15 @@ export function UserTable({
   return (
     <TooltipProvider>
       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={allSelectableSelected}
-                  ref={(el) => {
-                    if (el) {
-                      (el as unknown as { indeterminate: boolean }).indeterminate = someSelected;
-                    }
-                  }}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Select all users"
-                />
-              </TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => {
-              const isCurrentAdmin = user.id === currentAdminId;
-              const isSelected = selectedUserIds.has(user.id);
-
-              return (
-                <TableRow
-                  key={user.id}
-                  className={isSelected ? "bg-muted/50" : undefined}
-                >
-                  <TableCell>
-                    {isCurrentAdmin ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            <Checkbox disabled aria-label="Cannot select yourself" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Cannot select yourself</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) =>
-                          handleSelectUser(user.id, checked as boolean)
-                        }
-                        aria-label={`Select ${user.email}`}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {user.name || "Unnamed"}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.disabled ? "destructive" : "outline"}>
-                      {user.disabled ? "Disabled" : "Active"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {user.subscription?.plan || "Free"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.createdAt.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link
-                      href={`/admin/users/${user.id}`}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      View
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={users}
+          searchKey="email"
+          searchPlaceholder="Search users..."
+          rowSelection={rowSelection}
+          onRowSelectionChange={handleRowSelectionChange}
+          enableRowSelection={(row) => row.original.id !== currentAdminId}
+        />
       </div>
     </TooltipProvider>
   );
