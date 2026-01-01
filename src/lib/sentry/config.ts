@@ -57,12 +57,37 @@ function getSampleRates() {
 
 const sampleRates = getSampleRates();
 
+/**
+ * Get release identifier for tracking deployments
+ * Priority: NEXT_PUBLIC_APP_VERSION > VERCEL_GIT_COMMIT_SHA > "local"
+ */
+function getRelease(): string | undefined {
+  // Explicit version from environment (Docker, manual deploys)
+  if (process.env["NEXT_PUBLIC_APP_VERSION"]) {
+    return process.env["NEXT_PUBLIC_APP_VERSION"];
+  }
+
+  // Vercel automatic git SHA
+  if (process.env["VERCEL_GIT_COMMIT_SHA"]) {
+    return process.env["VERCEL_GIT_COMMIT_SHA"];
+  }
+
+  // Development/local - don't track releases
+  if (isDevelopment) {
+    return undefined;
+  }
+
+  return "unknown";
+}
+
 export const sentryConfig = {
   dsn: process.env["NEXT_PUBLIC_SENTRY_DSN"],
   environment:
     process.env["NEXT_PUBLIC_SENTRY_ENVIRONMENT"] || "development",
   // Enable in production OR when SENTRY_DEBUG=true for testing
   enabled: shouldEnable,
+  // Release tracking for deployment monitoring
+  release: getRelease(),
   // Performance monitoring sample rates (environment-based)
   tracesSampleRate: sampleRates.traces,
   profilesSampleRate: sampleRates.profiles,
