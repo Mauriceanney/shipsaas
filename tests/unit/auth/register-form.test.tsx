@@ -447,4 +447,161 @@ describe("RegisterForm", () => {
       expect(submitButton).toHaveFocus();
     });
   });
+
+  describe("Inline Validation", () => {
+    it("shows inline error for invalid email format on blur", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const emailInput = screen.getByTestId("email");
+      await user.type(emailInput, "invalid-email");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.getByText("Please enter a valid email address")).toBeInTheDocument();
+      });
+    });
+
+    it("shows inline error for password not meeting requirements", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const passwordInput = screen.getByTestId("password");
+      await user.type(passwordInput, "weak");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument();
+      });
+    });
+
+    it("shows inline error when passwords do not match", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const passwordInput = screen.getByTestId("password");
+      const confirmPasswordInput = screen.getByTestId("confirmPassword");
+
+      await user.type(passwordInput, "Password123!");
+      await user.type(confirmPasswordInput, "Password456!");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+      });
+    });
+
+    it("shows inline error for empty name on blur", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const nameInput = screen.getByTestId("name");
+      await user.click(nameInput);
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.getByText("Name is required")).toBeInTheDocument();
+      });
+    });
+
+    it("clears password mismatch error when passwords match", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const passwordInput = screen.getByTestId("password");
+      const confirmPasswordInput = screen.getByTestId("confirmPassword");
+
+      // Create mismatch
+      await user.type(passwordInput, "Password123!");
+      await user.type(confirmPasswordInput, "Wrong123!");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+      });
+
+      // Fix mismatch
+      await user.clear(confirmPasswordInput);
+      await user.type(confirmPasswordInput, "Password123!");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.queryByText("Passwords do not match")).not.toBeInTheDocument();
+      });
+    });
+
+    it("shows multiple field errors simultaneously", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const nameInput = screen.getByTestId("name");
+      const emailInput = screen.getByTestId("email");
+      const passwordInput = screen.getByTestId("password");
+
+      // Touch all fields without valid input
+      await user.click(nameInput);
+      await user.tab();
+      
+      await user.type(emailInput, "invalid");
+      await user.tab();
+      
+      await user.type(passwordInput, "weak");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.getByText("Name is required")).toBeInTheDocument();
+        expect(screen.getByText("Please enter a valid email address")).toBeInTheDocument();
+        expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument();
+      });
+    });
+
+    it("associates error messages with fields via aria-describedby", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      const emailInput = screen.getByTestId("email");
+      await user.type(emailInput, "invalid");
+      await user.tab();
+
+      await waitFor(() => {
+        const errorMessage = screen.getByText("Please enter a valid email address");
+        const errorId = errorMessage.id;
+        expect(emailInput).toHaveAttribute("aria-describedby", expect.stringContaining(errorId));
+      });
+    });
+
+    it("does not show validation errors before user interaction", () => {
+      render(<RegisterForm />);
+
+      expect(screen.queryByText("Name is required")).not.toBeInTheDocument();
+      expect(screen.queryByText("Please enter a valid email address")).not.toBeInTheDocument();
+    });
+
+    it("prevents form submission when there are validation errors", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<RegisterForm />);
+
+      // Accept TOS but enter invalid data
+      const tosCheckbox = screen.getByRole("checkbox", { name: /terms of service/i });
+      await user.click(tosCheckbox);
+
+      await user.type(screen.getByTestId("name"), "John");
+      await user.type(screen.getByTestId("email"), "invalid-email");
+      await user.type(screen.getByTestId("password"), "weak");
+      await user.type(screen.getByTestId("confirmPassword"), "weak");
+      
+      await user.click(screen.getByTestId("register-button"));
+
+      // Should not call the action
+      expect(mockRegisterAction).not.toHaveBeenCalled();
+    });
+  });
 });
