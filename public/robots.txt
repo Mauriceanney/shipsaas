@@ -1,0 +1,21 @@
+# robots.txt for ShipSaaS
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /admin/
+Disallow: /api/
+
+# Disallow authentication routes
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Disallow dashboard routes
+Disallow: /dashboard/
+
+# Sitemap location (update with your production URL)
+Sitemap: https://yourapp.com/sitemap.xml

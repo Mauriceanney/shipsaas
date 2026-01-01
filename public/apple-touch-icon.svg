@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="shipGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="url(#bgGradient)"/>
+
+  <!-- Ship Icon -->
+  <g transform="translate(90, 50)">
+    <path d="M0 0 L20 30 L-20 30 Z" fill="url(#shipGradient)"/>
+    <path d="M-30 30 L30 30 L20 60 L-20 60 Z" fill="#2563eb"/>
+    <rect x="-25" y="60" width="50" height="8" fill="#1e40af"/>
+  </g>
+
+  <!-- Text -->
+  <text x="90" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle">
+    ShipSaaS
+  </text>
+
+  <!-- Waves -->
+  <path d="M20 150 Q40 145 60 150 T100 150 T140 150 T160 150" stroke="#60a5fa" stroke-width="2" fill="none" opacity="0.6"/>
+  <path d="M20 158 Q40 153 60 158 T100 158 T140 158 T160 158" stroke="#3b82f6" stroke-width="2" fill="none" opacity="0.4"/>
+</svg>
