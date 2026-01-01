@@ -37,6 +37,27 @@
           "caseInsensitive": true
         }
       }
-    ]
-  }
+    ],
+    "no-console": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/app/**/error.tsx", "src/components/**/error.tsx"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/lib/env.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
 }
