@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { registerAction } from "@/actions/auth";
@@ -11,36 +13,33 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 
 import { SocialLoginButtons } from "./social-login-buttons";
 
 export function RegisterForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [tosAccepted, setTosAccepted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    mode: "onBlur",
+    defaultValues: {
+      tosAccepted: false,
+    },
+  });
 
-    if (!tosAccepted) {
-      toast.error("You must accept the Terms of Service to continue");
-      return;
-    }
+  const tosAccepted = watch("tosAccepted");
 
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
-
+  const onSubmit = (data: RegisterInput) => {
     startTransition(async () => {
-      const result = await registerAction({
-        name,
-        email,
-        password,
-        confirmPassword,
-        tosAccepted,
-      });
+      const result = await registerAction(data);
 
       if (result.success) {
         toast.success("Account created! Check your email to verify.", {
@@ -69,66 +68,112 @@ export function RegisterForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
           <Input
             id="name"
-            name="name"
             type="text"
             placeholder="John Doe"
-            required
             disabled={isPending}
             data-testid="name"
+            required
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? "name-error" : undefined}
+            {...register("name")}
           />
+          {errors.name && (
+            <p
+              id="name-error"
+              className="text-sm text-destructive mt-1"
+              role="alert"
+            >
+              {errors.name.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
-            name="email"
             type="email"
             placeholder="you@example.com"
-            required
             disabled={isPending}
             data-testid="email"
+            required
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            {...register("email")}
           />
+          {errors.email && (
+            <p
+              id="email-error"
+              className="text-sm text-destructive mt-1"
+              role="alert"
+            >
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
           <Input
             id="password"
-            name="password"
             type="password"
-            required
             disabled={isPending}
             data-testid="password"
+            required
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? "password-error" : undefined}
+            {...register("password")}
           />
-          <p className="text-xs text-muted-foreground">
-            Must be 8+ characters with uppercase, lowercase, number, and special
-            character.
-          </p>
+          {errors.password && (
+            <p
+              id="password-error"
+              className="text-sm text-destructive mt-1"
+              role="alert"
+            >
+              {errors.password.message}
+            </p>
+          )}
+          {!errors.password && (
+            <p className="text-xs text-muted-foreground">
+              Must be 8+ characters with uppercase, lowercase, number, and special
+              character.
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Confirm Password</Label>
           <Input
             id="confirmPassword"
-            name="confirmPassword"
             type="password"
-            required
             disabled={isPending}
             data-testid="confirmPassword"
+            required
+            aria-invalid={!!errors.confirmPassword}
+            aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+            {...register("confirmPassword")}
           />
+          {errors.confirmPassword && (
+            <p
+              id="confirmPassword-error"
+              className="text-sm text-destructive mt-1"
+              role="alert"
+            >
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
 
         <div className="flex items-start space-x-2">
           <Checkbox
             id="tos"
             checked={tosAccepted}
-            onCheckedChange={(checked) => setTosAccepted(checked === true)}
+            onCheckedChange={(checked) => setValue("tosAccepted", checked === true)}
             disabled={isPending}
             data-testid="tos-checkbox"
           />

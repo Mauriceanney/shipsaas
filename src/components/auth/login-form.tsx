@@ -1,8 +1,12 @@
+
+
 "use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition, useEffect } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { loginAction } from "@/actions/auth";
@@ -10,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
 import { SocialLoginButtons } from "./social-login-buttons";
 
@@ -24,7 +29,14 @@ export function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const errorParam = searchParams.get("error");
 
-  const [isPending, startTransition] = useTransition();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur",
+  });
 
   // Show toast for URL error params and clear from URL
   useEffect(() => {
@@ -36,29 +48,20 @@ export function LoginForm() {
     }
   }, [errorParam]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginInput) => {
+    const result = await loginAction(data);
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    startTransition(async () => {
-      const result = await loginAction({ email, password });
-
-      if (result.success) {
-        toast.success("Welcome back!");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        router.push(callbackUrl as any);
-        router.refresh();
-      } else if ("requires2FA" in result && result.requires2FA) {
-        // Redirect to 2FA verification page with userId
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        router.push(`/login/verify-2fa?userId=${result.userId}&callbackUrl=${encodeURIComponent(callbackUrl)}` as any);
-      } else if ("error" in result) {
-        toast.error(result.error);
-      }
-    });
+    if (result.success) {
+      toast.success("Welcome back!");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(callbackUrl as any);
+      router.refresh();
+    } else if ("requires2FA" in result && result.requires2FA) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(`/login/verify-2fa?userId=${result.userId}&callbackUrl=${encodeURIComponent(callbackUrl)}` as any);
+    } else if ("error" in result) {
+      toast.error(result.error);
+    }
   };
 
   return (
@@ -76,18 +79,29 @@ export function LoginForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
-            name="email"
             type="email"
             placeholder="you@example.com"
-            required
-            disabled={isPending}
+            disabled={isSubmitting}
             data-testid="email"
+            required
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            {...register("email")}
           />
+          {errors.email && (
+            <p
+              id="email-error"
+              className="text-sm text-destructive mt-1"
+              role="alert"
+            >
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -102,21 +116,32 @@ export function LoginForm() {
           </div>
           <Input
             id="password"
-            name="password"
             type="password"
-            required
-            disabled={isPending}
+            disabled={isSubmitting}
             data-testid="password"
+            required
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? "password-error" : undefined}
+            {...register("password")}
           />
+          {errors.password && (
+            <p
+              id="password-error"
+              className="text-sm text-destructive mt-1"
+              role="alert"
+            >
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         <Button
           type="submit"
           className="w-full"
-          disabled={isPending}
+          disabled={isSubmitting}
           data-testid="login-button"
         >
-          {isPending ? "Signing in..." : "Sign in"}
+          {isSubmitting ? "Signing in..." : "Sign in"}
         </Button>
       </form>
 

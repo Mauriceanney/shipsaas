@@ -298,4 +298,109 @@ describe("LoginForm", () => {
       expect(submitButton).toHaveFocus();
     });
   });
+
+  describe("Inline Validation", () => {
+    it("shows inline error for invalid email format on blur", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<LoginForm />);
+
+      const emailInput = screen.getByTestId("email");
+      await user.type(emailInput, "invalid-email");
+      await user.tab(); // Trigger blur
+
+      await waitFor(() => {
+        expect(screen.getByText("Please enter a valid email address")).toBeInTheDocument();
+      });
+    });
+
+    it("shows inline error for empty email on blur", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<LoginForm />);
+
+      const emailInput = screen.getByTestId("email");
+      await user.click(emailInput);
+      await user.tab(); // Blur without entering value
+
+      await waitFor(() => {
+        expect(screen.getByText("Please enter a valid email address")).toBeInTheDocument();
+      });
+    });
+
+    it("shows inline error for empty password on blur", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<LoginForm />);
+
+      const passwordInput = screen.getByTestId("password");
+      await user.click(passwordInput);
+      await user.tab(); // Blur without entering value
+
+      await waitFor(() => {
+        expect(screen.getByText("Password is required")).toBeInTheDocument();
+      });
+    });
+
+    it("clears inline error when field becomes valid", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<LoginForm />);
+
+      const emailInput = screen.getByTestId("email");
+      
+      // Enter invalid email
+      await user.type(emailInput, "invalid");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.getByText("Please enter a valid email address")).toBeInTheDocument();
+      });
+
+      // Fix the email
+      await user.clear(emailInput);
+      await user.type(emailInput, "valid@example.com");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(screen.queryByText("Please enter a valid email address")).not.toBeInTheDocument();
+      });
+    });
+
+    it("associates error message with field via aria-describedby", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<LoginForm />);
+
+      const emailInput = screen.getByTestId("email");
+      await user.type(emailInput, "invalid");
+      await user.tab();
+
+      await waitFor(() => {
+        const errorMessage = screen.getByText("Please enter a valid email address");
+        const errorId = errorMessage.id;
+        expect(emailInput).toHaveAttribute("aria-describedby", expect.stringContaining(errorId));
+      });
+    });
+
+    it("does not show validation errors before user interaction", () => {
+      render(<LoginForm />);
+
+      expect(screen.queryByText("Please enter a valid email address")).not.toBeInTheDocument();
+      expect(screen.queryByText("Password is required")).not.toBeInTheDocument();
+    });
+
+    it("prevents form submission when there are validation errors", async () => {
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      render(<LoginForm />);
+
+      const emailInput = screen.getByTestId("email");
+      await user.type(emailInput, "invalid-email");
+      await user.click(screen.getByTestId("login-button"));
+
+      // Should not call the action
+      expect(mockLoginAction).not.toHaveBeenCalled();
+    });
+  });
 });
