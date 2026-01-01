@@ -65,7 +65,7 @@ export function AdminSidebar() {
         <span className="text-lg font-semibold">Admin</span>
       </div>
 
-      <nav className="flex-1 space-y-1 p-4">
+      <nav aria-label="Admin navigation" className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -79,7 +79,7 @@ export function AdminSidebar() {
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
-              <item.icon className={ICON_SIZES.sm} />
+              <item.icon className={ICON_SIZES.sm} aria-hidden="true" />
               {item.title}
             </Link>
           );

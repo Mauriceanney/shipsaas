@@ -105,7 +105,7 @@ export function AppSidebar({ user, subscription }: AppSidebarProps) {
       </div>
 
       {/* Main navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav aria-label="Main navigation" className="flex-1 space-y-1 p-2">
         {mainNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -122,8 +122,9 @@ export function AppSidebar({ user, subscription }: AppSidebarProps) {
                 isCollapsed && "justify-center px-2"
               )}
               title={isCollapsed ? item.title : undefined}
+              aria-label={isCollapsed ? item.title : undefined}
             >
-              <Icon className="h-5 w-5 shrink-0" />
+              <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               {!isCollapsed && <span>{item.title}</span>}
             </Link>
           );

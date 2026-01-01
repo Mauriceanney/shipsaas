@@ -14,6 +14,12 @@ export default async function AdminLayout({
 
   return (
     <SessionValidationProvider>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
       <div className="flex h-screen flex-col md:flex-row overflow-hidden">
         {/* Mobile header */}
         <header className="flex h-14 items-center justify-between border-b bg-background px-4 md:hidden">
@@ -29,7 +35,7 @@ export default async function AdminLayout({
         </div>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
