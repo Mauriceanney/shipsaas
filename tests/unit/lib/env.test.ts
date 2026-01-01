@@ -125,25 +125,28 @@ describe("Environment Validation", () => {
     });
 
     it("should allow missing CRON_SECRET in development", async () => {
-      process.env["NODE_ENV"] = "development";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (process.env as any).NODE_ENV = "development";
       delete process.env["CRON_SECRET"];
-      
+
       const { env } = await import("@/lib/env");
 
       expect(env.CRON_SECRET).toBeUndefined();
     });
 
     it("should allow missing CRON_SECRET in test", async () => {
-      process.env["NODE_ENV"] = "test";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (process.env as any).NODE_ENV = "test";
       delete process.env["CRON_SECRET"];
-      
+
       const { env } = await import("@/lib/env");
 
       expect(env.CRON_SECRET).toBeUndefined();
     });
 
     it("should require CRON_SECRET in production", async () => {
-      process.env["NODE_ENV"] = "production";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (process.env as any).NODE_ENV = "production";
       delete process.env["CRON_SECRET"];
 
       await expect(async () => {
@@ -152,7 +155,8 @@ describe("Environment Validation", () => {
     });
 
     it("should require CRON_SECRET with minimum length in production", async () => {
-      process.env["NODE_ENV"] = "production";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (process.env as any).NODE_ENV = "production";
       process.env["CRON_SECRET"] = "too-short-for-production";
 
       await expect(async () => {

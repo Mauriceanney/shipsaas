@@ -146,7 +146,7 @@ describe("cursor-pagination", () => {
     });
 
     it("creates result for empty items", () => {
-      const result = createCursorResult([], 10, (u) => u.id);
+      const result = createCursorResult<{ id: string; name: string }>([], 10, (u) => u.id);
 
       expect(result.items).toHaveLength(0);
       expect(result.hasNextPage).toBe(false);
@@ -154,7 +154,7 @@ describe("cursor-pagination", () => {
     });
 
     it("creates result for single item", () => {
-      const result = createCursorResult([mockUsers[0]], 10, (u) => u.id);
+      const result = createCursorResult([mockUsers[0]!], 10, (u) => u.id);
 
       expect(result.items).toHaveLength(1);
       expect(result.hasNextPage).toBe(false);
