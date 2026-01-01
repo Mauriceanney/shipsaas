@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { verifyTOTP, verifyBackupCode } from "@/lib/two-factor";
 import {
   disableTwoFactorSchema,
@@ -98,7 +99,10 @@ export async function disableTwoFactorAction(
 
     return { success: true };
   } catch (error) {
-    console.error("2FA disable error:", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "2FA disable error"
+    );
     return { success: false, error: "Failed to disable two-factor authentication" };
   }
 }

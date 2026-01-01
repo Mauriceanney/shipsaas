@@ -16,6 +16,7 @@ import {
   getImpersonationSession,
   setImpersonationCookie,
 } from "@/lib/impersonation";
+import { logger } from "@/lib/logger";
 import { startImpersonationSchema } from "@/lib/validations/impersonation";
 
 import type { StartImpersonationInput } from "@/lib/validations/impersonation";
@@ -123,7 +124,10 @@ export async function startImpersonation(
       data: { redirectUrl: "/dashboard" },
     };
   } catch (error) {
-    console.error("[startImpersonation]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "startImpersonation error"
+    );
     return { success: false, error: "Failed to start impersonation" };
   }
 }
@@ -158,7 +162,10 @@ export async function endImpersonation(): Promise<ActionResult<{ redirectUrl: st
       data: { redirectUrl: "/admin/users" },
     };
   } catch (error) {
-    console.error("[endImpersonation]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "endImpersonation error"
+    );
     return { success: false, error: "Failed to end impersonation" };
   }
 }
@@ -209,7 +216,10 @@ export async function getImpersonationStatus(): Promise<
       },
     };
   } catch (error) {
-    console.error("[getImpersonationStatus]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "getImpersonationStatus error"
+    );
     return {
       success: true,
       data: {

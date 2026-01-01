@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-
+import { logger } from "@/lib/logger";
 export type UserSessionData = {
   id: string;
   ipAddress: string | null;
@@ -64,7 +64,10 @@ export async function getActiveSessions(): Promise<Result> {
 
     return { success: true, data: sessionsWithCurrent };
   } catch (error) {
-    console.error("[getActiveSessions]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "Failed to fetch active sessions"
+    );
     return { success: false, error: "Failed to fetch sessions" };
   }
 }

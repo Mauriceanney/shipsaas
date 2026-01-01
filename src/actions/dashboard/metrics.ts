@@ -7,6 +7,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { getCachedData, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 import { getUserUsage } from "@/lib/usage";
 
@@ -155,7 +156,10 @@ export async function getUserDashboardMetrics() {
 
     return { success: true, data: metrics } as const;
   } catch (error) {
-    console.error("[getUserDashboardMetrics]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "getUserDashboardMetrics error"
+    );
 
     // Check if it's a "User not found" error
     if (error instanceof Error && error.message === "User not found") {
@@ -298,7 +302,10 @@ export async function getAdminDashboardMetrics() {
 
     return { success: true, data: metrics } as const;
   } catch (error) {
-    console.error("[getAdminDashboardMetrics]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "getAdminDashboardMetrics error"
+    );
     return { success: false, error: "Failed to get admin metrics" } as const;
   }
 }

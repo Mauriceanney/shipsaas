@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { verifyTOTP, generateBackupCodes, formatBackupCodes } from "@/lib/two-factor";
 import {
   setupTwoFactorSchema,
@@ -85,7 +86,10 @@ export async function regenerateBackupCodesAction(
       backupCodes: formatBackupCodes(plainCodes),
     };
   } catch (error) {
-    console.error("Backup code regeneration error:", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "Backup code regeneration error"
+    );
     return { success: false, error: "Failed to regenerate backup codes" };
   }
 }

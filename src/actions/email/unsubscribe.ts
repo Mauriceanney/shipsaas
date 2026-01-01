@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
-
+import { logger } from "@/lib/logger";
 export interface EmailPreferences {
   emailMarketingOptIn: boolean;
   emailProductUpdates: boolean;
@@ -51,7 +51,10 @@ export async function getEmailPreferences(token: string): Promise<UnsubscribeRes
       },
     };
   } catch (error) {
-    console.error("[getEmailPreferences] Error:", error);
+    logger.error(
+      { err: error, tokenProvided: !!token },
+      "Failed to get email preferences"
+    );
     return { success: false, error: "Failed to get preferences" };
   }
 }
@@ -106,7 +109,10 @@ export async function updateEmailPreferences(
       },
     };
   } catch (error) {
-    console.error("[updateEmailPreferences] Error:", error);
+    logger.error(
+      { err: error, userId: user?.id },
+      "Failed to update email preferences"
+    );
     return { success: false, error: "Failed to update preferences" };
   }
 }
@@ -159,7 +165,10 @@ export async function unsubscribeFromAll(token: string): Promise<UnsubscribeResu
       },
     };
   } catch (error) {
-    console.error("[unsubscribeFromAll] Error:", error);
+    logger.error(
+      { err: error, userId: user?.id },
+      "Failed to unsubscribe from all emails"
+    );
     return { success: false, error: "Failed to unsubscribe" };
   }
 }

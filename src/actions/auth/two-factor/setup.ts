@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import {
   generateTOTPSecret,
   generateTOTPUri,
@@ -68,7 +69,10 @@ export async function setupTwoFactorAction(): Promise<SetupResult> {
       manualEntry: secret,
     };
   } catch (error) {
-    console.error("2FA setup error:", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "2FA setup error"
+    );
     return { success: false, error: "Failed to setup two-factor authentication" };
   }
 }

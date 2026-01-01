@@ -7,6 +7,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { getCachedData, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 import { STRIPE_PRICE_IDS, PLAN_PRICING } from "@/lib/stripe/config";
 
@@ -216,7 +217,10 @@ export async function getAdminAnalytics() {
 
     return { success: true, data: analytics } as const;
   } catch (error) {
-    console.error("[getAdminAnalytics]", error);
+    logger.error(
+      { err: error, userId: session?.user?.id },
+      "getAdminAnalytics error"
+    );
     return { success: false, error: "Failed to get analytics" } as const;
   }
 }

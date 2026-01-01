@@ -54,20 +54,26 @@ export async function createCheckoutAction(
     const trialDays = isEligibleForTrial ? getTrialDays(plan) : 0;
 
     // Debug logging for trial eligibility
-    console.log("[createCheckoutAction] Trial eligibility check:", {
-      userId: session.user.id,
-      priceId,
-      plan,
-      hasExistingSubscription: !!subscription,
-      stripeSubscriptionId: subscription?.stripeSubscriptionId || null,
-      isEligibleForTrial,
-      trialDays,
-      willAddTrial: trialDays > 0,
-    });
+    logger.info(
+      {
+        userId: session.user.id,
+        priceId,
+        plan,
+        hasExistingSubscription: !!subscription,
+        stripeSubscriptionId: subscription?.stripeSubscriptionId || null,
+        isEligibleForTrial,
+        trialDays,
+        willAddTrial: trialDays > 0,
+      },
+      "Trial eligibility check"
+    );
 
     // Warn if plan detection failed
     if (plan === "FREE" && isEligibleForTrial) {
-      console.warn("[createCheckoutAction] WARNING: Plan detected as FREE but user is eligible for trial. Check STRIPE_PRICE_ID_* env vars match the priceId:", priceId);
+      logger.warn(
+        { userId: session.user.id, priceId, plan },
+        "Plan detected as FREE but user is eligible for trial. Check STRIPE_PRICE_ID_* env vars match the priceId"
+      );
     }
 
     // Build subscription data
