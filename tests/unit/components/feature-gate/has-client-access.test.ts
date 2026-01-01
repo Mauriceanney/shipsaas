@@ -74,7 +74,7 @@ describe("hasClientAccess", () => {
   describe("PRO plan requirements", () => {
     it("grants access when user has PRO plan with ACTIVE status", () => {
       const result = hasClientAccess(
-        { plan: "PLUS", status: "ACTIVE" },
+        { plan: "PRO", status: "ACTIVE" },
         "PRO"
       );
       expect(result).toBe(true);
@@ -82,13 +82,13 @@ describe("hasClientAccess", () => {
 
     it("grants access when user has PRO plan with TRIALING status", () => {
       const result = hasClientAccess(
-        { plan: "PLUS", status: "TRIALING" },
+        { plan: "PRO", status: "TRIALING" },
         "PRO"
       );
       expect(result).toBe(true);
     });
 
-    it("denies access when user has PRO plan (lower tier)", () => {
+    it("denies access when user has PLUS plan (lower tier)", () => {
       const result = hasClientAccess(
         { plan: "PLUS", status: "ACTIVE" },
         "PRO"

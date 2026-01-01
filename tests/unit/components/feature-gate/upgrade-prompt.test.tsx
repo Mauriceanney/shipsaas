@@ -30,18 +30,18 @@ describe("UpgradePrompt", () => {
   });
 
   describe("link behavior", () => {
-    it("links to pricing page with PLUS plan", () => {
+    it("links to pricing page with PLUS plan by default", () => {
       render(<UpgradePrompt />);
 
       const link = screen.getByRole("link");
-      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_prompt&plan=PRO");
+      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_prompt&plan=PLUS");
     });
 
-    it("links to pricing page with PRO plan", () => {
+    it("links to pricing page with PRO plan when specified", () => {
       render(<UpgradePrompt requiredPlan="PRO" />);
 
       const link = screen.getByRole("link");
-      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_prompt&plan=ENTERPRISE");
+      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_prompt&plan=PRO");
     });
   });
 

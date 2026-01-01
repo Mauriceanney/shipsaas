@@ -73,14 +73,14 @@ describe("UpgradeCard", () => {
       render(<UpgradeCard requiredPlan="PLUS" />);
 
       const button = screen.getByRole("link", { name: /upgrade to pro/i });
-      expect(button).toHaveAttribute("href", "/pricing?source=feature_gate&plan=PRO");
+      expect(button).toHaveAttribute("href", "/pricing?source=feature_gate&plan=PLUS");
     });
 
     it("links to pricing page with correct UTM parameters for PRO plan", () => {
       render(<UpgradeCard requiredPlan="PRO" />);
 
       const button = screen.getByRole("link", { name: /upgrade to enterprise/i });
-      expect(button).toHaveAttribute("href", "/pricing?source=feature_gate&plan=ENTERPRISE");
+      expect(button).toHaveAttribute("href", "/pricing?source=feature_gate&plan=PRO");
     });
   });
 
@@ -110,7 +110,7 @@ describe("UpgradeCard", () => {
       render(<UpgradeCard requiredPlan="PLUS" />);
 
       const button = screen.getByRole("link");
-      expect(button.getAttribute("href")).toContain("plan=PRO");
+      expect(button.getAttribute("href")).toContain("plan=PLUS");
     });
   });
 
