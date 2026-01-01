@@ -49,6 +49,7 @@ model User {
   subscription           Subscription?
   dataExportRequests     DataExportRequest[]
   accountDeletionRequest AccountDeletionRequest?
+  apiKeys                ApiKey[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -414,8 +415,8 @@ model PromotionCode {
   active            Boolean      @default(true)
 
   // Usage restrictions
-  maxRedemptions Int @default(0) // 0 = unlimited
-  timesRedeemed  Int @default(0)
+  maxRedemptions Int       @default(0) // 0 = unlimited
+  timesRedeemed  Int       @default(0)
   expiresAt      DateTime?
 
   // Metadata
@@ -461,15 +462,15 @@ enum DiscountType {
 // ============================================
 
 model ImpersonationLog {
-  id              String    @id @default(cuid())
-  adminId         String // Admin user who initiated impersonation
-  targetUserId    String // User being impersonated
-  reason          String? // Optional reason for impersonation
-  ipAddress       String?
-  userAgent       String?
-  startedAt       DateTime  @default(now())
-  endedAt         DateTime? // When impersonation ended (null = still active)
-  expiresAt       DateTime // When impersonation auto-expires (1 hour)
+  id           String    @id @default(cuid())
+  adminId      String // Admin user who initiated impersonation
+  targetUserId String // User being impersonated
+  reason       String? // Optional reason for impersonation
+  ipAddress    String?
+  userAgent    String?
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime? // When impersonation ended (null = still active)
+  expiresAt    DateTime // When impersonation auto-expires (1 hour)
 
   createdAt DateTime @default(now())
 
@@ -479,4 +480,33 @@ model ImpersonationLog {
   @@index([endedAt])
   @@index([expiresAt])
   @@index([adminId, startedAt]) // For admin activity queries
+}
+
+// ============================================
+// API KEY MANAGEMENT MODELS
+// ============================================
+
+model ApiKey {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Key metadata
+  name        String // User-friendly name
+  keyHash     String @unique // bcrypt hash of full key
+  keyPrefix   String // First 12 chars for display (e.g., "sk_live_abc1")
+  environment String @default("live") // "live" or "test"
+
+  // Usage tracking
+  lastUsedAt DateTime?
+  usageCount Int       @default(0)
+
+  // Lifecycle
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  expiresAt DateTime? // Optional expiration (future feature)
+
+  @@index([userId])
+  @@index([keyHash])
+  @@index([userId, revokedAt])
 }
