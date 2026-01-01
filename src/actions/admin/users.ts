@@ -5,9 +5,13 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { createAuditLog } from "@/lib/audit";
 import { db } from "@/lib/db";
+import {
+  createCursorResult,
+  normalizeCursorParams,
+} from "@/lib/db/cursor-pagination";
 
 interface GetUsersParams {
-  page?: number;
+  cursor?: string;
   limit?: number;
   search?: string;
   role?: "USER" | "ADMIN";
@@ -15,7 +19,7 @@ interface GetUsersParams {
 }
 
 export async function getUsers({
-  page = 1,
+  cursor,
   limit = 10,
   search,
   role,
@@ -23,7 +27,9 @@ export async function getUsers({
 }: GetUsersParams = {}) {
   await requireAdmin();
 
-  const skip = (page - 1) * limit;
+  // Normalize pagination parameters
+  const { cursor: decodedCursor, limit: normalizedLimit } =
+    normalizeCursorParams({ cursor, limit });
 
   const where = {
     ...(search && {
@@ -37,37 +43,44 @@ export async function getUsers({
     ...(status === "disabled" && { disabled: true }),
   };
 
-  const [users, total] = await Promise.all([
-    db.user.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        disabled: true,
-        createdAt: true,
-        subscription: {
-          select: {
-            plan: true,
-            status: true,
-          },
+  // Fetch one more than limit to determine if there are more pages
+  const users = await db.user.findMany({
+    where,
+    take: normalizedLimit + 1,
+    cursor: decodedCursor ? { id: decodedCursor } : undefined,
+    skip: decodedCursor ? 1 : 0, // Skip the cursor itself when paginating
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      disabled: true,
+      createdAt: true,
+      subscription: {
+        select: {
+          plan: true,
+          status: true,
         },
       },
-    }),
-    db.user.count({ where }),
-  ]);
+    },
+  });
+
+  // Create cursor pagination result
+  const paginationResult = createCursorResult(
+    users,
+    normalizedLimit,
+    (user) => user.id,
+    decodedCursor
+  );
 
   return {
-    users,
+    users: paginationResult.items,
     pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      limit: paginationResult.limit,
+      hasNextPage: paginationResult.hasNextPage,
+      hasPreviousPage: paginationResult.hasPreviousPage,
+      nextCursor: paginationResult.nextCursor,
     },
   };
 }

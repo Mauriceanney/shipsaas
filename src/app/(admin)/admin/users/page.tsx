@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 interface UsersPageProps {
   searchParams: Promise<{
-    page?: string;
+    cursor?: string;
     search?: string;
     role?: string;
     status?: string;
@@ -30,13 +30,13 @@ async function UsersTableContent({
   searchParams: UsersPageProps["searchParams"];
 }) {
   const params = await searchParams;
-  const page = params.page ? parseInt(params.page) : 1;
+  const cursor = params.cursor;
   const search = params.search;
   const role = params.role as "USER" | "ADMIN" | undefined;
   const status = params.status as "all" | "active" | "disabled" | undefined;
 
   const [{ users, pagination }, session] = await Promise.all([
-    getUsers({ page, search, role, status }),
+    getUsers({ cursor, search, role, status }),
     auth(),
   ]);
 
@@ -61,25 +61,21 @@ async function UsersTableContent({
         users={usersWithDisabled}
         currentAdminId={currentAdminId}
       />
-      {pagination.totalPages > 1 && (
+      {(pagination.hasPreviousPage || pagination.hasNextPage) && (
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-            {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-            {pagination.total} users
-          </span>
+          <span>Showing {users.length} users</span>
           <div className="flex gap-2">
-            {pagination.page > 1 && (
+            {pagination.hasPreviousPage && (
               <a
-                href={`/admin/users?page=${pagination.page - 1}${queryString}`}
+                href={`/admin/users?${queryString ? queryString.slice(1) : ""}`}
                 className="rounded border px-3 py-1 hover:bg-muted"
               >
-                Previous
+                First page
               </a>
             )}
-            {pagination.page < pagination.totalPages && (
+            {pagination.hasNextPage && pagination.nextCursor && (
               <a
-                href={`/admin/users?page=${pagination.page + 1}${queryString}`}
+                href={`/admin/users?cursor=${pagination.nextCursor}${queryString}`}
                 className="rounded border px-3 py-1 hover:bg-muted"
               >
                 Next
