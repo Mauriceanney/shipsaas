@@ -23,6 +23,7 @@ export async function GET() {
   const errors: string[] = [];
 
   // Check database connection with timing
+  // SECURITY: Simple constant query with no user input - safe for health checks
   let databaseStatus: ServiceStatus = { status: "disconnected" };
   const dbStart = Date.now();
   try {

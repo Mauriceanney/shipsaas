@@ -193,7 +193,15 @@ export async function getAdminDashboardMetrics() {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // OPTIMIZED: Single query for all user metrics using PostgreSQL FILTER clause
+        /**
+         * SECURITY: Optimized raw SQL query for user metrics.
+         * - Uses $queryRaw with template literal for PostgreSQL-specific FILTER clause
+         * - All values (startOfMonth) are parameterized by Prisma (no string interpolation)
+         * - Table and column names are hard-coded (never dynamic)
+         * - No user input is incorporated in query structure
+         * - OWASP A03:2021 - Injection: Mitigated via parameterization
+         * @see https://www.prisma.io/docs/orm/prisma-client/using-raw-sql/raw-queries#sql-injection
+         */
         const userMetrics = await db.$queryRaw<
           Array<{
             total: bigint;
