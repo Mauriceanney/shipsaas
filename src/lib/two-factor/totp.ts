@@ -9,9 +9,10 @@ import crypto from "crypto";
 
 import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
-import * as QRCode from "qrcode";
 
 import { siteConfig } from "@/config/site";
+
+import { generateQRCodeLazy } from "./lazy-qrcode";
 
 // Configure authenticator options
 authenticator.options = {
@@ -38,12 +39,7 @@ export function generateTOTPUri(email: string, secret: string): string {
  * Generate a QR code data URL for the TOTP URI
  */
 export async function generateQRCode(otpauthUri: string): Promise<string> {
-  return QRCode.toDataURL(otpauthUri, {
-    errorCorrectionLevel: "M",
-    type: "image/png",
-    margin: 2,
-    width: 256,
-  });
+  return generateQRCodeLazy(otpauthUri);
 }
 
 /**
@@ -108,7 +104,7 @@ export async function verifyBackupCode(
  * Format backup codes for display (grouped pairs)
  */
 export function formatBackupCodes(codes: string[]): string[] {
-  return codes.map((code) => `${code.slice(0, 4)}-${code.slice(4)}`);
+  return codes.map((code) => code.substring(0, 4) + "-" + code.substring(4));
 }
 
 // ============================================
@@ -179,5 +175,5 @@ export function parseDeviceName(userAgent: string | null): string {
     os = "Android";
   }
 
-  return `${browser} on ${os}`;
+  return browser + " on " + os;
 }
