@@ -21,3 +21,19 @@ export {
   shutdownAnalytics,
   trackServerEvent,
 } from "./server";
+
+// Client-side helpers
+export {
+  getPostHog,
+  identifyUser,
+  initPostHog,
+  optInAnalytics,
+  optOutAnalytics,
+  resetAnalytics,
+  setUserProperties,
+  trackEvent,
+  trackPageView,
+} from "./client";
+
+// Web Vitals tracking
+export { reportWebVitals } from "./web-vitals";
