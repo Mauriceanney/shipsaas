@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,37 +35,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CharacterCount } from "@/components/ui/character-count";
+import {
+  createApiKeySchema,
+  type CreateApiKeyInput,
+} from "@/lib/validations/api-key";
 
 export function ApiKeyCreateForm() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [environment, setEnvironment] = useState<"live" | "test">("live");
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string>("");
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string>("");
   const formRef = useRef<HTMLFormElement>(null);
 
-  async function handleSubmit(formData: FormData) {
-    const name = formData.get("name") as string;
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateApiKeyInput>({
+    resolver: zodResolver(createApiKeySchema),
+    mode: "onBlur",
+    defaultValues: {
+      environment: "live",
+    },
+  });
 
-    setError("");
-    startTransition(async () => {
-      const result = await createApiKey({ name, environment });
+  const name = watch("name");
+  const environment = watch("environment");
 
-      if (!result.success) {
-        setError(result.error);
-        toast.error(result.error);
-        return;
-      }
+  const onSubmit = async (data: CreateApiKeyInput) => {
+    const result = await createApiKey(data);
 
-      // Show the generated key in a modal (only time it's displayed)
-      setGeneratedKey(result.data.key);
-      setShowKeyDialog(true);
-      formRef.current?.reset();
-      router.refresh();
-    });
-  }
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+
+    // Show the generated key in a modal (only time it's displayed)
+    setGeneratedKey(result.data.key);
+    setShowKeyDialog(true);
+    reset();
+    router.refresh();
+  };
 
   async function handleCopyKey() {
     await navigator.clipboard.writeText(generatedKey);
@@ -87,31 +103,48 @@ export function ApiKeyCreateForm() {
             Generate a new API key for programmatic access to your account
           </CardDescription>
         </CardHeader>
-        <form ref={formRef} action={handleSubmit}>
+        <form ref={formRef} onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="name">Name</Label>
+                <CharacterCount current={name?.length || 0} max={100} />
+              </div>
               <Input
                 id="name"
-                name="name"
                 placeholder="e.g., Production Server"
+                disabled={isSubmitting}
                 required
-                minLength={1}
-                maxLength={100}
-                disabled={isPending}
-                aria-describedby="name-description"
+                aria-invalid={!!errors.name}
+                aria-describedby={
+                  errors.name ? "name-error" : "name-description"
+                }
+                {...register("name")}
               />
-              <p id="name-description" className="text-sm text-muted-foreground">
-                A descriptive name to help you identify this key
-              </p>
+              {errors.name && (
+                <p
+                  id="name-error"
+                  className="text-sm text-destructive"
+                  role="alert"
+                >
+                  {errors.name.message}
+                </p>
+              )}
+              {!errors.name && (
+                <p id="name-description" className="text-sm text-muted-foreground">
+                  A descriptive name to help you identify this key
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="environment">Environment</Label>
               <Select
                 value={environment}
-                onValueChange={(value) => setEnvironment(value as "live" | "test")}
-                disabled={isPending}
+                onValueChange={(value) =>
+                  setValue("environment", value as "live" | "test")
+                }
+                disabled={isSubmitting}
               >
                 <SelectTrigger id="environment" aria-label="Environment">
                   <SelectValue />
@@ -125,16 +158,10 @@ export function ApiKeyCreateForm() {
                 Choose the environment for this API key
               </p>
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Creating..." : "Create API Key"}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create API Key"}
             </Button>
           </CardFooter>
         </form>
@@ -145,7 +172,8 @@ export function ApiKeyCreateForm() {
           <DialogHeader>
             <DialogTitle>API Key Created Successfully</DialogTitle>
             <DialogDescription>
-              Copy your API key now. For security reasons, you won&apos;t be able to see it again.
+              Copy your API key now. For security reasons, you won&apos;t be able to
+              see it again.
             </DialogDescription>
           </DialogHeader>
 
@@ -174,7 +202,8 @@ export function ApiKeyCreateForm() {
 
             <Alert>
               <AlertDescription>
-                Store this key securely. It provides access to your account and cannot be recovered if lost.
+                Store this key securely. It provides access to your account and
+                cannot be recovered if lost.
               </AlertDescription>
             </Alert>
           </div>
