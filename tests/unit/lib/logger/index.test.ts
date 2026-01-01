@@ -40,7 +40,8 @@ describe("Logger", () => {
   });
 
   afterEach(() => {
-    delete process.env["NODE_ENV"];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (process.env as any).NODE_ENV = undefined;
   });
 
   describe("logger initialization", () => {
@@ -312,10 +313,11 @@ describe("Logger", () => {
     });
 
     it("handles circular references gracefully", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = { name: "Test" };
       data.self = data;
 
-      const redacted = redactSensitiveData(data);
+      const redacted = redactSensitiveData(data) as { name: string; self: string };
 
       expect(redacted.name).toBe("Test");
       expect(redacted.self).toBe("[Circular]");
@@ -335,7 +337,7 @@ describe("Logger", () => {
         sessionToken: "session",
       };
 
-      const redacted = redactSensitiveData(data);
+      const redacted = redactSensitiveData(data) as Record<string, string>;
 
       const allRedacted = Object.values(redacted).every(
         (v) => v === "[REDACTED]"

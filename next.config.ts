@@ -55,7 +55,7 @@ const nextConfig: NextConfig = {
   experimental: {
     typedRoutes: true,
   },
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: false,
   async headers() {
     return [
       {
@@ -114,4 +114,10 @@ class VeliteWebpackPlugin {
   }
 }
 
-export default nextConfig;
+// Bundle analyzer configuration - only enabled when ANALYZE=true
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env["ANALYZE"] === "true",
+  openAnalyzer: true,
+});
+
+export default withBundleAnalyzer(nextConfig);
