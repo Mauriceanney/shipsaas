@@ -1,7 +1,7 @@
 "use server";
 
-
 import { revalidatePath } from "next/cache";
+
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";

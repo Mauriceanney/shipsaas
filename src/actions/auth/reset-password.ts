@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
 import { sendPasswordChangedEmail } from "@/lib/email";
@@ -133,6 +134,9 @@ export async function resetPasswordAction(
       console.error("Failed to send password changed email:", emailError);
       // Don't throw - password was changed successfully
     }
+
+    // Revalidate login page
+    revalidatePath("/login");
 
     return {
       success: true,

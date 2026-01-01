@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
 import { signOut } from "@/lib/auth";
@@ -14,6 +15,9 @@ export async function logoutAction(): Promise<void> {
     await revokeUserSession(sessionToken);
     cookieStore.delete("user-session-token");
   }
+
+  // Revalidate login page
+  revalidatePath("/login");
 
   await signOut({ redirectTo: "/login" });
 }

@@ -1,7 +1,7 @@
 "use server";
 
-
 import { revalidatePath } from "next/cache";
+
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -10,7 +10,6 @@ import {
   disableTwoFactorSchema,
   type DisableTwoFactorInput,
 } from "@/lib/validations/auth";
-
 type DisableResult =
   | { success: true }
   | { success: false; error: string };

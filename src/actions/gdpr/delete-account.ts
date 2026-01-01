@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
@@ -108,6 +110,9 @@ export async function requestAccountDeletion(
 
   // TODO: Send confirmation email
 
+  // Revalidate settings page
+  revalidatePath("/settings/account");
+
   return { success: true, scheduledFor };
 }
 
@@ -144,6 +149,9 @@ export async function cancelAccountDeletion(): Promise<{
     where: { id: userId },
     data: { disabled: false },
   });
+
+  // Revalidate settings page
+  revalidatePath("/settings/account");
 
   return { success: true };
 }

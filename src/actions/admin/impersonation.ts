@@ -5,6 +5,7 @@
  * Allows admins to temporarily view the application as another user
  */
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
@@ -113,6 +114,10 @@ export async function startImpersonation(
       expiresAt: expiresAt.toISOString(),
     });
 
+    // 12. Revalidate affected paths
+    revalidatePath("/admin/users");
+    revalidatePath("/dashboard");
+
     return {
       success: true,
       data: { redirectUrl: "/dashboard" },
@@ -143,6 +148,10 @@ export async function endImpersonation(): Promise<ActionResult<{ redirectUrl: st
 
     // 3. Clear the impersonation cookie
     await clearImpersonationCookie();
+
+    // 4. Revalidate affected paths
+    revalidatePath("/admin/users");
+    revalidatePath("/dashboard");
 
     return {
       success: true,
