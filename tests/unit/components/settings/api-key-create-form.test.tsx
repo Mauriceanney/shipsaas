@@ -52,6 +52,7 @@ describe("ApiKeyCreateForm", () => {
           name: "Test Key",
           keyPrefix: "sk_live_...",
           environment: "live",
+          scopes: ["read"],
           createdAt: new Date(),
           lastUsedAt: null,
         },
@@ -67,6 +68,7 @@ describe("ApiKeyCreateForm", () => {
       expect(createApiKey).toHaveBeenCalledWith({
         name: "Test Key",
         environment: "live",
+        scopes: ["read"],
       });
     });
   });
@@ -108,6 +110,7 @@ describe("ApiKeyCreateForm", () => {
           name: "Test Key",
           keyPrefix: "sk_live_...",
           environment: "live",
+          scopes: ["read"],
           createdAt: new Date(),
           lastUsedAt: null,
         },
@@ -134,6 +137,7 @@ describe("ApiKeyCreateForm", () => {
           name: "Test Key",
           keyPrefix: "sk_live_...",
           environment: "live",
+          scopes: ["read"],
           createdAt: new Date(),
           lastUsedAt: null,
         },
@@ -160,6 +164,7 @@ describe("ApiKeyCreateForm", () => {
           name: "Test Key",
           keyPrefix: "sk_live_...",
           environment: "live",
+          scopes: ["read"],
           createdAt: new Date(),
           lastUsedAt: null,
         },
@@ -222,6 +227,7 @@ describe("ApiKeyCreateForm", () => {
           name: "Test Key",
           keyPrefix: "sk_live_...",
           environment: "live",
+          scopes: ["read"],
           createdAt: new Date(),
           lastUsedAt: null,
         },
@@ -237,6 +243,7 @@ describe("ApiKeyCreateForm", () => {
       expect(createApiKey).toHaveBeenCalledWith({
         name: "Test Key",
         environment: "live",
+        scopes: ["read"],
       });
     });
   });

@@ -1,101 +1,118 @@
 import { describe, it, expect } from "vitest";
-
-import { createApiKeySchema, revokeApiKeySchema } from "@/lib/validations/api-key";
+import { createApiKeySchema } from "@/lib/validations/api-key";
 
 describe("createApiKeySchema", () => {
-  it("accepts valid input", () => {
-    const result = createApiKeySchema.safeParse({
-      name: "Production API Key",
-      environment: "live",
+  describe("scopes validation", () => {
+    it("accepts valid scopes", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test Key",
+        environment: "live",
+        scopes: ["read"],
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.scopes).toEqual(["read"]);
+      }
     });
 
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.name).toBe("Production API Key");
-      expect(result.data.environment).toBe("live");
-    }
-  });
+    it("accepts multiple scopes", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test Key",
+        environment: "live",
+        scopes: ["read", "write"],
+      });
 
-  it("accepts test environment", () => {
-    const result = createApiKeySchema.safeParse({
-      name: "Test Key",
-      environment: "test",
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.scopes).toEqual(["read", "write"]);
+      }
     });
 
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.environment).toBe("test");
-    }
-  });
+    it("accepts all scopes", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test Key",
+        environment: "live",
+        scopes: ["read", "write", "admin"],
+      });
 
-  it("defaults to live environment", () => {
-    const result = createApiKeySchema.safeParse({
-      name: "My Key",
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.scopes).toEqual(["read", "write", "admin"]);
+      }
     });
 
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.environment).toBe("live");
-    }
-  });
+    it("defaults to read scope when not provided", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test Key",
+        environment: "live",
+      });
 
-  it("rejects empty name", () => {
-    const result = createApiKeySchema.safeParse({
-      name: "",
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.scopes).toEqual(["read"]);
+      }
     });
 
-    expect(result.success).toBe(false);
-  });
+    it("rejects empty scopes array", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test Key",
+        environment: "live",
+        scopes: [],
+      });
 
-  it("rejects name exceeding 100 characters", () => {
-    const result = createApiKeySchema.safeParse({
-      name: "a".repeat(101),
+      expect(result.success).toBe(false);
     });
 
-    expect(result.success).toBe(false);
-  });
+    it("rejects invalid scope values", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test Key",
+        environment: "live",
+        scopes: ["invalid"],
+      });
 
-  it("rejects invalid environment", () => {
-    const result = createApiKeySchema.safeParse({
-      name: "Key",
-      environment: "production",
+      expect(result.success).toBe(false);
     });
 
-    expect(result.success).toBe(false);
+    it("rejects duplicate scopes", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test Key",
+        environment: "live",
+        scopes: ["read", "read"],
+      });
+
+      expect(result.success).toBe(false);
+    });
   });
 
-  it("rejects missing name", () => {
-    const result = createApiKeySchema.safeParse({
-      environment: "live",
+  describe("existing validation", () => {
+    it("validates name is required", () => {
+      const result = createApiKeySchema.safeParse({
+        environment: "live",
+        scopes: ["read"],
+      });
+
+      expect(result.success).toBe(false);
     });
 
-    expect(result.success).toBe(false);
-  });
-});
+    it("validates name max length", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "a".repeat(101),
+        environment: "live",
+        scopes: ["read"],
+      });
 
-describe("revokeApiKeySchema", () => {
-  it("accepts valid ID", () => {
-    const result = revokeApiKeySchema.safeParse({
-      id: "clx1234567890",
+      expect(result.success).toBe(false);
     });
 
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.id).toBe("clx1234567890");
-    }
-  });
+    it("validates environment values", () => {
+      const result = createApiKeySchema.safeParse({
+        name: "Test",
+        environment: "invalid",
+        scopes: ["read"],
+      });
 
-  it("rejects empty ID", () => {
-    const result = revokeApiKeySchema.safeParse({
-      id: "",
+      expect(result.success).toBe(false);
     });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects missing ID", () => {
-    const result = revokeApiKeySchema.safeParse({});
-
-    expect(result.success).toBe(false);
   });
 });

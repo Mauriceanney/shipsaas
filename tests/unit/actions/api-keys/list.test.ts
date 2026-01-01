@@ -121,6 +121,7 @@ describe("listApiKeys", () => {
           keyPrefix: true,
           environment: true,
           lastUsedAt: true,
+          scopes: true,
           usageCount: true,
           createdAt: true,
           revokedAt: true,

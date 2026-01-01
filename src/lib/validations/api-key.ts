@@ -9,6 +9,13 @@ export const createApiKeySchema = z.object({
     .min(1, "Name is required")
     .max(100, "Name must be 100 characters or less"),
   environment: z.enum(["live", "test"]).default("live"),
+  scopes: z
+    .array(z.enum(["read", "write", "admin"]))
+    .min(1, "At least one scope is required")
+    .default(["read"])
+    .refine((scopes) => new Set(scopes).size === scopes.length, {
+      message: "Duplicate scopes are not allowed",
+    }),
 });
 
 export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
