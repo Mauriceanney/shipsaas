@@ -12,6 +12,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import { initPostHog } from "@/lib/analytics/client";
 import { analyticsConfig } from "@/lib/analytics/config";
+import { reportWebVitals } from "@/lib/analytics/web-vitals";
 
 /**
  * Page view tracker component
@@ -26,7 +27,7 @@ function PostHogPageView() {
     if (pathname && posthogClient) {
       let url = window.origin + pathname;
       if (searchParams?.toString()) {
-        url = `${url}?${searchParams.toString()}`;
+        url = url + "?" + searchParams.toString();
       }
       posthogClient.capture("$pageview", { $current_url: url });
     }
@@ -61,7 +62,11 @@ interface PostHogProviderProps {
 
 export function PostHogProvider({ children }: PostHogProviderProps) {
   useEffect(() => {
+    // Initialize PostHog
     initPostHog();
+
+    // Initialize Web Vitals tracking
+    reportWebVitals();
   }, []);
 
   // If no PostHog key, render children without provider

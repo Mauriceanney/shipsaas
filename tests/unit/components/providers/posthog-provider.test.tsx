@@ -37,6 +37,10 @@ vi.mock("@/lib/analytics/client", () => ({
   initPostHog: vi.fn(),
 }));
 
+vi.mock("@/lib/analytics/web-vitals", () => ({
+  reportWebVitals: vi.fn(),
+}));
+
 vi.mock("@/lib/analytics/config", () => ({
   analyticsConfig: mockAnalyticsConfig,
 }));
@@ -45,6 +49,7 @@ import { PostHogProvider } from "@/components/providers/posthog-provider";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { initPostHog } from "@/lib/analytics/client";
+import { reportWebVitals } from "@/lib/analytics/web-vitals";
 
 describe("PostHogProvider", () => {
   // Mock window.origin
@@ -100,6 +105,18 @@ describe("PostHogProvider", () => {
 
       expect(initPostHog).toHaveBeenCalled();
     });
+
+    it("still calls reportWebVitals on mount even without key", () => {
+      mockAnalyticsConfig.posthogKey = undefined;
+
+      render(
+        <PostHogProvider>
+          <div>Test</div>
+        </PostHogProvider>
+      );
+
+      expect(reportWebVitals).toHaveBeenCalled();
+    });
   });
 
   describe("when PostHog key is present", () => {
@@ -128,6 +145,16 @@ describe("PostHogProvider", () => {
       expect(initPostHog).toHaveBeenCalledTimes(1);
     });
 
+    it("calls reportWebVitals on mount", () => {
+      render(
+        <PostHogProvider>
+          <div>Test</div>
+        </PostHogProvider>
+      );
+
+      expect(reportWebVitals).toHaveBeenCalledTimes(1);
+    });
+
     it("only calls initPostHog once even with re-renders", () => {
       const { rerender } = render(
         <PostHogProvider>
@@ -144,6 +171,24 @@ describe("PostHogProvider", () => {
       );
 
       expect(initPostHog).toHaveBeenCalledTimes(1);
+    });
+
+    it("only calls reportWebVitals once even with re-renders", () => {
+      const { rerender } = render(
+        <PostHogProvider>
+          <div>Test</div>
+        </PostHogProvider>
+      );
+
+      expect(reportWebVitals).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <PostHogProvider>
+          <div>Test Updated</div>
+        </PostHogProvider>
+      );
+
+      expect(reportWebVitals).toHaveBeenCalledTimes(1);
     });
   });
 
