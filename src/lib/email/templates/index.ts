@@ -330,3 +330,25 @@ export type EmailTemplates = {
  * Template name type
  */
 export type EmailTemplateName = keyof EmailTemplates;
+
+// Refund confirmation template
+export {
+  RefundConfirmationEmail,
+  type RefundConfirmationEmailProps,
+} from "./refund-confirmation";
+
+import {
+  RefundConfirmationEmail,
+  type RefundConfirmationEmailProps,
+} from "./refund-confirmation";
+
+export async function renderRefundConfirmationEmail(
+  props: RefundConfirmationEmailProps
+): Promise<RenderedEmail> {
+  const element = React.createElement(RefundConfirmationEmail, props);
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  return { html, text };
+}

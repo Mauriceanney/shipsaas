@@ -129,7 +129,8 @@ export type SupportedWebhookEvent =
   | "customer.subscription.updated"
   | "customer.subscription.deleted"
   | "invoice.paid"
-  | "invoice.payment_failed";
+  | "invoice.payment_failed"
+  | "charge.refunded";
 
 /**
  * Webhook handler function signature
