@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { createAuditLog } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -82,6 +84,10 @@ export async function sendEmailToUser(input: unknown) {
       userId: session.user.id,
       userEmail: session.user.email ?? "unknown",
     });
+
+    // 7. Revalidate admin user page
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
 
     return { success: true } as const;
   } catch (error) {

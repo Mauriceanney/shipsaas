@@ -3,6 +3,7 @@
 import crypto from "crypto";
 
 import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
@@ -106,6 +107,9 @@ export async function registerAction(input: RegisterInput): Promise<Result> {
       );
       // Don't throw - user is created, they can request a new verification email
     }
+
+    // Revalidate login page
+    revalidatePath("/login");
 
     return {
       success: true,

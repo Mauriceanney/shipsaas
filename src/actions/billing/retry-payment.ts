@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimiters } from "@/lib/rate-limit";
@@ -59,6 +61,10 @@ export async function retryPaymentAction(): Promise<Result<void, string>> {
     // 5. Retry payment
     try {
       await stripe.invoices.pay(invoice.id);
+      
+      // Revalidate billing page to show updated payment status
+      revalidatePath("/dashboard/billing");
+      
       return { success: true, data: undefined };
     } catch (error) {
       // Handle Stripe payment errors gracefully

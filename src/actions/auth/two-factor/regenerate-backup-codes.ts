@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { verifyTOTP, generateBackupCodes, formatBackupCodes } from "@/lib/two-factor";
@@ -74,6 +76,9 @@ export async function regenerateBackupCodesAction(
       where: { id: session.user.id },
       data: { twoFactorBackupCodes: hashedCodes },
     });
+
+    // Revalidate security settings page
+    revalidatePath("/dashboard/security");
 
     return {
       success: true,

@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/email";
 import {
@@ -117,6 +119,9 @@ export async function verifyEmailAction(
       console.error("Failed to send welcome email:", emailError);
       // Don't throw - email verification was successful
     }
+
+    // Revalidate dashboard
+    revalidatePath("/dashboard");
 
     return {
       success: true,

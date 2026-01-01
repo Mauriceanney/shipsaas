@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 
 import { signIn } from "@/lib/auth";
@@ -143,6 +144,9 @@ export async function verifyTwoFactorAction(
       userId: user.id,
       redirect: false,
     });
+
+    // Revalidate dashboard
+    revalidatePath("/dashboard");
 
     return { success: true };
   } catch (error) {

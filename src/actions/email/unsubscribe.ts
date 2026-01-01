@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { db } from "@/lib/db";
 
 export interface EmailPreferences {
@@ -91,6 +93,9 @@ export async function updateEmailPreferences(
       },
     });
 
+    // Revalidate settings page
+    revalidatePath("/settings/notifications");
+
     return {
       success: true,
       email: updatedUser.email,
@@ -140,6 +145,9 @@ export async function unsubscribeFromAll(token: string): Promise<UnsubscribeResu
         emailSecurityAlerts: true,
       },
     });
+
+    // Revalidate settings page
+    revalidatePath("/settings/notifications");
 
     return {
       success: true,

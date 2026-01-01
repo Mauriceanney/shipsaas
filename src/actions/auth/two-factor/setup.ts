@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -55,6 +57,9 @@ export async function setupTwoFactorAction(): Promise<SetupResult> {
       where: { id: session.user.id },
       data: { twoFactorSecret: secret },
     });
+
+    // Revalidate security settings page
+    revalidatePath("/dashboard/security");
 
     return {
       success: true,

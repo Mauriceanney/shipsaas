@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Hoist mocks
-const { mockAuth, mockDb, mockSendAdminMessage, mockCreateAuditLog } = vi.hoisted(() => ({
+const { mockAuth, mockDb, mockSendAdminMessage, mockCreateAuditLog, mockRevalidatePath } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockDb: {
     user: {
@@ -18,6 +18,7 @@ const { mockAuth, mockDb, mockSendAdminMessage, mockCreateAuditLog } = vi.hoiste
   },
   mockSendAdminMessage: vi.fn(),
   mockCreateAuditLog: vi.fn(),
+  mockRevalidatePath: vi.fn(),
 }));
 
 // Mock dependencies
@@ -27,6 +28,10 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/db", () => ({
   db: mockDb,
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: mockRevalidatePath,
 }));
 
 vi.mock("@/lib/email", () => ({
