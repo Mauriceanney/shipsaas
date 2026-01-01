@@ -5,9 +5,57 @@
 
 const hasDsn = !!process.env["NEXT_PUBLIC_SENTRY_DSN"];
 const isProduction = process.env.NODE_ENV === "production";
+const isDevelopment = process.env.NODE_ENV === "development";
 // NEXT_PUBLIC_ prefix required for client-side access
 const isDebugMode = process.env["NEXT_PUBLIC_SENTRY_DEBUG"] === "true";
 const shouldEnable = (isProduction || isDebugMode) && hasDsn;
+
+/**
+ * Parse sample rate from environment variable with fallback
+ */
+function parseSampleRate(
+  envVar: string | undefined,
+  defaultValue: number
+): number {
+  if (!envVar) return defaultValue;
+  const parsed = parseFloat(envVar);
+  if (isNaN(parsed) || parsed < 0 || parsed > 1) return defaultValue;
+  return parsed;
+}
+
+/**
+ * Get sample rates based on environment
+ * Development: Higher rates for testing (1.0 = 100%)
+ * Production: Lower rates to control costs (0.1 = 10%)
+ */
+function getSampleRates() {
+  // Development defaults to 100% sampling for testing
+  const defaultTracesRate = isDevelopment ? 1.0 : 0.1;
+  const defaultProfilesRate = isDevelopment ? 1.0 : 0.1;
+  const defaultReplaysSessionRate = isDevelopment ? 0.1 : 0.1;
+  const defaultReplaysErrorRate = isDevelopment ? 1.0 : 1.0;
+
+  return {
+    traces: parseSampleRate(
+      process.env["NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE"],
+      defaultTracesRate
+    ),
+    profiles: parseSampleRate(
+      process.env["NEXT_PUBLIC_SENTRY_PROFILES_SAMPLE_RATE"],
+      defaultProfilesRate
+    ),
+    replaysSession: parseSampleRate(
+      process.env["NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE"],
+      defaultReplaysSessionRate
+    ),
+    replaysError: parseSampleRate(
+      process.env["NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE"],
+      defaultReplaysErrorRate
+    ),
+  };
+}
+
+const sampleRates = getSampleRates();
 
 export const sentryConfig = {
   dsn: process.env["NEXT_PUBLIC_SENTRY_DSN"],
@@ -15,11 +63,11 @@ export const sentryConfig = {
     process.env["NEXT_PUBLIC_SENTRY_ENVIRONMENT"] || "development",
   // Enable in production OR when SENTRY_DEBUG=true for testing
   enabled: shouldEnable,
-  // Disable tracing and replays by default to minimize costs
-  // Enable in production if needed
-  tracesSampleRate: 0,
-  replaysSessionSampleRate: 0,
-  replaysOnErrorSampleRate: 0,
+  // Performance monitoring sample rates (environment-based)
+  tracesSampleRate: sampleRates.traces,
+  profilesSampleRate: sampleRates.profiles,
+  replaysSessionSampleRate: sampleRates.replaysSession,
+  replaysOnErrorSampleRate: sampleRates.replaysError,
   // Ignore common Next.js errors that are not actionable
   ignoreErrors: [
     "NEXT_REDIRECT",
