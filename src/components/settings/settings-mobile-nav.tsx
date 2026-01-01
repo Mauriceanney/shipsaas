@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CreditCard, FileText, Menu, Monitor, Shield, User } from "lucide-react";
+import { Bell, CreditCard, FileText, Key, Menu, Monitor, Shield, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -48,6 +48,11 @@ const navGroups: NavGroup[] = [
         title: "Security",
         href: "/settings/security" as Route,
         icon: Shield,
+      },
+      {
+        title: "API Keys",
+        href: "/settings/api-keys" as Route,
+        icon: Key,
       },
     ],
   },
