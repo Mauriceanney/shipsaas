@@ -5,7 +5,7 @@
  * Left sidebar navigation for settings pages with grouped sections
  */
 
-import { Bell, CreditCard, FileText, Monitor, Shield, User } from "lucide-react";
+import { Bell, CreditCard, FileText, Key, Monitor, Shield, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -44,6 +44,11 @@ const navGroups: NavGroup[] = [
         title: "Security",
         href: "/settings/security" as Route,
         icon: Shield,
+      },
+      {
+        title: "API Keys",
+        href: "/settings/api-keys" as Route,
+        icon: Key,
       },
     ],
   },
