@@ -6,9 +6,7 @@
  */
 
 import { ArrowRight, Sparkles } from "lucide-react";
-import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type UpgradePromptProps = {
@@ -58,7 +56,7 @@ export function UpgradePrompt({
   };
 
   return (
-    <Link
+    <a
       href={pricingUrl}
       className={cn(
         "inline-flex items-center rounded-full border transition-colors",
@@ -79,6 +77,6 @@ export function UpgradePrompt({
         )}
         aria-hidden="true"
       />
-    </Link>
+    </a>
   );
 }

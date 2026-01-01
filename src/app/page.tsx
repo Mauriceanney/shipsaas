@@ -18,8 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 
-import type { Metadata } from "next";
 import type { Feature, Testimonial, FAQItem } from "@/components/landing";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "ShipSaaS - Build Your SaaS Faster",

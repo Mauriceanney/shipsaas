@@ -5,8 +5,8 @@
  * Downloads analytics data as CSV
  */
 
-import { useState } from "react";
 import { Download } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

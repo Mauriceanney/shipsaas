@@ -37,7 +37,7 @@ interface OnboardingChecklistProps {
 }
 
 export function OnboardingChecklist({ user, hasSubscription }: OnboardingChecklistProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showConfetti, setShowConfetti] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -92,6 +92,7 @@ export function OnboardingChecklist({ user, hasSubscription }: OnboardingCheckli
       }, 3000);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allComplete]);
 
   const handleDismiss = () => {

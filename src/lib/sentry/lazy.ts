@@ -3,10 +3,9 @@
  * Defers Sentry loading until first error to reduce initial bundle size
  */
 
-import type * as SentryType from "@sentry/nextjs";
-
 import { sanitizeData, sanitizeUrl, sentryConfig } from "./config";
 
+import type * as SentryType from "@sentry/nextjs";
 import type { Session } from "next-auth";
 
 // Queue for errors that occur before Sentry is loaded

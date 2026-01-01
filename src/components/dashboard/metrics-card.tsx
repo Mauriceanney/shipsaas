@@ -3,10 +3,10 @@
  * Displays a single metric with icon and optional trend indicator
  */
 
-import { LucideIcon } from "lucide-react";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
+import type { LucideIcon } from "lucide-react";
 
 type MetricsCardProps = {
   title: string;

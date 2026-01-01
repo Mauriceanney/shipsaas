@@ -35,9 +35,9 @@ function isSensitiveField(key: string): boolean {
  * Handles nested objects, arrays, and circular references
  */
 export function redactSensitiveData(
-  data: any,
+  data: unknown,
   seen = new WeakSet()
-): any {
+): unknown {
   // Handle null/undefined
   if (data === null || data === undefined) {
     return data;
@@ -60,7 +60,7 @@ export function redactSensitiveData(
   }
 
   // Handle objects
-  const result: any = {};
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data)) {
     if (isSensitiveField(key)) {
       result[key] = "[REDACTED]";

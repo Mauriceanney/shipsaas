@@ -6,7 +6,6 @@
  */
 
 import { ArrowRight, Sparkles, X } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,7 @@ export function UpgradeBanner({
   const displayDescription =
     description ??
     `Get access to ${feature ?? "premium features"} with our ${planDisplayName} plan.`;
-  const pricingUrl = `/pricing?source=upgrade_banner&plan=${requiredPlan}`;
+  const pricingUrl = `/pricing?source=upgrade_banner&plan=${requiredPlan}` as const;
 
   const variants = {
     default: "bg-primary/5 border-primary/20",
@@ -85,10 +84,10 @@ export function UpgradeBanner({
 
       <div className="flex items-center gap-2">
         <Button asChild>
-          <Link href={pricingUrl}>
+          <a href={pricingUrl}>
             Upgrade
             <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-          </Link>
+          </a>
         </Button>
         {dismissible && (
           <Button
