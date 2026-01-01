@@ -307,6 +307,111 @@ describe("admin analytics", () => {
       });
     });
 
+    describe("LTV calculation", () => {
+      it("calculates LTV correctly based on ARPU and churn", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        // 2 paying customers, $100 MRR total → ARPU = $50
+        mockDb.subscription.findMany.mockResolvedValue([
+          { stripePriceId: "price_pro_monthly", status: "ACTIVE" },
+        ]);
+
+        // 10% churn (1 canceled out of 10 total at month start)
+        mockDb.subscription.groupBy.mockResolvedValue([
+          { status: "ACTIVE", _count: { id: 9 } },
+          { status: "CANCELED", _count: { id: 1 } },
+        ]);
+
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // 9 active + 0 trialing = 9 paying customers
+          // ARPU = 99 / 9 = 11
+          // Churn rate = 1 / 10 * 100 = 10%
+          // Monthly churn = 0.1
+          // Avg lifetime = 1 / 0.1 = 10 months
+          // LTV = 11 * 10 = 110
+          expect(result.data.ltv.payingCustomers).toBe(9);
+          expect(result.data.ltv.arpu).toBe(11);
+          expect(result.data.ltv.avgLifetimeMonths).toBe(10);
+          expect(result.data.ltv.value).toBe(110);
+        }
+      });
+
+      it("returns 0 ARPU when no paying customers", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValue([]);
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.ltv.payingCustomers).toBe(0);
+          expect(result.data.ltv.arpu).toBe(0);
+        }
+      });
+
+      it("uses 12 months default lifetime when zero churn", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        // 1 paying customer, $19 MRR
+        mockDb.subscription.findMany.mockResolvedValue([
+          { stripePriceId: "price_plus_monthly", status: "ACTIVE" },
+        ]);
+
+        // Zero churn (only active, no canceled)
+        mockDb.subscription.groupBy.mockResolvedValue([
+          { status: "ACTIVE", _count: { id: 1 } },
+        ]);
+
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // Zero churn → default 12 months lifetime
+          expect(result.data.ltv.avgLifetimeMonths).toBe(12);
+          // LTV = ARPU * 12 = 19 * 12 = 228
+          expect(result.data.ltv.value).toBe(228);
+        }
+      });
+
+      it("includes trialing customers in paying count", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValue([
+          { stripePriceId: "price_plus_monthly", status: "ACTIVE" },
+          { stripePriceId: "price_plus_monthly", status: "TRIALING" },
+        ]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([
+          { status: "ACTIVE", _count: { id: 5 } },
+          { status: "TRIALING", _count: { id: 3 } },
+        ]);
+
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // Active + Trialing = 5 + 3 = 8 paying customers
+          expect(result.data.ltv.payingCustomers).toBe(8);
+        }
+      });
+    });
+
     describe("trends", () => {
       it("returns signup trends for last 12 months", async () => {
         mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
