@@ -3,3 +3,5 @@ export { ManageSubscriptionButton } from "./manage-subscription-button";
 export { DunningBanner } from "./dunning-banner";
 export { UsageMeter } from "./usage-meter";
 export { UsageLimitModal } from "./usage-limit-modal";
+export { PaymentHistory } from "./payment-history";
+export { PaymentHistoryTable } from "./payment-history-table";
