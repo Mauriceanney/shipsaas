@@ -34,8 +34,8 @@ export default async function AdminDashboardPage() {
 
   // Calculate estimated MRR from subscriptions
   const estimatedMRR =
-    metrics.subscriptions.byPlan.PLUS * PLAN_PRICING.PRO.monthly +
-    metrics.subscriptions.byPlan.PRO * PLAN_PRICING.ENTERPRISE.monthly;
+    metrics.subscriptions.byPlan.PLUS * PLAN_PRICING.PLUS.monthly +
+    metrics.subscriptions.byPlan.PRO * PLAN_PRICING.PRO.monthly;
 
   return (
     <div className="space-y-6">

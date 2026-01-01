@@ -7,8 +7,8 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getUserUsage, getCurrentPeriod } from "@/lib/usage";
 import { getCachedData, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { getUserUsage } from "@/lib/usage";
 
 import type { Plan, SubscriptionStatus } from "@prisma/client";
 

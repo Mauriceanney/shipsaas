@@ -62,6 +62,10 @@ export * from "./components";
 
 // Import templates for render functions
 import {
+  AdminMessageEmail,
+  type AdminMessageEmailProps,
+} from "./admin-message";
+import {
   DunningFinalWarningEmail,
   type DunningFinalWarningEmailProps,
 } from "./dunning-final-warning";
@@ -106,10 +110,6 @@ import {
   type VerifyEmailTemplateProps,
 } from "./verify-email";
 import { WelcomeEmail, type WelcomeEmailProps } from "./welcome";
-import {
-  AdminMessageEmail,
-  type AdminMessageEmailProps,
-} from "./admin-message";
 
 // ============================================
 // RENDER FUNCTIONS

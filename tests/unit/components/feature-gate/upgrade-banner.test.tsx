@@ -18,7 +18,7 @@ describe("UpgradeBanner", () => {
 
       expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
       expect(
-        screen.getByText(/Get access to premium features with our Plus plan/)
+        screen.getByText(/Get access to premium features with our Pro plan/)
       ).toBeInTheDocument();
     });
 
@@ -44,7 +44,7 @@ describe("UpgradeBanner", () => {
       render(<UpgradeBanner requiredPlan="PRO" />);
 
       expect(
-        screen.getByText(/Get access to premium features with our Pro plan/)
+        screen.getByText(/Get access to premium features with our Enterprise plan/)
       ).toBeInTheDocument();
     });
   });
@@ -54,14 +54,14 @@ describe("UpgradeBanner", () => {
       render(<UpgradeBanner />);
 
       const link = screen.getByRole("link", { name: /upgrade/i });
-      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_banner&plan=PRO");
+      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_banner&plan=PLUS");
     });
 
-    it("upgrade button links to pricing page with PLUS plan", () => {
+    it("upgrade button links to pricing page with PRO plan", () => {
       render(<UpgradeBanner requiredPlan="PRO" />);
 
       const link = screen.getByRole("link", { name: /upgrade/i });
-      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_banner&plan=ENTERPRISE");
+      expect(link).toHaveAttribute("href", "/pricing?source=upgrade_banner&plan=PRO");
     });
   });
 

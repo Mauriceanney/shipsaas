@@ -5,8 +5,8 @@
  * Server actions for performing operations on multiple users at once
  */
 
-import { auth } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendAdminMessage } from "@/lib/email";
 import {
@@ -97,7 +97,7 @@ export async function bulkDisableUsers(
           });
 
           result.successCount++;
-        } catch (error) {
+        } catch {
           result.failureCount++;
           result.errors.push({
             userId: user.id,
@@ -190,7 +190,7 @@ export async function bulkEnableUsers(
           });
 
           result.successCount++;
-        } catch (error) {
+        } catch {
           result.failureCount++;
           result.errors.push({
             userId: user.id,
@@ -282,7 +282,7 @@ export async function bulkChangeUserRole(
           });
 
           result.successCount++;
-        } catch (error) {
+        } catch {
           result.failureCount++;
           result.errors.push({
             userId: user.id,
@@ -348,19 +348,24 @@ export async function bulkSendEmail(
     // 5. Send emails (not in transaction as emails are external)
     for (const user of users) {
       try {
-        const emailResult = await sendAdminMessage({
-          to: user.email,
+        const emailResult = await sendAdminMessage(user.email, {
           recipientName: user.name ?? undefined,
           subject,
           body,
+          adminName: session.user.name ?? "Admin",
         });
 
         if (emailResult.success) {
           await createAuditLog({
             entityType: "User",
             entityId: user.id,
-            action: "EMAIL_SENT",
-            changes: { subject, body: body.substring(0, 100) + "..." },
+            action: "UPDATE",
+            changes: {
+              email_sent: {
+                old: null,
+                new: { subject, body: body.substring(0, 100) + "..." },
+              },
+            },
             userId: session.user.id,
             userEmail: session.user.email ?? "",
           });
@@ -373,7 +378,7 @@ export async function bulkSendEmail(
             reason: emailResult.error ?? "Failed to send email",
           });
         }
-      } catch (error) {
+      } catch {
         result.failureCount++;
         result.errors.push({
           userId: user.id,

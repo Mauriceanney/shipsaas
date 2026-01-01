@@ -35,7 +35,7 @@ export function ImpersonateButton({
   userName,
   userEmail,
 }: ImpersonateButtonProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState("");

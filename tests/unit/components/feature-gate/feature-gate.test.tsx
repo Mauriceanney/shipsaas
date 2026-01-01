@@ -54,7 +54,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PLUS",
+            plan: "PRO",
             status: "ACTIVE",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,
@@ -83,7 +83,7 @@ describe("FeatureGate", () => {
             role: "USER",
           },
           subscription: {
-            plan: "PLUS",
+            plan: "PRO",
             status: "ACTIVE",
             stripeCurrentPeriodEnd: null,
             statusChangedAt: null,

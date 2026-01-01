@@ -22,7 +22,6 @@ import {
 } from "./templates";
 
 import type { AdminMessageEmailProps } from "./templates";
-
 import type { SendEmailResult } from "./types";
 
 // ============================================

@@ -46,7 +46,7 @@ export function AppSidebar({ user, subscription }: AppSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
 
   // Load collapsed state from localStorage on mount
   useEffect(() => {

@@ -61,8 +61,21 @@ async function checkPostHogFlag(
       return null;
     }
 
+    // Convert properties to string values as PostHog expects
+    const stringProperties = userProperties
+      ? Object.entries(userProperties).reduce(
+          (acc, [key, value]) => {
+            if (value !== undefined) {
+              acc[key] = String(value);
+            }
+            return acc;
+          },
+          {} as Record<string, string>
+        )
+      : undefined;
+
     const result = await client.isFeatureEnabled(flagKey, userId, {
-      personProperties: userProperties,
+      personProperties: stringProperties,
     });
 
     // PostHog returns boolean or undefined
