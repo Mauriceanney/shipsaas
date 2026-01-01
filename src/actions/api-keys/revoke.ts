@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServerEvent, SETTINGS_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -53,6 +54,11 @@ export async function revokeApiKey(input: unknown) {
       },
       "API key revoked"
     );
+
+    // Track analytics event
+    trackServerEvent(session.user.id, SETTINGS_EVENTS.API_KEY_REVOKED, {
+      environment: apiKey.environment,
+    });
 
     return { success: true as const };
   } catch (error) {

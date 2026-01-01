@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/email";
 import {
@@ -119,6 +120,9 @@ export async function verifyEmailAction(
       console.error("Failed to send welcome email:", emailError);
       // Don't throw - email verification was successful
     }
+
+    // Track email verification
+    trackServerEvent(user.id, AUTH_EVENTS.EMAIL_VERIFIED);
 
     // Revalidate dashboard
     revalidatePath("/dashboard");

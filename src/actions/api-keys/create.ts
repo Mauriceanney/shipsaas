@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServerEvent, SETTINGS_EVENTS } from "@/lib/analytics";
 import { generateApiKey, hashApiKey, getKeyPrefix } from "@/lib/api-key/generate";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -76,6 +77,11 @@ export async function createApiKey(input: unknown) {
       },
       "API key created"
     );
+
+    // Track analytics event
+    trackServerEvent(session.user.id, SETTINGS_EVENTS.API_KEY_CREATED, {
+      environment: parsed.data.environment,
+    });
 
     // 7. Return key (only time it's shown) and metadata
     return {
