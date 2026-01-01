@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getUserById } from "@/actions/admin/users";
 import { EmailComposeDialog } from "@/components/admin/email-compose-dialog";
 import { ImpersonateButton } from "@/components/admin/impersonate-button";
+import { RefundButton } from "@/components/admin/refund-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,9 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   if (!user) {
     notFound();
   }
+
+  // Check if user has payment history (has stripeCustomerId)
+  const hasPaymentHistory = Boolean(user.subscription?.stripeCustomerId);
 
   return (
     <div className="space-y-6">
@@ -100,7 +104,17 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Subscription</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Subscription</CardTitle>
+              {user.subscription && (
+                <RefundButton
+                  userId={user.id}
+                  subscriptionId={user.subscription.id}
+                  customerEmail={user.email}
+                  hasPaymentHistory={hasPaymentHistory}
+                />
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {user.subscription ? (
