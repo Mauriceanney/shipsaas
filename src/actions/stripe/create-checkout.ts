@@ -1,11 +1,10 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { trackServerEvent, SUBSCRIPTION_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { redirectTo } from "@/lib/navigation";
 import { CHECKOUT_URLS, getTrialDays, isValidPriceId, stripe } from "@/lib/stripe";
 import { getPlanFromPriceId } from "@/lib/stripe/utils";
 
@@ -141,12 +140,10 @@ export async function redirectToCheckout(priceId: string): Promise<never> {
 
   if (result.success) {
     // External URL redirect - Stripe checkout URL
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return redirect(result.data.url as any);
+    return redirectTo(result.data.url);
   }
 
   // Redirect to pricing with error
   const errorUrl = `/pricing?error=${encodeURIComponent(result.error)}`;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return redirect(errorUrl as any);
+  return redirectTo(errorUrl);
 }

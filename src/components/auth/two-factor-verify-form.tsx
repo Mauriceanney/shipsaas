@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { asDynamicRoute, navigateAndRefresh } from "@/lib/navigation";
 
 export function TwoFactorVerifyForm() {
   const router = useRouter();
@@ -67,9 +68,7 @@ export function TwoFactorVerifyForm() {
       const result = await verifyTwoFactorAction({ code, userId, rememberDevice });
 
       if (result.success) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        router.push(callbackUrl as any);
-        router.refresh();
+        navigateAndRefresh(router, asDynamicRoute(callbackUrl));
       } else {
         setError(result.error);
       }

@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { asDynamicRoute, navigateTo } from "@/lib/navigation";
 import { PLAN_PRICING } from "@/lib/stripe/config";
 import { cn } from "@/lib/utils";
 
@@ -47,8 +48,7 @@ export function PricingCard({
 
   const handleSubscribe = async () => {
     if (!isAuthenticated) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.push("/login?callbackUrl=/pricing" as any);
+      navigateTo(router, asDynamicRoute("/login?callbackUrl=/pricing"));
       return;
     }
 

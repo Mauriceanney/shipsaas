@@ -1,9 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { redirectTo } from "@/lib/navigation";
 import { PORTAL_RETURN_URL, stripe } from "@/lib/stripe";
 
 import type { Result } from "@/types";
@@ -57,12 +56,10 @@ export async function redirectToPortal(returnUrl?: string): Promise<never> {
 
   if (result.success) {
     // External URL redirect - Stripe portal URL
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return redirect(result.data.url as any);
+    return redirectTo(result.data.url);
   }
 
   // Redirect to billing with error
   const errorUrl = `/settings/billing?error=${encodeURIComponent(result.error)}`;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return redirect(errorUrl as any);
+  return redirectTo(errorUrl);
 }
