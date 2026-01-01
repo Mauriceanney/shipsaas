@@ -7,8 +7,8 @@ import { z } from "zod";
  * Uses Zod for type-safe validation with helpful error messages.
  */
 
-// Server-side environment schema
-const serverEnvSchema = z.object({
+// Server-side environment schema (base)
+const serverEnvBaseSchema = z.object({
   // Application
   NODE_ENV: z
     .enum(["development", "production", "test"])
@@ -34,10 +34,10 @@ const serverEnvSchema = z.object({
   // Stripe
   STRIPE_SECRET_KEY: z
     .string()
-    .startsWith("sk_", "STRIPE_SECRET_KEY must start with 'sk_'"),
+    .startsWith("sk_", "STRIPE_SECRET_KEY must start with \'sk_\'"),
   STRIPE_WEBHOOK_SECRET: z
     .string()
-    .startsWith("whsec_", "STRIPE_WEBHOOK_SECRET must start with 'whsec_'")
+    .startsWith("whsec_", "STRIPE_WEBHOOK_SECRET must start with \'whsec_\'")
     .optional(),
   STRIPE_PRICE_ID_PRO_MONTHLY: z.string().optional(),
   STRIPE_PRICE_ID_PRO_YEARLY: z.string().optional(),
@@ -52,6 +52,12 @@ const serverEnvSchema = z.object({
     .string()
     .regex(/^\d+$/, "SMTP_PORT must be a number")
     .optional(),
+
+  // Cron jobs (optional in development, required in production)
+  CRON_SECRET: z
+    .string()
+    .min(32, "CRON_SECRET must be at least 32 characters")
+    .optional(),
 });
 
 // Client-side environment schema (NEXT_PUBLIC_* variables)
@@ -62,12 +68,24 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_APP_NAME: z.string().default("ShipSaaS"),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z
     .string()
-    .startsWith("pk_", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must start with 'pk_'")
+    .startsWith("pk_", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must start with \'pk_\'")
     .optional(),
 });
 
-// Combined schema
-const envSchema = serverEnvSchema.merge(clientEnvSchema);
+// Combined schema with refinement for production requirements
+const envSchema = serverEnvBaseSchema.merge(clientEnvSchema).refine(
+  (data) => {
+    // In production, CRON_SECRET is required
+    if (data.NODE_ENV === "production" && !data.CRON_SECRET) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "CRON_SECRET is required in production",
+    path: ["CRON_SECRET"],
+  }
+);
 
 export type Env = z.infer<typeof envSchema>;
 

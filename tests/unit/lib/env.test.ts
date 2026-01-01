@@ -108,6 +108,59 @@ describe("Environment Validation", () => {
     });
   });
 
+  describe("CRON_SECRET validation", () => {
+    it("should accept CRON_SECRET when provided with minimum length", async () => {
+      process.env["CRON_SECRET"] = "cron-secret-that-is-at-least-32-characters-long";
+      const { env } = await import("@/lib/env");
+
+      expect(env.CRON_SECRET).toBe("cron-secret-that-is-at-least-32-characters-long");
+    });
+
+    it("should reject CRON_SECRET shorter than 32 characters", async () => {
+      process.env["CRON_SECRET"] = "too-short";
+
+      await expect(async () => {
+        await import("@/lib/env");
+      }).rejects.toThrow();
+    });
+
+    it("should allow missing CRON_SECRET in development", async () => {
+      process.env["NODE_ENV"] = "development";
+      delete process.env["CRON_SECRET"];
+      
+      const { env } = await import("@/lib/env");
+
+      expect(env.CRON_SECRET).toBeUndefined();
+    });
+
+    it("should allow missing CRON_SECRET in test", async () => {
+      process.env["NODE_ENV"] = "test";
+      delete process.env["CRON_SECRET"];
+      
+      const { env } = await import("@/lib/env");
+
+      expect(env.CRON_SECRET).toBeUndefined();
+    });
+
+    it("should require CRON_SECRET in production", async () => {
+      process.env["NODE_ENV"] = "production";
+      delete process.env["CRON_SECRET"];
+
+      await expect(async () => {
+        await import("@/lib/env");
+      }).rejects.toThrow();
+    });
+
+    it("should require CRON_SECRET with minimum length in production", async () => {
+      process.env["NODE_ENV"] = "production";
+      process.env["CRON_SECRET"] = "too-short-for-production";
+
+      await expect(async () => {
+        await import("@/lib/env");
+      }).rejects.toThrow();
+    });
+  });
+
   describe("getEnv helper", () => {
     it("should return typed env value", async () => {
       const { getEnv } = await import("@/lib/env");
