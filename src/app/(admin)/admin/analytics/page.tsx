@@ -1,9 +1,11 @@
 import { getAdminAnalytics } from "@/actions/admin/analytics";
 import { ChurnRateCard } from "@/components/admin/churn-rate-card";
 import { ExportAnalyticsButton } from "@/components/admin/export-analytics-button";
+import {
+  SignupTrendChart,
+  SubscriptionBreakdownChart,
+} from "@/components/admin/lazy-charts";
 import { RevenueOverview } from "@/components/admin/revenue-overview";
-import { SignupTrendChart } from "@/components/admin/signup-trend-chart";
-import { SubscriptionBreakdownChart } from "@/components/admin/subscription-breakdown-chart";
 import { PageHeader } from "@/components/ui/page-header";
 
 import type { Metadata } from "next";
