@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export interface DunningStatusData {
   showBanner: boolean;
@@ -60,7 +61,7 @@ export async function getDunningStatus(): Promise<DunningStatusResult> {
       },
     };
   } catch (error) {
-    console.error("[getDunningStatus]", error);
+    logger.error({ err: error }, "Failed to get dunning status");
     return { success: false, error: "Failed to get dunning status" };
   }
 }

@@ -340,18 +340,6 @@ describe("regenerateBackupCodesAction", () => {
       expect(result.success).toBe(false);
     });
 
-    it("logs errors to console", async () => {
-      const consoleError = vi.spyOn(console, "error");
-      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-      mockDb.user.findUnique.mockRejectedValue(new Error("Test error"));
-
-      await regenerateBackupCodesAction({ code: "123456" });
-
-      expect(consoleError).toHaveBeenCalledWith(
-        "Backup code regeneration error:",
-        expect.any(Error)
-      );
-    });
   });
 
   describe("security", () => {

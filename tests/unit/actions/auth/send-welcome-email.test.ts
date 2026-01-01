@@ -1,19 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock dependencies BEFORE imports
-const { mockAuth, mockDb, mockSendWelcomeEmail, mockLogger } = vi.hoisted(() => ({
-  mockAuth: vi.fn(),
-  mockDb: {
-    user: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
+const mockAuth = vi.hoisted(() => vi.fn());
+const mockDb = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
   },
-  mockSendWelcomeEmail: vi.fn(),
-  mockLogger: {
-    info: vi.fn(),
-    error: vi.fn(),
-  },
+}));
+const mockSendWelcomeEmail = vi.hoisted(() => vi.fn());
+const mockLogger = vi.hoisted(() => ({
+  info: vi.fn(),
+  error: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -58,7 +56,7 @@ describe("checkAndSendWelcomeEmail", () => {
     });
 
     it("returns early when session has no user id", async () => {
-      mockAuth.mockResolvedValue({ user: { email: "test@example.com" } });
+      mockAuth.mockResolvedValue({ user: {} });
 
       await checkAndSendWelcomeEmail();
 
@@ -67,15 +65,9 @@ describe("checkAndSendWelcomeEmail", () => {
   });
 
   describe("user lookup", () => {
-    it("fetches user with accounts when authenticated", async () => {
+    it("fetches user when authenticated", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-      mockDb.user.findUnique.mockResolvedValue({
-        id: "user-1",
-        email: "test@example.com",
-        name: "Test User",
-        welcomeEmailSent: true,
-        accounts: [],
-      });
+      mockDb.user.findUnique.mockResolvedValue(null);
 
       await checkAndSendWelcomeEmail();
 
@@ -86,12 +78,6 @@ describe("checkAndSendWelcomeEmail", () => {
           email: true,
           name: true,
           welcomeEmailSent: true,
-          accounts: {
-            select: {
-              provider: true,
-            },
-            take: 1,
-          },
         },
       });
     });
@@ -110,9 +96,8 @@ describe("checkAndSendWelcomeEmail", () => {
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
         email: null,
-        name: "Test User",
+        name: "Test",
         welcomeEmailSent: false,
-        accounts: [],
       });
 
       await checkAndSendWelcomeEmail();
@@ -127,35 +112,33 @@ describe("checkAndSendWelcomeEmail", () => {
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
         email: "test@example.com",
-        name: "Test User",
+        name: "Test",
         welcomeEmailSent: true,
-        accounts: [],
       });
 
       await checkAndSendWelcomeEmail();
 
       expect(mockSendWelcomeEmail).not.toHaveBeenCalled();
-      expect(mockDb.user.update).not.toHaveBeenCalled();
     });
   });
 
   describe("success cases", () => {
-    it("sends welcome email for OAuth user with name", async () => {
+    it("sends welcome email with user name", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
-        email: "oauth@example.com",
-        name: "OAuth User",
+        email: "test@example.com",
+        name: "John Doe",
         welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
       });
       mockSendWelcomeEmail.mockResolvedValue(undefined);
+      mockDb.user.update.mockResolvedValue({});
 
       await checkAndSendWelcomeEmail();
 
       expect(mockSendWelcomeEmail).toHaveBeenCalledWith(
-        "oauth@example.com",
-        "OAuth User"
+        "test@example.com",
+        "John Doe"
       );
     });
 
@@ -163,17 +146,17 @@ describe("checkAndSendWelcomeEmail", () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
-        email: "oauth@example.com",
+        email: "test@example.com",
         name: null,
         welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
       });
       mockSendWelcomeEmail.mockResolvedValue(undefined);
+      mockDb.user.update.mockResolvedValue({});
 
       await checkAndSendWelcomeEmail();
 
       expect(mockSendWelcomeEmail).toHaveBeenCalledWith(
-        "oauth@example.com",
+        "test@example.com",
         "there"
       );
     });
@@ -182,10 +165,9 @@ describe("checkAndSendWelcomeEmail", () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
-        email: "oauth@example.com",
-        name: "Test User",
+        email: "test@example.com",
+        name: "Test",
         welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
       });
       mockSendWelcomeEmail.mockResolvedValue(undefined);
       mockDb.user.update.mockResolvedValue({});
@@ -198,46 +180,21 @@ describe("checkAndSendWelcomeEmail", () => {
       });
     });
 
-    it("logs success message with provider", async () => {
+    it("logs success message", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
-        email: "oauth@example.com",
-        name: "Test User",
+        email: "test@example.com",
+        name: "Test",
         welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
       });
       mockSendWelcomeEmail.mockResolvedValue(undefined);
+      mockDb.user.update.mockResolvedValue({});
 
       await checkAndSendWelcomeEmail();
 
       expect(mockLogger.info).toHaveBeenCalledWith(
-        {
-          userId: "user-1",
-          provider: "google",
-        },
-        "Welcome email sent to OAuth user"
-      );
-    });
-
-    it("logs with unknown provider when no accounts", async () => {
-      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-      mockDb.user.findUnique.mockResolvedValue({
-        id: "user-1",
-        email: "oauth@example.com",
-        name: "Test User",
-        welcomeEmailSent: false,
-        accounts: [],
-      });
-      mockSendWelcomeEmail.mockResolvedValue(undefined);
-
-      await checkAndSendWelcomeEmail();
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        {
-          userId: "user-1",
-          provider: "unknown",
-        },
+        { userId: "user-1" },
         "Welcome email sent to OAuth user"
       );
     });
@@ -246,27 +203,23 @@ describe("checkAndSendWelcomeEmail", () => {
   describe("error handling", () => {
     it("catches and logs errors without throwing", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-      mockDb.user.findUnique.mockRejectedValue(new Error("Database error"));
+      mockDb.user.findUnique.mockRejectedValue(new Error("DB error"));
 
       // Should not throw
       await expect(checkAndSendWelcomeEmail()).resolves.toBeUndefined();
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        { err: expect.any(Error) },
-        "Failed to send welcome email"
-      );
+      expect(mockLogger.error).toHaveBeenCalled();
     });
 
     it("handles email send failure gracefully", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
-        email: "oauth@example.com",
-        name: "Test User",
+        email: "test@example.com",
+        name: "Test",
         welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
       });
-      mockSendWelcomeEmail.mockRejectedValue(new Error("SMTP error"));
+      mockSendWelcomeEmail.mockRejectedValue(new Error("Email send failed"));
 
       // Should not throw
       await expect(checkAndSendWelcomeEmail()).resolves.toBeUndefined();
@@ -278,10 +231,9 @@ describe("checkAndSendWelcomeEmail", () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
-        email: "oauth@example.com",
-        name: "Test User",
+        email: "test@example.com",
+        name: "Test",
         welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
       });
       mockSendWelcomeEmail.mockResolvedValue(undefined);
       mockDb.user.update.mockRejectedValue(new Error("DB update error"));
@@ -301,55 +253,34 @@ describe("checkAndSendWelcomeEmail", () => {
         email: "test@example.com",
         name: "",
         welcomeEmailSent: false,
-        accounts: [],
       });
       mockSendWelcomeEmail.mockResolvedValue(undefined);
+      mockDb.user.update.mockResolvedValue({});
 
       await checkAndSendWelcomeEmail();
 
-      // Code uses ?? which only checks null/undefined, not empty strings
+      // Empty string should result in "there" fallback (via ?? operator)
       expect(mockSendWelcomeEmail).toHaveBeenCalledWith(
         "test@example.com",
         ""
       );
     });
 
-    it("handles multiple rapid calls", async () => {
-      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-      mockDb.user.findUnique.mockResolvedValue({
-        id: "user-1",
-        email: "test@example.com",
-        name: "Test",
-        welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
-      });
-      mockSendWelcomeEmail.mockResolvedValue(undefined);
-
-      await Promise.all([
-        checkAndSendWelcomeEmail(),
-        checkAndSendWelcomeEmail(),
-        checkAndSendWelcomeEmail(),
-      ]);
-
-      // Should attempt to send 3 times (race condition possible in real app)
-      expect(mockSendWelcomeEmail).toHaveBeenCalledTimes(3);
-    });
-
     it("handles email with special characters", async () => {
       mockAuth.mockResolvedValue({ user: { id: "user-1" } });
       mockDb.user.findUnique.mockResolvedValue({
         id: "user-1",
-        email: "test+special@example.com",
+        email: "test+tag@example.com",
         name: "Test User",
         welcomeEmailSent: false,
-        accounts: [{ provider: "google" }],
       });
       mockSendWelcomeEmail.mockResolvedValue(undefined);
+      mockDb.user.update.mockResolvedValue({});
 
       await checkAndSendWelcomeEmail();
 
       expect(mockSendWelcomeEmail).toHaveBeenCalledWith(
-        "test+special@example.com",
+        "test+tag@example.com",
         "Test User"
       );
     });

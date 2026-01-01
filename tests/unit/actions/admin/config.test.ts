@@ -138,7 +138,6 @@ describe("admin/config actions", () => {
       expect(mockDb.planConfig.create).toHaveBeenCalledWith({
         data: {
           plan: "PRO",
-          name: updateData.name,
           ...updateData,
         },
       });
