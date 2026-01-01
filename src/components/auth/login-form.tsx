@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { asDynamicRoute, navigateAndRefresh, navigateTo } from "@/lib/navigation";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
 import { SocialLoginButtons } from "./social-login-buttons";
@@ -53,12 +54,9 @@ export function LoginForm() {
 
     if (result.success) {
       toast.success("Welcome back!");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.push(callbackUrl as any);
-      router.refresh();
+      navigateAndRefresh(router, asDynamicRoute(callbackUrl));
     } else if ("requires2FA" in result && result.requires2FA) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.push(`/login/verify-2fa?userId=${result.userId}&callbackUrl=${encodeURIComponent(callbackUrl)}` as any);
+      navigateTo(router, asDynamicRoute(`/login/verify-2fa?userId=${result.userId}&callbackUrl=${encodeURIComponent(callbackUrl)}`));
     } else if ("error" in result) {
       toast.error(result.error);
     }
