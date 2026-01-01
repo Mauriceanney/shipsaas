@@ -38,6 +38,17 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "ShipSaaS" }],
   creator: "ShipSaaS",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icon-512.svg", sizes: "512x512", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -48,10 +59,11 @@ export const metadata: Metadata = {
       "Production-ready SaaS boilerplate with authentication, payments, email, and more.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.svg",
         width: 1200,
         height: 630,
         alt: "ShipSaaS - Build Your SaaS Faster",
+        type: "image/svg+xml",
       },
     ],
   },
@@ -60,7 +72,7 @@ export const metadata: Metadata = {
     title: "ShipSaaS - Build Your SaaS Faster",
     description:
       "Production-ready SaaS boilerplate with authentication, payments, email, and more.",
-    images: ["/og-image.png"],
+    images: ["/og-image.svg"],
   },
   robots: {
     index: true,
