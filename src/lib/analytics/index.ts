@@ -7,10 +7,19 @@ export { analyticsConfig, isAnalyticsEnabled } from "./config";
 
 // Event constants
 export {
+  ADMIN_EVENTS,
   ANALYTICS_EVENTS,
   AUTH_EVENTS,
+  DASHBOARD_EVENTS,
+  ERROR_EVENTS,
+  EXPORT_EVENTS,
   FEATURE_EVENTS,
+  NAVIGATION_EVENTS,
+  ONBOARDING_EVENTS,
+  SEARCH_EVENTS,
+  SETTINGS_EVENTS,
   SUBSCRIPTION_EVENTS,
+  UPGRADE_PROMPT_EVENTS,
 } from "./events";
 export type { AnalyticsEvent } from "./events";
 

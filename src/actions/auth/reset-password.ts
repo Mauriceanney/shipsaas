@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
+import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendPasswordChangedEmail } from "@/lib/email";
 import {
@@ -133,6 +134,11 @@ export async function resetPasswordAction(
     } catch (emailError) {
       console.error("Failed to send password changed email:", emailError);
       // Don't throw - password was changed successfully
+    }
+
+    // Track password reset completion
+    if (user?.id) {
+      trackServerEvent(user.id, AUTH_EVENTS.PASSWORD_RESET_COMPLETED);
     }
 
     // Revalidate login page

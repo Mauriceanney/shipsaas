@@ -2,6 +2,7 @@
 
 import crypto from "crypto";
 
+import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
@@ -78,6 +79,9 @@ export async function forgotPasswordAction(
       );
       // Don't throw - user can request again
     }
+
+    // Track password reset request (only for valid users to protect against enumeration)
+    trackServerEvent(user.id, AUTH_EVENTS.PASSWORD_RESET_REQUESTED);
 
     return { success: true, message: successMessage };
   } catch (error) {
