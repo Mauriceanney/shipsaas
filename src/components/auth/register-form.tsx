@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 
 import { SocialLoginButtons } from "./social-login-buttons";
@@ -36,6 +37,7 @@ export function RegisterForm() {
   });
 
   const tosAccepted = watch("tosAccepted");
+  const password = watch("password");
 
   const onSubmit = (data: RegisterInput) => {
     startTransition(async () => {
@@ -138,11 +140,8 @@ export function RegisterForm() {
               {errors.password.message}
             </p>
           )}
-          {!errors.password && (
-            <p className="text-xs text-muted-foreground">
-              Must be 8+ characters with uppercase, lowercase, number, and special
-              character.
-            </p>
+          {!errors.password && password && (
+            <PasswordStrengthIndicator password={password} />
           )}
         </div>
 

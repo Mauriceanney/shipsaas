@@ -1,13 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { updateProfile } from "@/actions/settings/update-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CharacterCount } from "@/components/ui/character-count";
+import {
+  updateProfileSchema,
+  type UpdateProfileInput,
+} from "@/lib/validations/profile";
 
 type ProfileFormProps = {
   defaultName?: string | null;
@@ -15,79 +21,113 @@ type ProfileFormProps = {
   isCredentialUser: boolean;
 };
 
-export function ProfileForm({ defaultName, defaultEmail, isCredentialUser }: ProfileFormProps) {
-  const [isPending, startTransition] = useTransition();
+export function ProfileForm({
+  defaultName,
+  defaultEmail,
+  isCredentialUser,
+}: ProfileFormProps) {
   const router = useRouter();
 
-  async function handleSubmit(formData: FormData) {
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<UpdateProfileInput>({
+    resolver: zodResolver(updateProfileSchema),
+    mode: "onBlur",
+    defaultValues: {
+      name: defaultName || "",
+      email: defaultEmail || undefined,
+    },
+  });
 
-    // Client-side validation
-    if (!name || !name.trim()) {
-      toast.error("Name is required");
+  const name = watch("name");
+
+  const onSubmit = async (data: UpdateProfileInput) => {
+    const result = await updateProfile({
+      name: data.name.trim(),
+      ...(isCredentialUser && data.email ? { email: data.email.trim() } : {}),
+    });
+
+    if (!result.success) {
+      toast.error(result.error);
       return;
     }
 
-    startTransition(async () => {
-      const result = await updateProfile({
-        name: name.trim(),
-        ...(isCredentialUser && email ? { email: email.trim() } : {}),
-      });
-
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-
-      toast.success("Profile updated successfully");
-      router.refresh();
-    });
-  }
-
-  // Key forces form to remount when default values change (after successful update)
-  const formKey = `${defaultName}-${defaultEmail}`;
+    toast.success("Profile updated successfully");
+    router.refresh();
+  };
 
   return (
-    <form key={formKey} action={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid gap-2">
-        <Label htmlFor="name">Name</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="name">Name</Label>
+          <CharacterCount current={name?.length || 0} max={100} />
+        </div>
         <Input
           id="name"
-          name="name"
           type="text"
-          defaultValue={defaultName || ""}
-          required
-          disabled={isPending}
+          disabled={isSubmitting}
           className="max-w-md"
-          aria-describedby="name-description"
+          required
+          aria-invalid={!!errors.name}
+          aria-describedby={
+            errors.name ? "name-error" : "name-description"
+          }
+          {...register("name")}
         />
-        <p id="name-description" className="text-sm text-muted-foreground">
-          Your display name across the application
-        </p>
+        {errors.name && (
+          <p
+            id="name-error"
+            className="text-sm text-destructive"
+            role="alert"
+          >
+            {errors.name.message}
+          </p>
+        )}
+        {!errors.name && (
+          <p id="name-description" className="text-sm text-muted-foreground">
+            Your display name across the application
+          </p>
+        )}
       </div>
 
       <div className="grid gap-2">
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
-          name="email"
           type="email"
-          defaultValue={defaultEmail || ""}
-          required
-          disabled={isPending || !isCredentialUser}
+          disabled={isSubmitting || !isCredentialUser}
           className="max-w-md"
-          aria-describedby="email-description"
+          required
+          aria-invalid={!!errors.email}
+          aria-describedby={
+            errors.email ? "email-error" : "email-description"
+          }
+          {...register("email")}
         />
-        <p id="email-description" className="text-sm text-muted-foreground">
-          {isCredentialUser
-            ? "Your email address for login and notifications"
-            : "Email is managed by your authentication provider (Google, GitHub, etc.)"}
-        </p>
+        {errors.email && (
+          <p
+            id="email-error"
+            className="text-sm text-destructive"
+            role="alert"
+          >
+            {errors.email.message}
+          </p>
+        )}
+        {!errors.email && (
+          <p id="email-description" className="text-sm text-muted-foreground">
+            {isCredentialUser
+              ? "Your email address for login and notifications"
+              : "Email is managed by your authentication provider (Google, GitHub, etc.)"}
+          </p>
+        )}
       </div>
 
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Saving..." : "Save Changes"}
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Saving..." : "Save Changes"}
       </Button>
     </form>
   );

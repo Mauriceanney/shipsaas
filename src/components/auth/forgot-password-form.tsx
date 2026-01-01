@@ -1,52 +1,68 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { forgotPasswordAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordInput,
+} from "@/lib/validations/auth";
 
 export function ForgotPasswordForm() {
-  const [isPending, startTransition] = useTransition();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: "onBlur",
+  });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-
-    startTransition(async () => {
-      const result = await forgotPasswordAction({ email });
-      toast.success(result.message);
-    });
+  const onSubmit = async (data: ForgotPasswordInput) => {
+    const result = await forgotPasswordAction(data);
+    toast.success(result.message);
   };
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
-            name="email"
             type="email"
             placeholder="you@example.com"
-            required
-            disabled={isPending}
+            disabled={isSubmitting}
             data-testid="email"
+            required
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            {...register("email")}
           />
+          {errors.email && (
+            <p
+              id="email-error"
+              className="text-sm text-destructive mt-1"
+              role="alert"
+            >
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <Button
           type="submit"
           className="w-full"
-          disabled={isPending}
+          disabled={isSubmitting}
           data-testid="forgot-password-button"
         >
-          {isPending ? "Sending..." : "Send reset link"}
+          {isSubmitting ? "Sending..." : "Send reset link"}
         </Button>
       </form>
 
