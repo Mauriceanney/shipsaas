@@ -48,6 +48,14 @@ export type AnalyticsData = {
     avgLifetimeMonths: number; // Average customer lifetime in months
     payingCustomers: number; // Number of paying customers
   };
+  // MRR Movement tracking
+  mrrMovement: {
+    new: number;        // MRR from new subscriptions this month
+    expansion: number;  // MRR from upgrades (future enhancement)
+    contraction: number; // MRR from downgrades (future enhancement)
+    churned: number;    // MRR lost from cancellations this month
+    net: number;        // Net MRR change (new + expansion - contraction - churned)
+  };
 };
 
 /**
@@ -87,6 +95,11 @@ export async function getAdminAnalytics() {
       CACHE_KEYS.adminAnalytics(),
       async () => {
         const priceToMonthly = getPriceToMonthlyMap();
+
+        // Calculate current month boundaries (UTC)
+        const now = new Date();
+        const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        const nextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 
         // Get active subscriptions for MRR calculation
         const activeSubscriptions = await db.subscription.findMany({
@@ -155,6 +168,70 @@ export async function getAdminAnalytics() {
           : 12; // Default to 12 months if no churn
         const ltv = arpu * avgLifetimeMonths;
 
+        // ============================================
+        // MRR MOVEMENT CALCULATION
+        // ============================================
+
+        // New MRR: Subscriptions created this month with ACTIVE/TRIALING status
+        const newSubscriptions = await db.subscription.findMany({
+          where: {
+            createdAt: {
+              gte: currentMonthStart,
+              lt: nextMonthStart,
+            },
+            status: { in: ["ACTIVE", "TRIALING"] },
+            stripePriceId: { not: null },
+          },
+          select: { stripePriceId: true },
+        });
+
+        let newMrr = 0;
+        for (const sub of newSubscriptions) {
+          if (sub.stripePriceId) {
+            const priceInfo = priceToMonthly[sub.stripePriceId];
+            if (priceInfo) {
+              newMrr += priceInfo.amount;
+            }
+          }
+        }
+
+        // Churned MRR: Subscriptions that became CANCELED this month
+        // Note: We use updatedAt as a proxy for when status changed to CANCELED
+        // This is not perfect but works with current schema
+        const churnedSubscriptions = await db.subscription.findMany({
+          where: {
+            status: "CANCELED",
+            updatedAt: {
+              gte: currentMonthStart,
+              lt: nextMonthStart,
+            },
+            stripePriceId: { not: null },
+          },
+          select: { stripePriceId: true },
+        });
+
+        let churnedMrr = 0;
+        for (const sub of churnedSubscriptions) {
+          if (sub.stripePriceId) {
+            const priceInfo = priceToMonthly[sub.stripePriceId];
+            if (priceInfo) {
+              churnedMrr += priceInfo.amount;
+            }
+          }
+        }
+
+        // TODO: Expansion and Contraction MRR
+        // These require tracking subscription plan changes over time.
+        // Implementation requires either:
+        // 1. A SubscriptionHistory table to track plan changes
+        // 2. Stripe event webhook logging for subscription.updated events
+        // For now, set to 0
+        const expansionMrr = 0;
+        const contractionMrr = 0;
+
+        // Net MRR movement
+        const netMrrMovement = newMrr + expansionMrr - contractionMrr - churnedMrr;
+
         /**
          * SECURITY: Raw SQL query for signup trends.
          * - Uses $queryRaw with template literal for PostgreSQL-specific TO_CHAR function
@@ -207,6 +284,13 @@ export async function getAdminAnalytics() {
             arpu,
             avgLifetimeMonths,
             payingCustomers,
+          },
+          mrrMovement: {
+            new: newMrr,
+            expansion: expansionMrr,
+            contraction: contractionMrr,
+            churned: churnedMrr,
+            net: netMrrMovement,
           },
         };
 

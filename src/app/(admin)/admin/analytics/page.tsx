@@ -6,6 +6,7 @@ import {
   SubscriptionBreakdownChart,
 } from "@/components/admin/lazy-charts";
 import { LtvMetrics } from "@/components/admin/ltv-metrics";
+import { MrrMovementCard } from "@/components/admin/mrr-movement-card";
 import { RevenueOverview } from "@/components/admin/revenue-overview";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -70,11 +71,19 @@ export default async function AnalyticsPage() {
         <SignupTrendChart data={analytics.trends.signups} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <ChurnRateCard
           rate={analytics.churn.rate}
           count={analytics.churn.count}
           total={analytics.churn.total}
+        />
+
+        <MrrMovementCard
+          newMrr={analytics.mrrMovement.new}
+          expansion={analytics.mrrMovement.expansion}
+          contraction={analytics.mrrMovement.contraction}
+          churned={analytics.mrrMovement.churned}
+          net={analytics.mrrMovement.net}
         />
       </div>
     </div>

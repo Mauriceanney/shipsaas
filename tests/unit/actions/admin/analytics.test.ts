@@ -470,5 +470,248 @@ describe("admin analytics", () => {
         expect(result.error).toBe("Failed to get analytics");
       });
     });
+  describe("MRR Movement calculation", () => {
+    describe("New MRR", () => {
+      it("calculates new MRR for subscriptions created this month", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        const now = new Date();
+        const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+        // Active subscriptions (for overall MRR)
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        // New subscriptions this month (second call)
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: "price_plus_monthly", status: "ACTIVE" },
+          { stripePriceId: "price_pro_monthly", status: "TRIALING" },
+        ]);
+
+        // Churned subscriptions (third call)
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // New MRR = 19 (PLUS) + 99 (PRO) = 118
+          expect(result.data.mrrMovement.new).toBe(118);
+        }
+
+        // Verify findMany was called with correct date range
+        expect(mockDb.subscription.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              createdAt: expect.objectContaining({
+                gte: expect.any(Date),
+                lt: expect.any(Date),
+              }),
+              status: { in: ["ACTIVE", "TRIALING"] },
+            }),
+          })
+        );
+      });
+
+      it("excludes subscriptions created in previous months", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        // Active subscriptions (overall MRR)
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: "price_plus_monthly", status: "ACTIVE" },
+        ]);
+
+        // New subscriptions this month (none)
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        // Churned subscriptions
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.mrrMovement.new).toBe(0);
+        }
+      });
+
+      it("handles null stripePriceId in new subscriptions", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        // New subscriptions with null priceId (FREE plan)
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: null, status: "ACTIVE" },
+          { stripePriceId: "price_plus_monthly", status: "ACTIVE" },
+        ]);
+
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // Only counts the PLUS subscription
+          expect(result.data.mrrMovement.new).toBe(19);
+        }
+      });
+    });
+
+    describe("Churned MRR", () => {
+      it("calculates churned MRR for subscriptions canceled this month", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        // Churned subscriptions this month
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: "price_plus_monthly", status: "CANCELED" },
+          { stripePriceId: "price_pro_monthly", status: "CANCELED" },
+        ]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          // Churned MRR = 19 (PLUS) + 99 (PRO) = 118
+          expect(result.data.mrrMovement.churned).toBe(118);
+        }
+
+        // Verify findMany was called with correct filters
+        expect(mockDb.subscription.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              status: "CANCELED",
+              updatedAt: expect.objectContaining({
+                gte: expect.any(Date),
+                lt: expect.any(Date),
+              }),
+            }),
+          })
+        );
+      });
+
+      it("returns 0 churned MRR when no cancellations this month", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.mrrMovement.churned).toBe(0);
+        }
+      });
+    });
+
+    describe("Net MRR Movement", () => {
+      it("calculates net MRR correctly (new - churned)", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        // New: +$118
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: "price_plus_monthly", status: "ACTIVE" },
+          { stripePriceId: "price_pro_monthly", status: "ACTIVE" },
+        ]);
+
+        // Churned: -$19
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: "price_plus_monthly", status: "CANCELED" },
+        ]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.mrrMovement.new).toBe(118);
+          expect(result.data.mrrMovement.churned).toBe(19);
+          // Net = 118 - 19 = 99
+          expect(result.data.mrrMovement.net).toBe(99);
+        }
+      });
+
+      it("handles negative net MRR (more churn than new)", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        // New: +$19
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: "price_plus_monthly", status: "ACTIVE" },
+        ]);
+
+        // Churned: -$99
+        mockDb.subscription.findMany.mockResolvedValueOnce([
+          { stripePriceId: "price_pro_monthly", status: "CANCELED" },
+        ]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.mrrMovement.new).toBe(19);
+          expect(result.data.mrrMovement.churned).toBe(99);
+          // Net = 19 - 99 = -80
+          expect(result.data.mrrMovement.net).toBe(-80);
+        }
+      });
+    });
+
+    describe("Expansion and Contraction MRR", () => {
+      it("returns 0 for expansion and contraction (future enhancement)", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+        mockDb.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+        mockDb.subscription.findMany.mockResolvedValueOnce([]);
+
+        mockDb.subscription.groupBy.mockResolvedValue([]);
+        mockDb.$queryRaw.mockResolvedValue([]);
+
+        const result = await getAdminAnalytics();
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.mrrMovement.expansion).toBe(0);
+          expect(result.data.mrrMovement.contraction).toBe(0);
+        }
+      });
+    });
   });
+});
 });
