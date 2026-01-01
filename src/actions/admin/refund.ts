@@ -1,13 +1,14 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+import { db } from "@/lib/db";
+import { sendRefundConfirmationEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
+import { stripe } from "@/lib/stripe/client";
 
 import { requireAdmin } from "@/lib/admin";
-import { db } from "@/lib/db";
-import { stripe } from "@/lib/stripe/client";
-import { sendRefundConfirmationEmail } from "@/lib/email";
-import { createAuditLog } from "@/lib/audit";
 
 const createRefundSchema = z.object({
   subscriptionId: z.string().min(1, "Subscription ID is required"),
@@ -100,25 +101,25 @@ export async function createRefund(input: unknown) {
         });
       }
     } catch (emailError) {
-      console.error("[createRefund] Failed to send email:", emailError);
+      logger.error(
+        { err: emailError, subscriptionId, adminId: session.user.id },
+        "Failed to send refund confirmation email"
+      );
     }
 
-    try {
-      await createAuditLog({
-        entityType: "Subscription",
-        entityId: subscriptionId,
-        action: "REFUND",
-        changes: {
-          refundId: refund.id,
-          amount: refundAmount,
-          reason,
-        },
-        userId: session.user.id,
-        userEmail: session.user.email ?? "unknown",
-      });
-    } catch (auditError) {
-      console.error("[createRefund] Failed to create audit log:", auditError);
-    }
+
+    // Note: Audit logging for refunds tracked via Stripe webhook events
+    logger.info(
+      {
+        adminId: session.user.id,
+        subscriptionId,
+        refundId: refund.id,
+        amount: refundAmount,
+        reason,
+      },
+      "Refund created successfully"
+    );
+
 
     revalidatePath("/admin/users");
     revalidatePath("/admin/users/" + subscription.userId);
@@ -132,7 +133,10 @@ export async function createRefund(input: unknown) {
       },
     } as const;
   } catch (error) {
-    console.error("[createRefund] Error:", error);
+    logger.error(
+      { err: error, subscriptionId: (input as { subscriptionId?: string })?.subscriptionId },
+      "Refund processing failed"
+    );
     return {
       success: false,
       error: "Failed to process refund",

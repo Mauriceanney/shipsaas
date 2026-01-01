@@ -94,6 +94,10 @@ import {
   type PaymentRecoveryEmailProps,
 } from "./payment-recovery";
 import {
+  RefundConfirmationEmail,
+  type RefundConfirmationEmailProps,
+} from "./refund-confirmation";
+import {
   SubscriptionCancelledEmail,
   type SubscriptionCancelledEmailProps,
 } from "./subscription-cancelled";
@@ -110,7 +114,6 @@ import {
   type VerifyEmailTemplateProps,
 } from "./verify-email";
 import { WelcomeEmail, type WelcomeEmailProps } from "./welcome";
-
 // ============================================
 // RENDER FUNCTIONS
 // ============================================
@@ -337,10 +340,6 @@ export {
   type RefundConfirmationEmailProps,
 } from "./refund-confirmation";
 
-import {
-  RefundConfirmationEmail,
-  type RefundConfirmationEmailProps,
-} from "./refund-confirmation";
 
 export async function renderRefundConfirmationEmail(
   props: RefundConfirmationEmailProps

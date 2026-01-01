@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { rateLimiters } from "@/lib/rate-limit";
 import { stripe } from "@/lib/stripe";
 
@@ -14,9 +15,10 @@ import type { Result } from "@/types";
  * Finds the latest unpaid invoice and attempts to pay it
  */
 export async function retryPaymentAction(): Promise<Result<void, string>> {
+  let session;
   try {
     // 1. Authentication
-    const session = await auth();
+    session = await auth();
     if (!session?.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
@@ -68,6 +70,7 @@ export async function retryPaymentAction(): Promise<Result<void, string>> {
       return { success: true, data: undefined };
     } catch (error) {
       // Handle Stripe payment errors gracefully
+      logger.error({ err: error, userId: session.user.id }, "Payment retry failed");
       if (error instanceof Error) {
         // Don't expose internal Stripe errors
         return {
@@ -78,7 +81,7 @@ export async function retryPaymentAction(): Promise<Result<void, string>> {
       return { success: false, error: "Payment failed" };
     }
   } catch (error) {
-    console.error("[retryPaymentAction]", error);
+    logger.error({ err: error, userId: session?.user?.id }, "Payment retry failed");
     return { success: false, error: "Failed to retry payment" };
   }
 }
