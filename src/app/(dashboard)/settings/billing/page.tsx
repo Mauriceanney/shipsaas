@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ManageSubscriptionButton, SubscriptionStatus, UsageMeter } from "@/components/billing";
+import { ManageSubscriptionButton, SubscriptionStatus, UsageMeter, PaymentHistory } from "@/components/billing";
 import { UpgradeBanner } from "@/components/feature-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,21 +110,13 @@ export default async function BillingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Billing History</CardTitle>
+          <CardTitle>Payment History</CardTitle>
           <CardDescription>
             View and download your past invoices
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {hasActiveSubscription ? (
-            <p className="text-sm text-muted-foreground">
-              Click &quot;Manage Subscription&quot; to view your billing history and download invoices.
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No billing history yet. Subscribe to a plan to get started.
-            </p>
-          )}
+          <PaymentHistory />
         </CardContent>
       </Card>
     </div>
