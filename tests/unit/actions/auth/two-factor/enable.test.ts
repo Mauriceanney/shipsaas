@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted to properly hoist the mock functions
-const { mockAuth, mockFindUnique, mockUpdate, mockVerifyTOTP, mockGenerateBackupCodes, mockFormatBackupCodes } = vi.hoisted(() => ({
+const { mockAuth, mockFindUnique, mockUpdate, mockVerifyTOTP, mockGenerateBackupCodes, mockFormatBackupCodes, mockRevalidatePath } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockFindUnique: vi.fn(),
   mockUpdate: vi.fn(),
   mockVerifyTOTP: vi.fn(),
   mockGenerateBackupCodes: vi.fn(),
   mockFormatBackupCodes: vi.fn(),
+  mockRevalidatePath: vi.fn(),
 }));
 
 // Mock the auth module
@@ -23,6 +24,11 @@ vi.mock("@/lib/db", () => ({
       update: mockUpdate,
     },
   },
+}));
+
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: mockRevalidatePath,
 }));
 
 // Mock two-factor library

@@ -5,7 +5,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Hoist mocks for vitest
-const { mockAuth, mockDbSubscription, mockStripeInvoices } = vi.hoisted(
+const { mockAuth, mockDbSubscription, mockStripeInvoices, mockRevalidatePath } = vi.hoisted(
   () => ({
     mockAuth: vi.fn(),
     mockDbSubscription: {
@@ -15,10 +15,15 @@ const { mockAuth, mockDbSubscription, mockStripeInvoices } = vi.hoisted(
       list: vi.fn(),
       pay: vi.fn(),
     },
+    mockRevalidatePath: vi.fn(),
   })
 );
 
 // Mock auth
+vi.mock("next/cache", () => ({
+  revalidatePath: mockRevalidatePath,
+}));
+
 vi.mock("@/lib/auth", () => ({
   auth: mockAuth,
 }));

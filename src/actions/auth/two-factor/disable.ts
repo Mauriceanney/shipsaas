@@ -1,5 +1,7 @@
 "use server";
 
+
+import { revalidatePath } from "next/cache";
 import { trackServerEvent, AUTH_EVENTS } from "@/lib/analytics";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -91,6 +93,9 @@ export async function disableTwoFactorAction(
 
     // Track 2FA disabled event
     trackServerEvent(session.user.id, AUTH_EVENTS.TWO_FACTOR_DISABLED);
+
+    // Revalidate security settings page
+    revalidatePath("/dashboard/security");
 
     return { success: true };
   } catch (error) {

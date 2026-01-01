@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 /**
  * Admin Bulk Actions
  * Server actions for performing operations on multiple users at once
@@ -108,6 +110,9 @@ export async function bulkDisableUsers(
       }
     });
 
+    // Revalidate admin users page
+    revalidatePath("/admin/users");
+
     return { success: true, data: result };
   } catch (error) {
     console.error("[bulkDisableUsers]", error);
@@ -201,6 +206,9 @@ export async function bulkEnableUsers(
       }
     });
 
+    // Revalidate admin users page
+    revalidatePath("/admin/users");
+
     return { success: true, data: result };
   } catch (error) {
     console.error("[bulkEnableUsers]", error);
@@ -292,6 +300,9 @@ export async function bulkChangeUserRole(
         }
       }
     });
+
+    // Revalidate admin users page
+    revalidatePath("/admin/users");
 
     return { success: true, data: result };
   } catch (error) {
