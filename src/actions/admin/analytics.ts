@@ -154,7 +154,15 @@ export async function getAdminAnalytics() {
           : 12; // Default to 12 months if no churn
         const ltv = arpu * avgLifetimeMonths;
 
-        // Get signup trends (last 12 months)
+        /**
+         * SECURITY: Raw SQL query for signup trends.
+         * - Uses $queryRaw with template literal for PostgreSQL-specific TO_CHAR function
+         * - All values are parameterized by Prisma (no string interpolation)
+         * - Table and column names are hard-coded (never dynamic)
+         * - No user input is incorporated in query structure
+         * - OWASP A03:2021 - Injection: Mitigated via parameterization
+         * @see https://www.prisma.io/docs/orm/prisma-client/using-raw-sql/raw-queries#sql-injection
+         */
         const signupTrends = await db.$queryRaw<
           Array<{ month: string; count: bigint }>
         >`
