@@ -38,7 +38,7 @@ export function MarketingMobileNav({ isAuthenticated }: MarketingMobileNavProps)
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>
 
-        <nav className="mt-6 flex flex-col gap-4">
+        <nav aria-label="Mobile navigation" className="mt-6 flex flex-col gap-4">
           <Link
             href="/pricing"
             onClick={() => setOpen(false)}

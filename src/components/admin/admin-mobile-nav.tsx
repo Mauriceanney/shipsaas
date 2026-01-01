@@ -88,7 +88,7 @@ export function AdminMobileNav() {
         </SheetHeader>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav aria-label="Admin mobile navigation" className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -105,7 +105,7 @@ export function AdminMobileNav() {
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                <Icon className={ICON_SIZES.md} />
+                <Icon className={ICON_SIZES.md} aria-hidden="true" />
                 <span>{item.title}</span>
               </Link>
             );

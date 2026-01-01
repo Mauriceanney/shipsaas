@@ -105,7 +105,7 @@ export function MobileNav({ user, subscription }: MobileNavProps) {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav aria-label="Mobile navigation" className="flex-1 p-4 space-y-1">
           {mainNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
@@ -122,7 +122,7 @@ export function MobileNav({ user, subscription }: MobileNavProps) {
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                <Icon className={ICON_SIZES.md} />
+                <Icon className={ICON_SIZES.md} aria-hidden="true" />
                 <span>{item.title}</span>
               </Link>
             );
