@@ -1,14 +1,14 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-
-import type { listCouponsAction } from "@/actions/admin/coupon";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableColumnHeader } from "@/components/ui/data-table/data-table-column-header";
 
 import { CouponActions } from "./coupon-actions";
+
+import type { listCouponsAction } from "@/actions/admin/coupon";
+import type { ColumnDef } from "@tanstack/react-table";
 
 type Coupon = Awaited<ReturnType<typeof listCouponsAction>>[number];
 

@@ -1,9 +1,9 @@
 "use client";
 
-import type { ColumnDef, OnChangeFn, RowSelectionState } from "@tanstack/react-table";
 import { Users } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
+
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import type { Role } from "@prisma/client";
+import type { ColumnDef, OnChangeFn, RowSelectionState } from "@tanstack/react-table";
 
 export type UserForTable = {
   id: string;

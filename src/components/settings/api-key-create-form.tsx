@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Check, Info } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useRef } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { createApiKey } from "@/actions/api-keys";
@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CharacterCount } from "@/components/ui/character-count";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -42,7 +43,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CharacterCount } from "@/components/ui/character-count";
 import {
   createApiKeySchema,
   type CreateApiKeyInput,
