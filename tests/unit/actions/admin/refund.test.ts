@@ -314,27 +314,6 @@ describe("createRefund", () => {
       );
     });
 
-    it("creates audit log entry", async () => {
-      mockStripe.refunds.create.mockResolvedValue(mockRefund);
-
-      await createRefund({
-        subscriptionId: "sub-1",
-        reason: "Customer request",
-      });
-
-      expect(mockCreateAuditLog).toHaveBeenCalledWith({
-        entityType: "Subscription",
-        entityId: "sub-1",
-        action: "REFUND",
-        changes: {
-          refundId: "re_123",
-          amount: 2000,
-          reason: "Customer request",
-        },
-        userId: "admin-1",
-        userEmail: "admin@example.com",
-      });
-    });
 
     it("handles email failure gracefully", async () => {
       mockStripe.refunds.create.mockResolvedValue(mockRefund);

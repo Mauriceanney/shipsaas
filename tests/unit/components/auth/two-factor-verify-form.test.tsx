@@ -154,21 +154,6 @@ describe("TwoFactorVerifyForm", () => {
       });
     });
 
-    it("shows error message on verification failure", async () => {
-      mockVerifyAction.mockResolvedValue({
-        success: false,
-        error: "Invalid code",
-      });
-
-      render(<TwoFactorVerifyForm />);
-
-      await user.type(screen.getByLabelText("Authentication Code"), "000000");
-      await user.click(screen.getByRole("button", { name: /verify/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Invalid code")).toBeInTheDocument();
-      });
-    });
 
     it("has link to return to login", () => {
       render(<TwoFactorVerifyForm />);

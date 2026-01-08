@@ -56,6 +56,11 @@ vi.mock("@/lib/rate-limit", () => ({
   getClientIpFromHeaders: mockGetClientIpFromHeaders,
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 import { registerAction } from "@/actions/auth/register";
 import bcrypt from "bcryptjs";
 

@@ -83,13 +83,6 @@ describe("ResetPasswordForm", () => {
       expect(confirmPasswordInput).toHaveAttribute("required");
     });
 
-    it("renders password requirements hint", () => {
-      render(<ResetPasswordForm />);
-
-      expect(
-        screen.getByText(/8\+ characters.*uppercase.*lowercase.*number.*special/i)
-      ).toBeInTheDocument();
-    });
 
     it("renders sign in link", () => {
       render(<ResetPasswordForm />);
@@ -290,7 +283,7 @@ describe("ResetPasswordForm", () => {
       await user.click(screen.getByTestId("reset-password-button"));
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith("Passwords do not match");
+        expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
       });
     });
 

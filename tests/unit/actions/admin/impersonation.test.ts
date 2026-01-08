@@ -52,6 +52,12 @@ vi.mock("next/headers", () => ({
   headers: mockHeaders,
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+
 import { startImpersonation, endImpersonation, getImpersonationStatus } from "@/actions/admin/impersonation";
 
 describe("startImpersonation", () => {

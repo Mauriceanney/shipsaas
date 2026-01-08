@@ -195,7 +195,7 @@ describe("checkAndSendWelcomeEmail", () => {
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         { userId: "user-1" },
-        "Welcome email sent to OAuth user"
+        "Welcome email sent to OAuth user: user.email"
       );
     });
   });

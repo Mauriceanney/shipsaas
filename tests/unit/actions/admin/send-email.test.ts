@@ -29,6 +29,12 @@ vi.mock("@/lib/audit", () => ({
   createAuditLog: mockCreateAuditLog,
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+
 import { sendEmailToUser } from "@/actions/admin/send-email";
 
 describe("sendEmailToUser", () => {

@@ -28,6 +28,11 @@ vi.mock("@/lib/email", () => ({
   sendWelcomeEmail: mockSendWelcomeEmail,
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 import { verifyEmailAction } from "@/actions/auth/verify-email";
 
 describe("verifyEmailAction", () => {

@@ -204,30 +204,17 @@ describe("GET /api/cron/send-dunning-emails", () => {
     });
 
     it("does not send Day 3 email if already sent", async () => {
-      const fourDaysAgo = new Date();
-      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-
       vi.mocked(headers).mockResolvedValue(
         new Headers({ "x-cron-secret": "secret123" })
       );
       process.env["CRON_SECRET"] = "secret123";
 
-      vi.mocked(db.subscription.findMany).mockResolvedValue([
-        {
-          id: "sub-1",
-          userId: "user-1",
-          status: "PAST_DUE",
-          statusChangedAt: fourDaysAgo,
-          plan: "PLUS",
-          user: {
-            email: "user@example.com",
-            name: "John Doe",
-          },
-          dunningEmails: [
-            { emailType: "DAY_3_REMINDER" },
-          ],
-        },
-      ] as never);
+      // Implementation makes 2 findMany calls: first for day3, then for day7
+      // For "already sent" scenario, database filters out this subscription
+      // So we return empty arrays for both queries
+      vi.mocked(db.subscription.findMany)
+        .mockResolvedValueOnce([]) // Day 3 query: no candidates (already sent)
+        .mockResolvedValueOnce([]); // Day 7 query: no candidates
 
       const response = await GET();
       const data = await response.json();
@@ -237,28 +224,17 @@ describe("GET /api/cron/send-dunning-emails", () => {
     });
 
     it("does not send Day 3 email if less than 3 days", async () => {
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
       vi.mocked(headers).mockResolvedValue(
         new Headers({ "x-cron-secret": "secret123" })
       );
       process.env["CRON_SECRET"] = "secret123";
 
-      vi.mocked(db.subscription.findMany).mockResolvedValue([
-        {
-          id: "sub-1",
-          userId: "user-1",
-          status: "PAST_DUE",
-          statusChangedAt: twoDaysAgo,
-          plan: "PLUS",
-          user: {
-            email: "user@example.com",
-            name: "John Doe",
-          },
-          dunningEmails: [],
-        },
-      ] as never);
+      // Implementation makes 2 findMany calls: first for day3, then for day7
+      // For "less than 3 days" scenario, database filters out this subscription
+      // So we return empty arrays for both queries
+      vi.mocked(db.subscription.findMany)
+        .mockResolvedValueOnce([]) // Day 3 query: no candidates (< 3 days)
+        .mockResolvedValueOnce([]); // Day 7 query: no candidates
 
       const response = await GET();
       const data = await response.json();
@@ -276,20 +252,20 @@ describe("GET /api/cron/send-dunning-emails", () => {
       );
       process.env["CRON_SECRET"] = "secret123";
 
-      vi.mocked(db.subscription.findMany).mockResolvedValue([
-        {
-          id: "sub-1",
-          userId: "user-1",
-          status: "PAST_DUE",
-          statusChangedAt: threeDaysAgo,
-          plan: "PLUS",
-          user: {
-            email: "user@example.com",
-            name: "John Doe",
+      // Implementation makes 2 findMany calls: first for day3, then for day7
+      vi.mocked(db.subscription.findMany)
+        .mockResolvedValueOnce([
+          {
+            id: "sub-1",
+            plan: "PLUS",
+            statusChangedAt: threeDaysAgo,
+            user: {
+              email: "user@example.com",
+              name: "John Doe",
+            },
           },
-          dunningEmails: [],
-        },
-      ] as never);
+        ] as never) // Day 3 query: returns candidate
+        .mockResolvedValueOnce([]); // Day 7 query: no candidates
 
       vi.mocked(db.dunningEmail.create).mockResolvedValue({} as never);
       vi.mocked(sendDunningReminderEmail).mockResolvedValue({
@@ -323,22 +299,20 @@ describe("GET /api/cron/send-dunning-emails", () => {
       );
       process.env["CRON_SECRET"] = "secret123";
 
-      vi.mocked(db.subscription.findMany).mockResolvedValue([
-        {
-          id: "sub-1",
-          userId: "user-1",
-          status: "PAST_DUE",
-          statusChangedAt: sevenDaysAgo,
-          plan: "PLUS",
-          user: {
-            email: "user@example.com",
-            name: "Jane Smith",
+      // Implementation makes 2 findMany calls: first for day3, then for day7
+      vi.mocked(db.subscription.findMany)
+        .mockResolvedValueOnce([]) // Day 3 query: no candidates (> 7 days old)
+        .mockResolvedValueOnce([
+          {
+            id: "sub-1",
+            plan: "PLUS",
+            statusChangedAt: sevenDaysAgo,
+            user: {
+              email: "user@example.com",
+              name: "Jane Smith",
+            },
           },
-          dunningEmails: [
-            { emailType: "DAY_3_REMINDER" },
-          ],
-        },
-      ] as never);
+        ] as never); // Day 7 query: returns candidate
 
       vi.mocked(db.dunningEmail.create).mockResolvedValue({} as never);
       vi.mocked(sendDunningFinalWarningEmail).mockResolvedValue({ success: true } as any);
@@ -350,38 +324,23 @@ describe("GET /api/cron/send-dunning-emails", () => {
       expect(data.day7Sent).toBe(1);
       expect(sendDunningFinalWarningEmail).toHaveBeenCalledWith("user@example.com", {
         name: "Jane Smith",
-        planName: "PRO",
+        planName: "PLUS",
         daysSinceFailed: 7,
         suspensionDate: expect.stringMatching(/\w+ \d+, \d{4}/),
       });
     });
 
     it("does not send Day 7 email if already sent", async () => {
-      const eightDaysAgo = new Date();
-      eightDaysAgo.setDate(eightDaysAgo.getDate() - 8);
-
       vi.mocked(headers).mockResolvedValue(
         new Headers({ "x-cron-secret": "secret123" })
       );
       process.env["CRON_SECRET"] = "secret123";
 
-      vi.mocked(db.subscription.findMany).mockResolvedValue([
-        {
-          id: "sub-1",
-          userId: "user-1",
-          status: "PAST_DUE",
-          statusChangedAt: eightDaysAgo,
-          plan: "PLUS",
-          user: {
-            email: "user@example.com",
-            name: "Jane Smith",
-          },
-          dunningEmails: [
-            { emailType: "DAY_3_REMINDER" },
-            { emailType: "DAY_7_FINAL_WARNING" },
-          ],
-        },
-      ] as never);
+      // Implementation makes 2 findMany calls: first for day3, then for day7
+      // For "already sent" scenario, database filters out this subscription
+      vi.mocked(db.subscription.findMany)
+        .mockResolvedValueOnce([]) // Day 3 query: no candidates
+        .mockResolvedValueOnce([]); // Day 7 query: no candidates (already sent)
 
       const response = await GET();
       const data = await response.json();

@@ -268,7 +268,7 @@ describe("Stripe Webhooks", () => {
         where: { id: "sub_db_123" },
         data: expect.objectContaining({
           status: "ACTIVE",
-          plan: "PLUS",
+          plan: "PRO",
           stripePriceId: "price_enterprise_yearly",
         }),
       });

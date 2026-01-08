@@ -48,7 +48,7 @@ const mockProSubscription = {
 };
 
 const mockEnterpriseSubscription = {
-  plan: "PLUS",
+  plan: "PRO",
   status: "ACTIVE",
 };
 

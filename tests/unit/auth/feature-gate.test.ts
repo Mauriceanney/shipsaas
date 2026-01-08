@@ -289,7 +289,7 @@ describe("requirePlan", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toBe("Upgrade to PRO required");
+      expect(result.error).toBe("Upgrade to PLUS required");
     }
   });
 

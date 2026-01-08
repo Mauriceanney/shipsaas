@@ -10,6 +10,12 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+
 import { db } from "@/lib/db";
 import {
   getEmailPreferences,

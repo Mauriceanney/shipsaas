@@ -56,6 +56,11 @@ vi.mock("@/lib/email", () => ({
   sendPasswordChangedEmail: mockSendPasswordChangedEmail,
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 import { resetPasswordAction } from "@/actions/auth/reset-password";
 import bcrypt from "bcryptjs";
 
