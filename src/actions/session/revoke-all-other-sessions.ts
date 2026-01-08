@@ -45,7 +45,7 @@ export async function revokeAllOtherSessions(): Promise<Result> {
     return { success: true, data: { revokedCount: result.count } };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "Failed to revoke other sessions"
     );
     return { success: false, error: "Failed to revoke sessions" };

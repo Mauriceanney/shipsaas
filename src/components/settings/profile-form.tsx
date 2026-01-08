@@ -1,15 +1,15 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { updateProfile } from "@/actions/settings/update-profile";
 import { Button } from "@/components/ui/button";
+import { CharacterCount } from "@/components/ui/character-count";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CharacterCount } from "@/components/ui/character-count";
 import {
   updateProfileSchema,
   type UpdateProfileInput,

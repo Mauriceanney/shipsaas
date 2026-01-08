@@ -65,7 +65,7 @@ export async function getActiveSessions(): Promise<Result> {
     return { success: true, data: sessionsWithCurrent };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "Failed to fetch active sessions"
     );
     return { success: false, error: "Failed to fetch sessions" };

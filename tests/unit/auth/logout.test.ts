@@ -5,6 +5,11 @@ vi.mock("@/lib/auth", () => ({
   signOut: vi.fn(),
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 import { logoutAction } from "@/actions/auth/logout";
 import { signOut } from "@/lib/auth";
 

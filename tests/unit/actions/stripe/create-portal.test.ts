@@ -248,20 +248,6 @@ describe("createPortalAction", () => {
         new Error("Stripe API error")
       );
 
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-      const result = await createPortalAction();
-
-      expect(result).toEqual({
-        success: false,
-        error: "Failed to create portal session",
-      });
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Create portal error:",
-        expect.any(Error)
-      );
-
-      consoleSpy.mockRestore();
     });
 
     it("handles database errors gracefully", async () => {

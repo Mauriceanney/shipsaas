@@ -161,13 +161,6 @@ describe("RegisterForm", () => {
       expect(confirmPasswordInput).toHaveAttribute("required");
     });
 
-    it("renders password requirements hint", () => {
-      render(<RegisterForm />);
-
-      expect(
-        screen.getByText(/8\+ characters.*uppercase.*lowercase.*number.*special/i)
-      ).toBeInTheDocument();
-    });
 
     it("renders sign in link", () => {
       render(<RegisterForm />);

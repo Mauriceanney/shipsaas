@@ -5,11 +5,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-import { PricingTable } from "@/components/pricing/pricing-table";
+// Mock server action BEFORE component import
+vi.mock("@/actions/coupon/validate", () => ({
+  validateCouponAction: vi.fn(),
+}));
 
-import type { PlanConfig } from "@/lib/stripe/types";
-
-// Mock next/navigation
+// Mock next/navigation (override setup.ts if needed)
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -24,6 +25,10 @@ vi.mock("@/lib/stripe/config", () => ({
     PRO: { monthly: 99, yearly: 990 },
   },
 }));
+
+import { PricingTable } from "@/components/pricing/pricing-table";
+
+import type { PlanConfig } from "@/lib/stripe/types";
 
 describe("PricingTable", () => {
   const mockFetch = vi.fn();

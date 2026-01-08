@@ -62,7 +62,7 @@ const mockPlanConfigData: PlanConfig[] = [
   {
     id: "plan_2",
     plan: "PLUS",
-    name: "Pro",
+    name: "Plus",
     description: "Perfect for professionals",
     monthlyPrice: 2900,
     yearlyPrice: 29000,
@@ -76,8 +76,8 @@ const mockPlanConfigData: PlanConfig[] = [
   },
   {
     id: "plan_3",
-    plan: "PLUS",
-    name: "Enterprise",
+    plan: "PRO",
+    name: "Pro",
     description: "For large organizations",
     monthlyPrice: 9900,
     yearlyPrice: 99000,
@@ -291,7 +291,7 @@ describe("Configuration Service", () => {
 
       expect(config).not.toBeNull();
       expect(config?.plan).toBe("PLUS");
-      expect(config?.name).toBe("Pro");
+      expect(config?.name).toBe("Plus");
     });
 
     it("returns null for non-existent plan", async () => {
@@ -534,8 +534,8 @@ describe("Configuration Service", () => {
       expect(mockPlanConfig.createMany).toHaveBeenCalledWith({
         data: expect.arrayContaining([
           expect.objectContaining({ plan: "FREE", name: "Free" }),
+          expect.objectContaining({ plan: "PLUS", name: "Plus" }),
           expect.objectContaining({ plan: "PLUS", name: "Pro" }),
-          expect.objectContaining({ plan: "PLUS", name: "Enterprise" }),
         ]),
       });
     });

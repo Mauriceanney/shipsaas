@@ -81,6 +81,11 @@ vi.mock("@/lib/two-factor", () => ({
   TRUSTED_DEVICE_COOKIE: "trusted_device",
 }));
 
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 import { verifyTwoFactorAction } from "@/actions/auth/two-factor/verify";
 
 describe("verifyTwoFactorAction", () => {

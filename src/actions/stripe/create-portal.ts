@@ -44,7 +44,7 @@ export async function createPortalAction(
     return { success: true, data: { url: portalSession.url } };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "Failed to create Stripe portal session"
     );
     return { success: false, error: "Failed to create portal session" };

@@ -4,19 +4,15 @@
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Mock dependencies
-const mockDb = {
-  subscription: {
-    upsert: vi.fn(),
-    update: vi.fn(),
-    findFirst: vi.fn(),
-  },
-};
-
-const mockUnixToDate = vi.fn((timestamp: number) => new Date(timestamp * 1000));
-
+// Mock dependencies BEFORE imports - proper hoisting
 vi.mock("@/lib/db", () => ({
-  db: mockDb,
+  db: {
+    subscription: {
+      upsert: vi.fn(),
+      update: vi.fn(),
+      findFirst: vi.fn(),
+    },
+  },
 }));
 
 vi.mock("@/lib/stripe/utils", () => ({
@@ -25,17 +21,40 @@ vi.mock("@/lib/stripe/utils", () => ({
   extractSubscriptionId: vi.fn(() => "sub_123"),
   getPlanFromPriceId: vi.fn(() => "PLUS"),
   mapStripeStatus: vi.fn(() => "TRIALING"),
-  unixToDate: mockUnixToDate,
+  unixToDate: vi.fn((timestamp: number) => new Date(timestamp * 1000)),
   validateCheckoutMetadata: vi.fn((metadata) => ({ userId: metadata?.userId })),
 }));
 
-import { handleCheckoutCompleted, handleSubscriptionCreated } from "@/lib/stripe/webhooks";
+vi.mock("@/lib/stripe/client", () => ({
+  stripe: {
+    subscriptions: {
+      retrieve: vi.fn(),
+    },
+  },
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock("@/lib/analytics/server", () => ({
+  trackServerEvent: vi.fn(),
+  SUBSCRIPTION_EVENTS: {
+    TRIAL_STARTED: "subscription.trial_started",
+    TRIAL_ENDED: "subscription.trial_ended",
+    SUBSCRIPTION_CREATED: "subscription.created",
+  },
+}));
+
+// Import after mocks
+import { handleCheckoutCompleted } from "@/lib/stripe/webhooks";
+import { db } from "@/lib/db";
+import { stripe } from "@/lib/stripe/client";
 import type Stripe from "stripe";
 
 describe("Webhook Handlers - Trial Support", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUnixToDate.mockImplementation((timestamp: number) => new Date(timestamp * 1000));
   });
 
   describe("handleCheckoutCompleted", () => {
@@ -60,19 +79,13 @@ describe("Webhook Handlers - Trial Support", () => {
       };
 
       // Mock stripe.subscriptions.retrieve
-      const mockStripe = {
-        subscriptions: {
-          retrieve: vi.fn().mockResolvedValue(subscription),
-        },
-      };
-      
-      vi.mock("@/lib/stripe/client", () => ({
-        stripe: mockStripe,
-      }));
+      vi.mocked(stripe.subscriptions.retrieve).mockResolvedValue(
+        subscription as unknown as Stripe.Response<Stripe.Subscription>
+      );
 
       await handleCheckoutCompleted(session as Stripe.Checkout.Session);
 
-      expect(mockDb.subscription.upsert).toHaveBeenCalledWith(
+      expect(db.subscription.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({
             stripeTrialEnd: new Date(1704067200 * 1000),
@@ -104,19 +117,14 @@ describe("Webhook Handlers - Trial Support", () => {
         } as unknown as Stripe.ApiList<Stripe.SubscriptionItem>,
       };
 
-      const mockStripe = {
-        subscriptions: {
-          retrieve: vi.fn().mockResolvedValue(subscription),
-        },
-      };
-      
-      vi.mock("@/lib/stripe/client", () => ({
-        stripe: mockStripe,
-      }));
+      // Mock stripe.subscriptions.retrieve
+      vi.mocked(stripe.subscriptions.retrieve).mockResolvedValue(
+        subscription as unknown as Stripe.Response<Stripe.Subscription>
+      );
 
       await handleCheckoutCompleted(session as Stripe.Checkout.Session);
 
-      expect(mockDb.subscription.upsert).toHaveBeenCalledWith(
+      expect(db.subscription.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({
             stripeTrialEnd: null,

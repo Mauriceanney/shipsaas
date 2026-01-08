@@ -1,10 +1,12 @@
 "use client";
 
+
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 import { verifyTwoFactorAction } from "@/actions/auth/two-factor";
 import { Button } from "@/components/ui/button";
@@ -12,13 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { asDynamicRoute, navigateAndRefresh } from "@/lib/navigation";
-import {
-  verifyTwoFactorSchema,
-  type VerifyTwoFactorInput,
-} from "@/lib/validations/auth";
 
 // Create a modified schema that doesn't transform the code (for react-hook-form)
-import { z } from "zod";
 const formSchema = z.object({
   code: z
     .string()
@@ -39,7 +36,6 @@ export function TwoFactorVerifyForm() {
   const [useBackupCode, setUseBackupCode] = useState(false);
 
   const {
-    register,
     handleSubmit,
     watch,
     setValue,

@@ -152,7 +152,7 @@ export async function verifyTwoFactorAction(
     return { success: true };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error, userId: input.userId },
       "2FA verification error"
     );
     return { success: false, error: "Verification failed" };

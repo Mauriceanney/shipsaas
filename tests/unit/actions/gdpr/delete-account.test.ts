@@ -32,6 +32,12 @@ vi.mock("@/lib/stripe", () => ({
   },
 }));
 
+
+// Mock next/cache
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 describe("Account Deletion Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();

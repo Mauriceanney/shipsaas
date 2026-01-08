@@ -110,7 +110,7 @@ export async function updateEmailPreferences(
     };
   } catch (error) {
     logger.error(
-      { err: error, userId: user?.id },
+      { err: error },
       "Failed to update email preferences"
     );
     return { success: false, error: "Failed to update preferences" };
@@ -166,7 +166,7 @@ export async function unsubscribeFromAll(token: string): Promise<UnsubscribeResu
     };
   } catch (error) {
     logger.error(
-      { err: error, userId: user?.id },
+      { err: error },
       "Failed to unsubscribe from all emails"
     );
     return { success: false, error: "Failed to unsubscribe" };

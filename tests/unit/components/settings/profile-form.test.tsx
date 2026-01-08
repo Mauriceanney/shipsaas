@@ -203,7 +203,7 @@ describe("ProfileForm", () => {
 
     it("disables button and shows loading state during submission", async () => {
       mockUpdateProfile.mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 100))
+        () => new Promise((resolve) => setTimeout(() => resolve({ success: true, data: { name: "John Doe" } }), 100))
       );
 
       render(<ProfileForm defaultName="John Doe" defaultEmail="john@example.com" isCredentialUser={false} />);

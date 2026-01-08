@@ -50,7 +50,7 @@ export async function revokeSession(input: unknown): Promise<Result> {
     return { success: true };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "Failed to revoke session"
     );
     return { success: false, error: "Failed to revoke session" };
