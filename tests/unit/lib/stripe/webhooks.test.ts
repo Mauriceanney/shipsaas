@@ -80,7 +80,7 @@ describe("Webhook Handlers - Trial Support", () => {
 
       // Mock stripe.subscriptions.retrieve
       vi.mocked(stripe.subscriptions.retrieve).mockResolvedValue(
-        subscription as Stripe.Subscription
+        subscription as unknown as Stripe.Response<Stripe.Subscription>
       );
 
       await handleCheckoutCompleted(session as Stripe.Checkout.Session);
@@ -119,7 +119,7 @@ describe("Webhook Handlers - Trial Support", () => {
 
       // Mock stripe.subscriptions.retrieve
       vi.mocked(stripe.subscriptions.retrieve).mockResolvedValue(
-        subscription as Stripe.Subscription
+        subscription as unknown as Stripe.Response<Stripe.Subscription>
       );
 
       await handleCheckoutCompleted(session as Stripe.Checkout.Session);

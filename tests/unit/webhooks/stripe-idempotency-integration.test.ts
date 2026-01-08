@@ -239,7 +239,7 @@ describe("Webhook Idempotency Unit Tests", () => {
       ];
 
       vi.mocked(db.webhookEvent.createMany).mockResolvedValue({ count: 2 });
-      vi.mocked(db.webhookEvent.findMany).mockResolvedValue([mockEvents[0]]);
+      vi.mocked(db.webhookEvent.findMany).mockResolvedValue([mockEvents[0]!]);
 
       await db.webhookEvent.createMany({
         data: [
@@ -297,7 +297,7 @@ describe("Webhook Idempotency Unit Tests", () => {
       ];
 
       vi.mocked(db.webhookEvent.createMany).mockResolvedValue({ count: 2 });
-      vi.mocked(db.webhookEvent.findMany).mockResolvedValue([mockEvents[1]]);
+      vi.mocked(db.webhookEvent.findMany).mockResolvedValue([mockEvents[1]!]);
 
       await db.webhookEvent.createMany({
         data: [
