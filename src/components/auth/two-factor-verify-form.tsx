@@ -36,7 +36,6 @@ export function TwoFactorVerifyForm() {
   const [useBackupCode, setUseBackupCode] = useState(false);
 
   const {
-    _register,
     handleSubmit,
     watch,
     setValue,

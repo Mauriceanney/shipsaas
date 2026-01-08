@@ -163,7 +163,7 @@ export async function endImpersonation(): Promise<ActionResult<{ redirectUrl: st
     };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "endImpersonation error"
     );
     return { success: false, error: "Failed to end impersonation" };
@@ -217,7 +217,7 @@ export async function getImpersonationStatus(): Promise<
     };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "getImpersonationStatus error"
     );
     return {

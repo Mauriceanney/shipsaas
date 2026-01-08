@@ -87,7 +87,7 @@ export async function regenerateBackupCodesAction(
     };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "Backup code regeneration error"
     );
     return { success: false, error: "Failed to regenerate backup codes" };

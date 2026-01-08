@@ -70,7 +70,7 @@ export async function setupTwoFactorAction(): Promise<SetupResult> {
     };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "2FA setup error"
     );
     return { success: false, error: "Failed to setup two-factor authentication" };

@@ -44,7 +44,7 @@ export async function getLoginHistory(): Promise<Result> {
     return { success: true, data: history };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "Failed to fetch login history"
     );
     return { success: false, error: "Failed to fetch login history" };

@@ -100,7 +100,7 @@ export async function disableTwoFactorAction(
     return { success: true };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "2FA disable error"
     );
     return { success: false, error: "Failed to disable two-factor authentication" };

@@ -98,7 +98,7 @@ export async function enableTwoFactorAction(
     };
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "2FA enable error"
     );
     return { success: false, error: "Failed to enable two-factor authentication" };

@@ -45,7 +45,7 @@ export async function checkAndSendWelcomeEmail(): Promise<void> {
     );
   } catch (error) {
     logger.error(
-      { err: error, userId: session?.user?.id },
+      { err: error },
       "Failed to send welcome email"
     );
     // Don't throw - this is a non-critical operation
