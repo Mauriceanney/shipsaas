@@ -1,0 +1,46 @@
+{
+  "name": "create-ship-saas",
+  "version": "1.0.1",
+  "description": "Scaffold a new ShipSaaS application with Next.js, Better Auth, and AI SDK",
+  "type": "module",
+  "bin": {
+    "create-ship-saas": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "template"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync-templates.js",
+    "prepublishOnly": "npm run sync"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "nextjs",
+    "better-auth",
+    "starter-kit",
+    "boilerplate",
+    "scaffold",
+    "create-app",
+    "saas"
+  ],
+  "author": "Maurice Aney",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mauriceanney/shipsaas.git",
+    "directory": "create-ship-saas"
+  },
+  "homepage": "https://github.com/Mauriceanney/shipsaas#readme",
+  "bugs": {
+    "url": "https://github.com/Mauriceanney/shipsaas/issues"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "ora": "^8.1.1",
+    "prompts": "^2.4.2"
+  }
+}
