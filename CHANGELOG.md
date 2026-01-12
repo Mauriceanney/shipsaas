@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.1] - 2026-01-12
 
 ### Changed
-- Rename npm package from create-ship-saas to create-ship-saas (package name conflict)
-- Rename create-ship-saas directory to create-ship-saas
+- Complete rebrand from agentic-coding-starter to shipsaas
+- Rename CLI package to create-ship-saas
+- Update all branding references to ShipSaaS Boilerplate
+- Update GitHub repository references to Mauriceanney/shipsaas
 
 ## [1.0.0] - 2026-01-12
 
